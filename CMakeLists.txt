@@ -3,4 +3,4 @@ project(spm C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(spm main.c)
+add_executable(spm spm.c)

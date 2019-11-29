@@ -1,3 +1,8 @@
+/**
+ * SPM - Simple Package Manager
+ * @file spm.c
+ */
+
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -21,8 +26,35 @@
 
 #define PKG_DIR "../pkgs"
 
-int shell(char *buf, const char *fmt, ...) {
-    char *buf_orig = buf;
+/**
+ * A wrapper for `popen()` that executes non-interactive programs and reports their exit value.
+ * To redirect stdout and stderr you must do so from within the `fmt` string
+ *
+ * ~~~{.c}
+ * int fd = 1;  // stdout
+ * const char *log_file = "log.txt";
+ * char *buf;
+ * int status;
+ *
+ * // Send stderr to stdout
+ * status = shell(buf, "foo 2>&1");
+ * // Send stdout and stderr to /dev/null
+ * status = shell(buf, "bar &>/dev/null");
+ * // Send stdout from baz to log.txt
+ * status = shell(buf, "baz %d>%s", fd, log_file);
+ * // Do not record or redirect output from any streams
+ * status = shell(NULL, "biff");
+ * ~~~
+ *
+ * @param buf buffer to hold program output (to ignore output, set to NULL)
+ * @param options change behavior of the function
+ * @param fmt shell command to execute (accepts `printf` style formatters)
+ * @param ... variadic arguments (used by `fmt`)
+ * @return shell exit code
+ */
+#define SHELL_DEFAULT 1 << 0
+#define SHELL_OUTPUT 1 << 1
+int shell(char **buf, u_int8_t option, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
@@ -39,22 +71,33 @@ int shell(char *buf, const char *fmt, ...) {
         exit(errno);
     }
 
-    vsnprintf(cmd, sizeof(outbuf), fmt, args);
+    vsnprintf(cmd, PATH_MAX, fmt, args);
 
     proc = popen(cmd, "r");
     if (!proc) {
         return status;
     }
 
-    if (buf != NULL) {
+    size_t bytes_read = 0;
+    size_t i = 0;
+    size_t new_buf_size = 0;
+    if (option & SHELL_OUTPUT) {
+        *buf = (char *)calloc(BUFSIZ, sizeof(char));
+
         while (!feof(proc)) {
             *outbuf = fgetc(proc);
-            if (isascii(*outbuf)) {
-                *buf = *outbuf;
+
+            if (i >= BUFSIZ) {
+                new_buf_size = BUFSIZ + (i + bytes_read);
+                (*buf) = (char *)realloc((*buf), new_buf_size);
+                i = 0;
             }
-            buf++;
+            if (isascii(*outbuf)) {
+                (*buf)[bytes_read] = *outbuf;
+            }
+            bytes_read++;
+            i++;
         }
-        buf = buf_orig;
     }
     status = pclose(proc);
     va_end(args);
@@ -82,11 +125,23 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
 };
  */
 
+/**
+ * glob callback function
+ * @param epath path to file that generated the error condition
+ * @param eerrno the error condition
+ * @return the error condition
+ */
 int errglob(const char *epath, int eerrno) {
     fprintf(stderr, "glob matching error: %s (%d)", epath, eerrno);
     return eerrno;
 }
 
+/**
+ * Determine how many times the character `ch` appears in `sptr` string
+ * @param sptr string to scan
+ * @param ch character to find
+ * @return count of characters found
+ */
 int num_chars(const char *sptr, int ch) {
     int result = 0;
     for (int i = 0; sptr[i] != '\0'; i++) {
@@ -97,6 +152,13 @@ int num_chars(const char *sptr, int ch) {
     return result;
 }
 
+/**
+ * Scan for `pattern` string at the beginning of `sptr`
+ *
+ * @param sptr string to scan
+ * @param pattern string to search for
+ * @return 0 = success, -1 = failure
+ */
 int startswith(const char *sptr, const char *pattern) {
     for (int i = 0; i < strlen(pattern); i++) {
         if (sptr[i] != pattern[i]) {
@@ -106,6 +168,13 @@ int startswith(const char *sptr, const char *pattern) {
     return 0;
 }
 
+/**
+ * Scan for `pattern` string at the end of `sptr`
+ *
+ * @param sptr string to scan
+ * @param pattern string to search for
+ * @return 0 = success, -1 = failure
+ */
 int endswith(const char *sptr, const char *pattern) {
     size_t sptr_size = strlen(sptr);
     size_t pattern_size = strlen(pattern);
@@ -117,8 +186,17 @@ int endswith(const char *sptr, const char *pattern) {
     return 0;
 }
 
+/**
+ * Converts Win32 path to Unix path, and vice versa
+ *  - On UNIX, Win32 paths will be converted UNIX
+ *  - On Win32, UNIX paths will be converted to Win32
+ *
+ * This function is platform dependent.
+ *
+ * @param path a system path
+ * @return string (caller is responsible for `free`ing memory)
+ */
 char *normpath(const char *path) {
-    // Convert Win32 path to Unix path, and vice-versa
     char *result = strdup(path);
     char *tmp = result;
 
@@ -134,27 +212,31 @@ char *normpath(const char *path) {
 }
 
 /**
- * This function scans `sptr` from right to left removing any matches to `suffix` from `sptr`
+ * This function scans `sptr` from right to left removing any matches to `suffix`
+ * from the string.
  *
  * @param sptr string to be modified
  * @param suffix string to be removed from `sptr`
  */
 void strip(char *sptr, const char *suffix) {
-    size_t sptr_len = strlen(sptr);                     //!< length of sptr
-    size_t suffix_len = strlen(suffix);                 //!< length of suffix
-    intptr_t target_offset = sptr_len - suffix_len;     //!< offset to possible suffix
+    if (!sptr || !suffix) {
+        return;
+    }
+    size_t sptr_len = strlen(sptr);
+    size_t suffix_len = strlen(suffix);
+    intptr_t target_offset = sptr_len - suffix_len;
 
     // Prevent access to memory below input string
     if (target_offset < 0) {
         return;
     }
 
-    // Create a pointer to where the suffix should be
-    char *target = sptr + target_offset;                //!< pointer to possible suffix
+    // Create a pointer to
+    char *target = sptr + target_offset;
     if (!strcmp(target, suffix)) {
         // Purge the suffix
         memset(target, '\0', suffix_len);
-        // Recursive call continues removing suffix until they are gone
+        // Recursive call continues removing suffix until it is gone
         strip(sptr, suffix);
     }
 }
@@ -162,7 +244,7 @@ void strip(char *sptr, const char *suffix) {
 /**
  * Deletes any characters matching `chars` from `sptr` string
  *
- * @param s string to be modified in-place
+ * @param sptr string to be modified in-place
  * @param chars a string containing characters (e.g. " \n" would delete whitespace and line feeds)
  */
 void strchrdel(char *sptr, const char *chars) {
@@ -253,8 +335,7 @@ int main() {
     const char *testpath = "x:\\a\\b\\c";
     const char *teststring = "this is test!";
     char *normalized = normpath(testpath);
-    char buf[10240];
-    memset(buf, 0, sizeof(buf));
+    char *buf = NULL;
 
     printf("%s becomes %s\n", testpath, normalized);
     printf("%d\n", startswith(testpath, "x:\\"));
@@ -262,7 +343,7 @@ int main() {
     //tar_extract_file("one", "two", testpath);
 
     int retval = -1;
-    retval = shell(buf, "env");
+    retval = shell(&buf, SHELL_OUTPUT, "env; env; env; env; env; env; env; env");
     strip(buf, "\n");
     printf("%s\n", buf);
 
