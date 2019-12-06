@@ -16,8 +16,6 @@
 #include "config.h"
 #include "spm.h"
 
-
-
 /**
  * A wrapper for `popen()` that executes non-interactive programs and reports their exit value.
  * To redirect stdout and stderr you must do so from within the `fmt` string

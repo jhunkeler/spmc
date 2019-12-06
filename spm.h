@@ -44,8 +44,6 @@ char *substring_between(char *sptr, const char *delims);
 int has_rpath(const char *filename);
 char *get_rpath(const char *filename);
 
-
-
 // config.c
 #define CONFIG_BUFFER_SIZE 1024
 
@@ -61,8 +59,5 @@ int isquoted(char *sptr);
 Config **config_read(const char *filename);
 void config_free(Config **config);
 void config_test(void);
-
-
-
 
 #endif //SPM_SPM_H

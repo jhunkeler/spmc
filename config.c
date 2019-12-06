@@ -1,9 +1,11 @@
+/**
+ * @file config.c
+ */
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "spm.h"
-
 
 /// Remove leading whitespace from a string
 /// \param sptr pointer to string
