@@ -1,0 +1,6 @@
+#ifndef SPM_CONFIG_IN_H
+#define SPM_CONFIG_IN_H
+
+#cmakedefine HAVE_STRSEP 1
+
+#endif //SPM_CONFIG_IN_H
