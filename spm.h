@@ -1,6 +1,19 @@
 #ifndef SPM_SPM_H
 #define SPM_SPM_H
 
+#include <ctype.h>
+#include <errno.h>
+#include <glob.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+
+#include "config.h"
+
 // spm.c
 #define SYSERROR stderr, "%s:%s:%d: %s\n", __FILE__, __FUNCTION__, __LINE__, strerror(errno)
 #define DIRSEP_WIN32 '\\'

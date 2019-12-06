@@ -3,17 +3,6 @@
  * @file spm.c
  */
 
-#include <ctype.h>
-#include <errno.h>
-#include <glob.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include "config.h"
 #include "spm.h"
 
 /**
