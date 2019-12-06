@@ -144,7 +144,6 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
 
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
-        printf("%s\n", proc->output);
         fprintf(SYSERROR);
         return -1;
     }
@@ -257,16 +256,38 @@ void strchrdel(char *sptr, const char *chars) {
     }
 }
 
-int64_t strchroff(char *sptr, int ch) {
-    char *tmp = sptr;
+/**
+ * Find the integer offset of the first occurrence of `ch` in `sptr`
+ *
+ * ~~~{.c}
+ * char buffer[255];
+ * char string[] = "abc=123";
+ * long int separator_offset = strchroff(string, '=');
+ * for (long int i = 0; i < separator_offset); i++) {
+ *     buffer[i] = string[i];
+ * }
+ * ~~~
+ *
+ * @param sptr string to scan
+ * @param ch character to find
+ * @return offset to character in string, or 0 on failure
+ */
+long int strchroff(const char *sptr, int ch) {
+    char *orig = strdup(sptr);
+    char *tmp = orig;
+    long int result = 0;
     while (*tmp != '\0') {
         if (*tmp == ch) {
-            return tmp - sptr;
+            break;
         }
         tmp++;
     }
-    return -1;
+    result = tmp - orig;
+    free(orig);
+
+    return result;
 }
+
 /**
  * This function scans `sptr` from right to left removing any matches to `suffix`
  * from the string.
@@ -297,6 +318,13 @@ void substrdel(char *sptr, const char *suffix) {
     }
 }
 
+/**
+ * Scan a directory for a file by name, or by wildcard
+ *
+ * @param root directory path to scan
+ * @param filename file to find (wildcards accepted)
+ * @return success=path to file, failure=NULL
+ */
 char *find_file(const char *root, const char *filename) {
     glob_t results;
     int glob_flags = 0;
@@ -355,29 +383,49 @@ char *find_file(const char *root, const char *filename) {
     return path;
 }
 
+/**
+ * Scan the package directory for a package by name
+ * @param filename file to find
+ * @return success=path to file, failure=NULL
+ */
 char *find_package(const char *filename) {
     return find_file(PKG_DIR, filename);
 }
 
+/**
+ * Split a string by every delimiter in `delim` string.
+ *
+ * Callee must free memory using `split_free()`
+ *
+ * @param sptr string to split
+ * @param delim characters to split on
+ * @return success=parts of string, failure=NULL
+ */
 char** split(char *sptr, const char* delim)
 {
     int split_alloc = 0;
+    // Determine how many delimiters are present
     for (int i = 0; i < strlen(delim); i++) {
         split_alloc += num_chars(sptr, delim[i]);
     }
+    // Preallocate enough records based on the number of delimiters
     char **result = (char **)calloc(split_alloc + 2, sizeof(char *));
 
+    // Separate the string into individual parts and store them in the result array
     int i = 0;
-    //char *token = strsep(&sptr, delim);
     char *token = NULL;
     while((token = strsep(&sptr, delim)) != NULL) {
         result[i] = (char *)calloc(1, sizeof(char) * strlen(token) + 1);
-        strcpy(result[i], token);
-        i++;
+        strcpy(result[i], token);   // copy the string contents into the record
+        i++;    // next record
     }
     return result;
 }
 
+/**
+ * Frees memory allocated by `split()`
+ * @param ptr pointer to array
+ */
 void split_free(char **ptr) {
     for (int i = 0; ptr[i] != NULL; i++) {
         free(ptr[i]);
@@ -385,19 +433,38 @@ void split_free(char **ptr) {
     free(ptr);
 }
 
+/**
+ * Extract the string encapsulated by characters listed in `delims`
+ *
+ * ~~~{.c}
+ * char *str = "this is [some data] in a string";
+ * char *data = substring_between(string, "[]");
+ * // data = "some data";
+ * ~~~
+ *
+ * @param sptr string to parse
+ * @param delims two characters surrounding a string
+ * @return success=text between delimiters, failure=NULL
+ */
 char *substring_between(char *sptr, const char *delims) {
+    // Ensure we have enough delimiters to continue
     int delim_count = strlen(delims);
     if (delim_count != 2) {
         return NULL;
     }
 
+    // Create pointers to the delimiters
     char *start = strpbrk(sptr, &delims[0]);
     char *end = strpbrk(sptr, &delims[1]);
+
+    // Ensure the string has both delimiters
     if (!start || !end) {
         return NULL;
     }
+
     start++;    // ignore leading delimiter
 
+    // Get length of the substring
     long int length = end - start;
 
     char *result = (char *)calloc(1, sizeof(char) * length);
@@ -405,6 +472,7 @@ char *substring_between(char *sptr, const char *delims) {
         return NULL;
     }
 
+    // Copy the contents of the substring to the result
     char *tmp = result;
     while (start != end) {
         *tmp = *start;
@@ -507,9 +575,11 @@ int main(int argc, char *argv[]) {
     // at the moment this will all be random tests, for better or worse
     // everything here is subject to change without notice
 
+    printf("find_package test:\n");
     const char *pkg_name = "python";
     char *package = NULL;
     package = find_package(pkg_name);
+
     if (package != NULL) {
         printf("Package found: %s\n", package);
         free(package);
@@ -520,18 +590,31 @@ int main(int argc, char *argv[]) {
     const char *testpath = "x:\\a\\b\\c";
     const char *teststring = "this is test!";
     const char *testprog = "/tmp/a.out";
-    char *normalized = normpath(testpath);
 
+    printf("normpath test:\n");
+    char *normalized = normpath(testpath);
     printf("%s becomes %s\n", testpath, normalized);
-    printf("%d\n", startswith(testpath, "x:\\"));
-    printf("%d\n", endswith(teststring, "test!"));
     free(normalized);
 
+    printf("startswith test:\n");
+    printf("%d\n", startswith(testpath, "x:\\"));
+    printf("endswith test:\n");
+    printf("%d\n", endswith(teststring, "test!"));
+
+    printf("has_rpath and get_rpath test:\n");
     if ((has_rpath(testprog)) == 0) {
         printf("RPATH found\n");
         char *rpath = get_rpath(testprog);
         printf("RPATH is: %s\n", rpath);
         free(rpath);
     }
+
+    printf("strchroff test:\n");
+    long int off = strchroff(testprog, 'p');
+    printf("off=%ld\n", off);
+    for (int i = 0; i <= off; i++) {
+        printf("%ld: %c\n", i, testprog[i]);
+    }
+
     return 0;
 }

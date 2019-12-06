@@ -34,7 +34,7 @@ int startswith(const char *sptr, const char *pattern);
 int endswith(const char *sptr, const char *pattern);
 char *normpath(const char *path);
 void strchrdel(char *sptr, const char *chars);
-int64_t strchroff(char *sptr, int ch);
+long int strchroff(const char *sptr, int ch);
 void substrdel(char *sptr, const char *suffix);
 char *find_file(const char *root, const char *filename);
 char *find_package(const char *filename);
