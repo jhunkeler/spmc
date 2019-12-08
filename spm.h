@@ -2,6 +2,7 @@
 #define SPM_SPM_H
 
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <glob.h>
 #include <stdio.h>
@@ -11,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "config.h"
 
@@ -28,9 +30,15 @@
 
 #define PKG_DIR "../pkgs"
 
-#define SHELL_DEFAULT 1L << 0L
-#define SHELL_OUTPUT 1L << 1L
-#define SHELL_BENCHMARK 1L << 2L
+#define SHELL_DEFAULT 1 << 0
+#define SHELL_OUTPUT 1 << 1
+#define SHELL_BENCHMARK 1 << 2
+
+typedef struct {
+    int count;
+    char **paths;
+} Dirwalk;
+
 typedef struct {
     struct timespec start_time, stop_time;
     double time_elapsed;
@@ -42,6 +50,7 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...);
 void shell_free(Process *proc_info);
 int tar_extract_file(const char *archive, const char* filename, const char *destination);
 int errglob(const char *epath, int eerrno);
+
 int num_chars(const char *sptr, int ch);
 int startswith(const char *sptr, const char *pattern);
 int endswith(const char *sptr, const char *pattern);
@@ -49,13 +58,25 @@ char *normpath(const char *path);
 void strchrdel(char *sptr, const char *chars);
 long int strchroff(const char *sptr, int ch);
 void substrdel(char *sptr, const char *suffix);
-char *find_file(const char *root, const char *filename);
-char *find_package(const char *filename);
 char** split(char *sptr, const char* delim);
 void split_free(char **ptr);
 char *substring_between(char *sptr, const char *delims);
+static int _strsort_compare(const void *a, const void *b);
+void strsort(char **arr);
+int fstrstr(const char *filename, const char *pattern);
+
+char *find_executable(const char *program);
+char *find_file(const char *root, const char *filename);
+char *find_package(const char *filename);
+
 int has_rpath(const char *filename);
 char *get_rpath(const char *filename);
+void walkdir(char *dirpath, Dirwalk **result);
+char **fstree(const char *path);
+long int get_file_size(const char *filename);
+int mkdirs(const char *_path, mode_t mode);
+
+void check_runtime_environment(void);
 
 // config.c
 #define CONFIG_BUFFER_SIZE 1024

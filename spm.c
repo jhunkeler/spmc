@@ -47,7 +47,8 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
     }
     (*proc_info)->returncode = -1;
 
-    char *outbuf = (char *)calloc(1, sizeof(char));
+    // outbuf needs to be an integer type because fgetc returns EOF (> char)
+    int *outbuf = (int *)calloc(1, sizeof(int));
     if (!outbuf) {
         fprintf(SYSERROR);
         exit(errno);
@@ -92,7 +93,7 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
                 i = 0;
             }
             if (*outbuf) {
-                (*proc_info)->output[bytes_read] = *outbuf;
+                (*proc_info)->output[bytes_read] = (char)*outbuf;
             }
             bytes_read++;
             i++;
@@ -123,22 +124,21 @@ void shell_free(Process *proc_info) {
  */
 int tar_extract_file(const char *archive, const char* filename, const char *destination) {
     Process *proc = NULL;
-    int status = -1;
+    int status;
     char cmd[PATH_MAX];
-    char output[3];
 
     sprintf(cmd, "tar xf %s %s -C %s 2>&1", archive, filename, destination);
-
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
         return -1;
     }
+
     status = proc->returncode;
     shell_free(proc);
 
     return status;
-};
+}
 
 /**
  * glob callback function
@@ -390,9 +390,9 @@ char *find_package(const char *filename) {
  */
 char** split(char *sptr, const char* delim)
 {
-    int split_alloc = 0;
+    size_t split_alloc = 0;
     // Determine how many delimiters are present
-    for (int i = 0; i < strlen(delim); i++) {
+    for (size_t i = 0; i < strlen(delim); i++) {
         split_alloc += num_chars(sptr, delim[i]);
     }
     // Preallocate enough records based on the number of delimiters
@@ -435,7 +435,7 @@ void split_free(char **ptr) {
  */
 char *substring_between(char *sptr, const char *delims) {
     // Ensure we have enough delimiters to continue
-    int delim_count = strlen(delims);
+    size_t delim_count = strlen(delims);
     if (delim_count != 2) {
         return NULL;
     }
@@ -452,9 +452,9 @@ char *substring_between(char *sptr, const char *delims) {
     start++;    // ignore leading delimiter
 
     // Get length of the substring
-    long int length = end - start;
+    size_t length = end - start;
 
-    char *result = (char *)calloc(1, sizeof(char) * length);
+    char *result = (char *)calloc(length + 1, sizeof(char));
     if (!result) {
         return NULL;
     }
@@ -557,10 +557,212 @@ char *get_rpath(const char *filename) {
     return rpath;
 }
 
+void walkdir(char *dirpath, Dirwalk **result) {
+    static int i = 0;
+    static int locked = 0;
+    size_t dirpath_size = strlen(dirpath);
+    const size_t initial_records = 2;
+
+    DIR *dp = opendir(dirpath);
+    if (!dp) {
+        return;
+    }
+
+    if (!locked) {
+        (*result) = (Dirwalk *)reallocarray((*result),1, sizeof(Dirwalk));
+        (*result)->paths = (char **)calloc(initial_records, sizeof(char *));
+        i = 0;
+        locked = 1;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dp)) != NULL) {
+        (*result)->paths = (char **) reallocarray((*result)->paths, (initial_records + i), sizeof(char *));
+        char *name = entry->d_name;
+
+        if (entry->d_type == DT_DIR) {
+            if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+                continue;
+            }
+            dirpath[dirpath_size] = DIRSEP;
+            strcpy(dirpath + dirpath_size + 1, name);
+            walkdir(dirpath, result);
+            dirpath[dirpath_size] = '\0';
+        }
+        else {
+            char path[PATH_MAX];
+            char sep = DIRSEP;
+            int path_size = snprintf(path, PATH_MAX, "%s%c%s", dirpath, sep, entry->d_name);
+            (*result)->paths[i] = (char *) calloc((size_t) (path_size + 1), sizeof(char));
+            strncpy((*result)->paths[i], path, (size_t) path_size);
+            i++;
+        }
+    }
+    (*result)->count = i;
+    (*result)->paths[i] = NULL;
+    closedir(dp);
+    if (!strcmp(dirpath, "..") || !strcmp(dirpath, ".")) {
+        locked = 0;
+    }
+}
+
+char **fstree(const char *path) {
+    Dirwalk *dlist = NULL;
+    char wpath[PATH_MAX];
+    strcpy(wpath, path);
+
+    walkdir(wpath, &dlist);
+    char **result = (char **)calloc((size_t) (dlist->count + 1), sizeof(char *));
+    for (int i = 0; dlist->paths[i] != NULL; i++) {
+        result[i] = (char *)calloc(strlen(dlist->paths[i]) + 1, sizeof(char));
+        memcpy(result[i], dlist->paths[i], strlen(dlist->paths[i]));
+        free(dlist->paths[i]);
+    }
+    strsort(result);
+
+    free(dlist->paths);
+    free(dlist);
+    return result;
+}
+
+static int _strsort_compare(const void *a, const void *b) {
+    const char *aa = *(const char**)a;
+    const char *bb = *(const char**)b;
+    int result = strcmp(aa, bb);
+    return result;
+}
+
+void strsort(char **arr) {
+    size_t arr_size = 0;
+
+    // Determine size of array
+    for (size_t i = 0; arr[i] != NULL; i++) {
+        arr_size = i;
+    }
+    qsort(arr, arr_size, sizeof(char *), _strsort_compare);
+}
+
+long int get_file_size(const char *filename) {
+    long int result = 0;
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        return -1;
+    }
+    fseek(fp, 0, SEEK_END);
+    result = ftell(fp);
+    fclose(fp);
+    return result;
+}
+
+int fstrstr(const char *filename, const char *pattern) {
+    int result = 1;  // default "not found"
+
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        return -1;
+    }
+
+    long int file_len = get_file_size(filename);
+    if (file_len < 0) {
+        return -1;
+    }
+    char *buffer = (char *)calloc((size_t) file_len, sizeof(char));
+    if (!buffer) {
+        return -1;
+    }
+    size_t pattern_len = strlen(pattern);
+
+    fread(buffer, (size_t) file_len, sizeof(char), fp);
+    fclose(fp);
+
+    for (size_t i = 0; i < file_len; i++) {
+        if (!memcmp(&buffer[i], pattern, pattern_len)) {
+            result = 0;  // found
+            break;
+        }
+    }
+    free(buffer);
+    return result;
+}
+
+int mkdirs(const char *_path, mode_t mode) {
+    int result = 0;
+    char *path = normpath(_path);
+    char tmp[PATH_MAX];
+
+    char sep[2];
+    sprintf(sep, "%c", DIRSEP);
+    char **parts = split(path, sep);
+    //strcat(tmp, sep);
+    for (int i = 0; parts[i] != NULL; i++) {
+        strcat(tmp, parts[i]);
+        strcat(tmp, sep);
+        if (access(tmp, F_OK) != 0) {
+            printf("doesn't exist: %s\n", tmp);
+            result = mkdir(tmp, mode);
+        }
+    }
+    split_free(parts);
+    return result;
+}
+
+char *find_executable(const char *program) {
+    int found = 0;
+    char *result = NULL;
+    char *env_path = NULL;
+    env_path = strdup(getenv("PATH"));
+    if (!env_path) {
+        return NULL;
+    }
+    char **search_paths = split(env_path, ":");
+
+    char buf[PATH_MAX];
+    for (int i = 0; search_paths[i] != NULL; i++) {
+        sprintf(buf, "%s%c%s", search_paths[i], DIRSEP, program);
+        if (access(buf, F_OK | X_OK) == 0) {
+            found = 1;
+            break;
+        }
+        memset(buf, '\0', sizeof(buf));
+    }
+    if (found) {
+        result = strdup(buf);
+    }
+    split_free(search_paths);
+    free(env_path);
+    return result;
+}
+
+void check_runtime_environment(void) {
+    int bad_rt = 0;
+    char *required[] = {
+        "readelf",
+        "patchelf",
+        "tar",
+        "bash",
+        NULL,
+    };
+    for (int i = 0; required[i] != NULL; i++) {
+        char *program = required[i];
+        char *result = find_executable(required[i]);
+        if (!result) {
+            fprintf(stderr, "Required program '%s' is not installed or on your PATH\n", required[i]);
+            bad_rt = 1;
+        }
+        free(result);
+    }
+    if (bad_rt) {
+        exit(1);
+    }
+}
+
 int main(int argc, char *argv[]) {
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
     // everything here is subject to change without notice
+
+    // Ensure external programs are available for use.
+    check_runtime_environment();
 
     printf("find_package test:\n");
     const char *pkg_name = "python";
@@ -574,34 +776,22 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Package does not exist: %s\n", pkg_name);
     }
 
-    const char *testpath = "x:\\a\\b\\c";
-    const char *teststring = "this is test!";
-    const char *testprog = "/tmp/a.out";
-
-    printf("normpath test:\n");
-    char *normalized = normpath(testpath);
-    printf("%s becomes %s\n", testpath, normalized);
-    free(normalized);
-
-    printf("startswith test:\n");
-    printf("%d\n", startswith(testpath, "x:\\"));
-    printf("endswith test:\n");
-    printf("%d\n", endswith(teststring, "test!"));
-
-    printf("has_rpath and get_rpath test:\n");
-    if ((has_rpath(testprog)) == 0) {
-        printf("RPATH found\n");
-        char *rpath = get_rpath(testprog);
-        printf("RPATH is: %s\n", rpath);
-        free(rpath);
+    /*
+    char **files = fstree("/bin");
+    for (int i = 0; files[i] != NULL; i++) {
+        if (fstrstr(files[i], "penis") == 0) {
+            printf("%d: %s\n", i, files[i]);
+        }
+        free(files[i]);
     }
+    free(files);
+    */
 
-    printf("strchroff test:\n");
-    long int off = strchroff(testprog, 'p');
-    printf("off=%ld\n", off);
-    for (int i = 0; i <= off; i++) {
-        printf("%ld: %c\n", i, testprog[i]);
+    /*
+    if (mkdirs("/tmp/this/is/a/test", 0755) == -1 && errno) {
+        fprintf(SYSERROR);
     }
+    */
 
     return 0;
 }
