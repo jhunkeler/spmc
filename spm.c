@@ -4,6 +4,7 @@
  */
 
 #include "spm.h"
+static int VERBOSE_MODE = 0;
 
 /**
  * A wrapper for `popen()` that executes non-interactive programs and reports their exit value.
@@ -110,7 +111,9 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
  * @param proc_info `Process` struct
  */
 void shell_free(Process *proc_info) {
-    free(proc_info->output);
+    if (proc_info->output) {
+        free(proc_info->output);
+    }
     free(proc_info);
 }
 
@@ -487,89 +490,85 @@ char *substring_between(char *sptr, const char *delims) {
 }
 
 /**
- * Uses `readelf` to determine whether a RPATH or RUNPATH is present
+ * Determine whether a RPATH or RUNPATH is present in file
  *
  * TODO: Replace with OS-native solution(s)
  *
- * @param filename path to executable or library
+ * @param _filename path to executable or library
  * @return -1=OS error, 0=has rpath, 1=not found
  */
-int has_rpath(const char *filename) {
-    int result = 1;
-    Process *proc_info = NULL;
-    char *path = strdup(filename);
-    const char *preamble = "readelf -d";
+int has_rpath(const char *_filename) {
+    int result = 1;     // default: not found
 
-    // sanitize input path
-    strchrdel(path, "&;|");
-
-    char sh_cmd[strlen(preamble) + 1 + strlen(path) + 1];
-    memset(sh_cmd, '\0', sizeof(sh_cmd));
-
-    sprintf(sh_cmd, "%s %s", preamble, path);
-    free(path);
-
-    shell(&proc_info, SHELL_OUTPUT, sh_cmd);
-    if (!proc_info) {
-        fprintf(SYSERROR);
+    char *filename = strdup(_filename);
+    if (!filename) {
         return -1;
     }
 
-   strip(proc_info->output);
-   char **lines = split(proc_info->output, "\n");
-   for (int i = 0; lines[i] != NULL; i++) {
-       if (strstr(lines[i], "RPATH") || strstr(lines[i], "RUNPATH")) {
-           result = 0;
-       }
-   }
-    shell_free(proc_info);
-   split_free(lines);
-   return result;
+    Process *proc_info = NULL;
+    char *rpath = NULL;
+
+    // sanitize input path
+    strchrdel(filename, "&;|");
+
+    Process *pe = patchelf(filename, "--print-rpath");
+    strip(pe->output);
+    if (!isempty(pe->output)) {
+        result = 0;
+    }
+    else {
+        // something went wrong with patchelf other than
+        // what we're looking for
+        result = -1;
+    }
+
+    free(filename);
+    shell_free(pe);
+    return result;
 }
 
 /**
- * Parses `readelf` output and returns an RPATH or RUNPATH if one is defined
+ * Returns a RPATH or RUNPATH if one is defined in `_filename`
  *
  * TODO: Replace with OS-native solution(s)
  *
- * @param filename path to executable or library
+ * @param _filename path to executable or library
  * @return RPATH string, NULL=error (caller is responsible for freeing memory)
  */
-char *get_rpath(const char *filename) {
-    if ((has_rpath(filename)) != 0) {
+char *get_rpath(const char *_filename) {
+    if ((has_rpath(_filename)) != 0) {
+        return NULL;
+    }
+    char *filename = strdup(_filename);
+    if (!filename) {
+        return NULL;
+    }
+    char *path = strdup(filename);
+    if (!path) {
+        free(filename);
         return NULL;
     }
 
     Process *proc_info = NULL;
-    char *path = strdup(filename);
-    const char *preamble = "readelf -d";
     char *rpath = NULL;
 
     // sanitize input path
     strchrdel(path, "&;|");
 
-    char sh_cmd[strlen(preamble) + 1 + strlen(path) + 1];
-    memset(sh_cmd, '\0', sizeof(sh_cmd));
-
-    sprintf(sh_cmd, "%s %s", preamble, path);
-    free(path);
-
-    shell(&proc_info, SHELL_OUTPUT, sh_cmd);
-    if (!proc_info) {
-        fprintf(SYSERROR);
+    Process *pe = patchelf(filename, "--print-rpath");
+    rpath = (char *)calloc(strlen(pe->output) + 1, sizeof(char));
+    if (!rpath) {
+        free(filename);
+        free(path);
+        shell_free(pe);
         return NULL;
     }
+    strncpy(rpath, pe->output, strlen(pe->output));
+    strip(rpath);
 
-    strip(proc_info->output);
-    char **lines = split(proc_info->output, "\n");
-    for (int i = 0; lines[i] != NULL; i++) {
-        if (strstr(lines[i], "RPATH") || strstr(lines[i], "RUNPATH")) {
-            rpath = substring_between(lines[i], "[]");
-            break;
-        }
-    }
-    shell_free(proc_info);
-    split_free(lines);
+    free(filename);
+    free(path);
+    shell_free(pe);
     return rpath;
 }
 
@@ -597,7 +596,39 @@ char *gen_rpath(const char *_filename) {
     }
     sprintf(result, "%s%s", origin, nearest_lib);
     free(filename);
+    free(nearest_lib);
     return result;
+}
+
+
+int set_rpath(const char *filename, char *_rpath) {
+    int returncode;
+
+    char *rpath_new = gen_rpath(filename);
+    if (!rpath_new) {
+        return -1;
+    }
+
+    char *rpath_orig = get_rpath(filename);
+    if (!rpath_orig) {
+        return -1;
+    }
+
+    // Are the original and new RPATH identical?
+    if (strcmp(rpath_orig, rpath_new) == 0) {
+        free(rpath_new);
+        free(rpath_orig);
+        return 0;
+    }
+
+    Process *pe = patchelf(filename, "--set-rpath");
+    if (pe) {
+        returncode = pe->returncode;
+    }
+    shell_free(pe);
+    free(rpath_new);
+    free(rpath_orig);
+    return pe->returncode;
 }
 
 /**
@@ -906,9 +937,6 @@ char *libdir_nearest(const char *filename) {
     while(1) {
         // Where are we in the file system?
         getcwd(visit, sizeof(visit));
-        // Assemble relative path step for this location
-        strcat(relative, "..");
-        strcat(relative, sep);
         // Using the current visit path, check if it contains a lib directory
         sprintf(tmp, "%s%clib", visit, DIRSEP);
         if (access(tmp, F_OK) == 0) {
@@ -920,6 +948,10 @@ char *libdir_nearest(const char *filename) {
         else if (strcmp(visit, "/") == 0) {
             break;
         }
+
+        // Assemble relative path step for this location
+        strcat(relative, "..");
+        strcat(relative, sep);
 
         // Step one directory level back
         chdir("..");
@@ -941,6 +973,30 @@ char *libdir_nearest(const char *filename) {
     free(cwd);
     free(start);
     return result;
+}
+
+/**
+ * Wrapper function to execute `patchelf` with arguments
+ * @param _filename Path of file to modify
+ * @param _args Arguments to pass to `patchelf`
+ * @return success=Process struct, failure=NULL
+ */
+Process *patchelf(const char *_filename, const char *_args) {
+    char *filename = strdup(_filename);
+    char *args = strdup(_args);
+    Process *proc_info = NULL;
+    char sh_cmd[PATH_MAX];
+    sh_cmd[0] = '\0';
+
+    strchrdel(args, "&;|");
+    strchrdel(filename, "&;|");
+    sprintf(sh_cmd, "patchelf %s %s", args, filename);
+
+    shell(&proc_info, SHELL_OUTPUT, sh_cmd);
+
+    free(filename);
+    free(args);
+    return proc_info;
 }
 
 int main(int argc, char *argv[]) {
@@ -980,10 +1036,25 @@ int main(int argc, char *argv[]) {
     }
     */
 
-    const char *test_path = "root/lib/python3.7/lib-dynload/_multiprocessing.cpython-37m-x86_64-linux-gnu.so";
+    char *test_path = realpath("root/lib/python3.7/lib-dynload/_multiprocessing.cpython-37m-x86_64-linux-gnu.so", NULL);
+    if (!test_path) {
+        fprintf(stderr, "Unable to get absolute path for %s\n", test_path);
+        exit(1);
+    }
     char *rpath = gen_rpath(test_path);
-    printf("path: %s\nnew rpath: %s\n", test_path, rpath);
-    free(rpath);
 
+    if (!rpath) {
+        fprintf(stderr, "Unable to generate RPATH for %s\n", test_path);
+        free(test_path);
+        exit(1);
+    }
+
+    printf("Setting RPATH: %s\n", test_path);
+    if (set_rpath(test_path, rpath) != 0) {
+        fprintf(stderr, "RPATH assignment failed\n");
+    }
+
+    free(test_path);
+    free(rpath);
     return 0;
 }

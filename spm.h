@@ -69,10 +69,12 @@ char *find_executable(const char *program);
 char *find_file(const char *root, const char *filename);
 char *find_package(const char *filename);
 
+Process *patchelf(const char *_filename, const char *_args);
 char *libdir_nearest(const char *filename);
-int has_rpath(const char *filename);
-char *get_rpath(const char *filename);
+int has_rpath(const char *_filename);
+char *get_rpath(const char *_filename);
 char *gen_rpath(const char *_filename);
+int set_rpath(const char *filename, char *_rpath);
 
 void walkdir(char *dirpath, Dirwalk **result);
 char **fstree(const char *path);
