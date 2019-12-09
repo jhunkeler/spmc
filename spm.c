@@ -388,24 +388,40 @@ char *find_package(const char *filename) {
  * @param delim characters to split on
  * @return success=parts of string, failure=NULL
  */
-char** split(char *sptr, const char* delim)
+char** split(char *_sptr, const char* delim)
 {
     size_t split_alloc = 0;
+    // Duplicate the input string and save a copy of the pointer to be freed later
+    char *orig = strdup(_sptr);
+    char *sptr = orig;
+    if (!sptr) {
+        return NULL;
+    }
+
     // Determine how many delimiters are present
     for (size_t i = 0; i < strlen(delim); i++) {
         split_alloc += num_chars(sptr, delim[i]);
     }
     // Preallocate enough records based on the number of delimiters
     char **result = (char **)calloc(split_alloc + 2, sizeof(char *));
+    if (!result) {
+        free(sptr);
+        return NULL;
+    }
 
     // Separate the string into individual parts and store them in the result array
     int i = 0;
     char *token = NULL;
     while((token = strsep(&sptr, delim)) != NULL) {
         result[i] = (char *)calloc(1, sizeof(char) * strlen(token) + 1);
-        strcpy(result[i], token);   // copy the string contents into the record
+        if (!result[i]) {
+            free(sptr);
+            return NULL;
+        }
+        strncpy(result[i], token, strlen(token));   // copy the string contents into the record
         i++;    // next record
     }
+    free(orig);
     return result;
 }
 
@@ -557,6 +573,38 @@ char *get_rpath(const char *filename) {
     return rpath;
 }
 
+/**
+ * Generate a RPATH in the form of:
+ *
+ * `$ORIGIN/relative/path/to/lib/from/_filename/path`
+ *
+ * @param _filename
+ * @return
+ */
+char *gen_rpath(const char *_filename) {
+    const char *origin = "$ORIGIN/";
+    char *filename = realpath(_filename, NULL);
+    if (!filename) {
+        return NULL;
+    }
+    char *nearest_lib = libdir_nearest(filename);
+    if (!nearest_lib) {
+        return NULL;
+    }
+    char *result = (char *)calloc(strlen(origin) + strlen(nearest_lib) + 1, sizeof(char));
+    if (!result) {
+        return NULL;
+    }
+    sprintf(result, "%s%s", origin, nearest_lib);
+    free(filename);
+    return result;
+}
+
+/**
+ * Lists a directory (use `fstree` instead if you only want a basic recursive listing))
+ * @param dirpath
+ * @param result
+ */
 void walkdir(char *dirpath, Dirwalk **result) {
     static int i = 0;
     static int locked = 0;
@@ -606,6 +654,11 @@ void walkdir(char *dirpath, Dirwalk **result) {
     }
 }
 
+/**
+ * Generate a listing of all files under `path`
+ * @param path
+ * @return success=array of paths, failure=NULL
+ */
 char **fstree(const char *path) {
     Dirwalk *dlist = NULL;
     char wpath[PATH_MAX];
@@ -625,6 +678,9 @@ char **fstree(const char *path) {
     return result;
 }
 
+/*
+ * Helper function for `strsort`
+ */
 static int _strsort_compare(const void *a, const void *b) {
     const char *aa = *(const char**)a;
     const char *bb = *(const char**)b;
@@ -632,6 +688,10 @@ static int _strsort_compare(const void *a, const void *b) {
     return result;
 }
 
+/**
+ * Sort an array of strings alphabetically
+ * @param arr
+ */
 void strsort(char **arr) {
     size_t arr_size = 0;
 
@@ -685,6 +745,12 @@ int fstrstr(const char *filename, const char *pattern) {
     return result;
 }
 
+/**
+ * Attempt to create a directory (or directories)
+ * @param _path A path to create
+ * @param mode UNIX permissions (octal)
+ * @return success=0, failure=-1 (+ errno will be set)
+ */
 int mkdirs(const char *_path, mode_t mode) {
     int result = 0;
     char *path = normpath(_path);
@@ -706,11 +772,16 @@ int mkdirs(const char *_path, mode_t mode) {
     return result;
 }
 
+/**
+ * Get the full path of a shell command
+ * @param program
+ * @return success=absolute path to program, failure=NULL
+ */
 char *find_executable(const char *program) {
     int found = 0;
     char *result = NULL;
     char *env_path = NULL;
-    env_path = strdup(getenv("PATH"));
+    env_path = getenv("PATH");
     if (!env_path) {
         return NULL;
     }
@@ -729,10 +800,12 @@ char *find_executable(const char *program) {
         result = strdup(buf);
     }
     split_free(search_paths);
-    free(env_path);
     return result;
 }
 
+/**
+ * Check whether this program will run properly given the current runtime environment
+ */
 void check_runtime_environment(void) {
     int bad_rt = 0;
     char *required[] = {
@@ -743,7 +816,6 @@ void check_runtime_environment(void) {
         NULL,
     };
     for (int i = 0; required[i] != NULL; i++) {
-        char *program = required[i];
         char *result = find_executable(required[i]);
         if (!result) {
             fprintf(stderr, "Required program '%s' is not installed or on your PATH\n", required[i]);
@@ -754,6 +826,121 @@ void check_runtime_environment(void) {
     if (bad_rt) {
         exit(1);
     }
+}
+
+/**
+ * Strip file name from directory
+ * Note: Caller is responsible for freeing memory
+ *
+ * @param _path
+ * @return success=path to directory, failure=NULL
+ */
+char *dirname(const char *_path) {
+    char *path = strdup(_path);
+    char *last = strrchr(path, DIRSEP);
+    if (!last) {
+        return NULL;
+    }
+    // Step backward, stopping on the first non-separator
+    // This ensures strings like "/usr//////" are converted to "/usr", but...
+    // it will do nothing to fix up a path like "/usr//////bin/bash
+    char *lookback = last;
+    while (*(lookback - 1) == DIRSEP) {
+        lookback--;
+    }
+
+    *lookback = '\0';
+    return path;
+}
+
+/**
+ * Strip directory from file name
+ * Note: Caller is responsible for freeing memory
+ *
+ * @param _path
+ * @return success=file name, failure=NULL
+ */
+char *basename(const char *_path) {
+    char *result = NULL;
+    char *path = strdup(_path);
+    char *last = strrchr(path, DIRSEP);
+    if (!last) {
+        return NULL;
+    }
+
+    // Perform a lookahead ensuring the string is valid beyond the last separator
+    if ((last + 1) != NULL) {
+        result = strdup(last + 1);
+    }
+    free(path);
+
+    return result;
+}
+
+/**
+ * Using `filename` as a starting point, step backward through the filesystem looking for a lib directory
+ * @param filename path to file (or a directory)
+ * @return success=relative path from `filename` to nearest lib directory, failure=NULL
+ */
+char *libdir_nearest(const char *filename) {
+    int has_real_libdir = 0;
+    char *rootdir = dirname(filename);
+    char *start = realpath(rootdir, NULL);
+    char *cwd = realpath(".", NULL);
+    char *result = NULL;
+
+    // Change directory to the requested root
+    chdir(start);
+
+    char visit[PATH_MAX];       // Current directory
+    char tmp[PATH_MAX];         // Current directory with lib directory appended
+    char relative[PATH_MAX];    // Generated relative path to lib directory
+    char sep[2];                // Holds the platform's directory separator
+
+    // Initialize character arrays;
+    visit[0] = '\0';
+    tmp[0] = '\0';
+    relative[0] = '\0';
+    sprintf(sep, "%c", DIRSEP);
+
+    while(1) {
+        // Where are we in the file system?
+        getcwd(visit, sizeof(visit));
+        // Assemble relative path step for this location
+        strcat(relative, "..");
+        strcat(relative, sep);
+        // Using the current visit path, check if it contains a lib directory
+        sprintf(tmp, "%s%clib", visit, DIRSEP);
+        if (access(tmp, F_OK) == 0) {
+            strcat(relative, "lib");
+            has_real_libdir = 1;        // gate for memory allocation below
+            break;
+        }
+        // Reaching the top of the file system indicates our search for a lib directory failed
+        else if (strcmp(visit, "/") == 0) {
+            break;
+        }
+
+        // Step one directory level back
+        chdir("..");
+    }
+
+    // If we found a viable lib directory, allocate memory for it
+    if (has_real_libdir) {
+        result = (char *)calloc(strlen(relative) + 1, sizeof(char));
+        if (!result) {
+            chdir(cwd);     // return to calling directory
+            return NULL;
+        }
+        // Copy character array data to the result
+        strncpy(result, relative, strlen(relative));
+    }
+
+    chdir(cwd);     // return to calling directory
+    free(rootdir);
+    free(cwd);
+    free(start);
+    return result;
 }
 
 int main(int argc, char *argv[]) {
@@ -779,7 +966,7 @@ int main(int argc, char *argv[]) {
     /*
     char **files = fstree("/bin");
     for (int i = 0; files[i] != NULL; i++) {
-        if (fstrstr(files[i], "penis") == 0) {
+        if (fstrstr(files[i], "/usr/lib") == 0) {
             printf("%d: %s\n", i, files[i]);
         }
         free(files[i]);
@@ -792,6 +979,11 @@ int main(int argc, char *argv[]) {
         fprintf(SYSERROR);
     }
     */
+
+    const char *test_path = "root/lib/python3.7/lib-dynload/_multiprocessing.cpython-37m-x86_64-linux-gnu.so";
+    char *rpath = gen_rpath(test_path);
+    printf("path: %s\nnew rpath: %s\n", test_path, rpath);
+    free(rpath);
 
     return 0;
 }

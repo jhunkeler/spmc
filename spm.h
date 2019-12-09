@@ -69,12 +69,18 @@ char *find_executable(const char *program);
 char *find_file(const char *root, const char *filename);
 char *find_package(const char *filename);
 
+char *libdir_nearest(const char *filename);
 int has_rpath(const char *filename);
 char *get_rpath(const char *filename);
+char *gen_rpath(const char *_filename);
+
 void walkdir(char *dirpath, Dirwalk **result);
 char **fstree(const char *path);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
+char *dirname(const char *_path);
+char *basename(const char *_path);
+
 
 void check_runtime_environment(void);
 
