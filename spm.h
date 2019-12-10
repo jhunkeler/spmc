@@ -36,6 +36,14 @@
 #define SHELL_BENCHMARK 1 << 2
 
 typedef struct {
+    char *platform;
+    char *arch;
+    char *package_dir;
+    char *user_config_basedir;
+    char *user_config_file;
+} spm_vars;
+
+typedef struct {
     int count;
     char **paths;
 } Dirwalk;
@@ -49,6 +57,7 @@ typedef struct {
 
 void shell(Process **proc_info, u_int64_t option, const char *fmt, ...);
 void shell_free(Process *proc_info);
+int tar_extract_archive(const char *_archive, const char *_destination);
 int tar_extract_file(const char *archive, const char* filename, const char *destination);
 int errglob(const char *epath, int eerrno);
 

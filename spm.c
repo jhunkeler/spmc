@@ -189,10 +189,21 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
     return status;
 }
 
-int tar_extract_archive(const char *archive, const char *destination) {
+int tar_extract_archive(const char *_archive, const char *_destination) {
     Process *proc = NULL;
     int status;
     char cmd[PATH_MAX];
+
+    char *archive = strdup(_archive);
+    if (!archive) {
+        fprintf(SYSERROR);
+        return -1;
+    }
+    char *destination = strdup(_destination);
+    if (!destination) {
+        fprintf(SYSERROR);
+        return -1;
+    }
 
     // sanitize archive
     strchrdel(archive, "&;|");
@@ -200,7 +211,6 @@ int tar_extract_archive(const char *archive, const char *destination) {
     strchrdel(destination, "&;|");
 
     sprintf(cmd, "tar xf %s -C %s 2>&1", archive, destination);
-    printf("Executing: %s\n", cmd);
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
@@ -920,7 +930,6 @@ int mkdirs(const char *_path, mode_t mode) {
         strcat(tmp, parts[i]);
         strcat(tmp, sep);
         if (access(tmp, F_OK) != 0) {
-            printf("doesn't exist: %s\n", tmp);
             result = mkdir(tmp, mode);
         }
     }
@@ -1177,7 +1186,6 @@ int install(const char *destroot, const char *_package) {
     sprintf(template, "%s%c%s", ucd, DIRSEP, suffix);
     char *tmpdir = mkdtemp(template);
     tar_extract_archive(package, tmpdir);
-    getchar();
     rmdirs(tmpdir);
     free(package);
     free(ucd);
@@ -1238,7 +1246,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "RPATH assignment failed\n");
     }
 
-    install("/tmp/root", "python-*");
+    install("/tmp/root", "python");
     free(test_path);
     free(rpath);
     return 0;
