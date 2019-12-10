@@ -14,6 +14,9 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <wordexp.h>
+#if !defined(_WIN32)
+#include <sys/utsname.h>
+#endif
 
 #include "config.h"
 
@@ -29,7 +32,8 @@
 #define NOT_DIRSEP DIRSEP_WIN32
 #endif
 
-#define PKG_DIR "../pkgs"
+#define PKG_DIR SPM_GLOBAL.package_dir
+#define TMP_DIR SPM_GLOBAL.tmp_dir
 
 #define SHELL_DEFAULT 1 << 0
 #define SHELL_OUTPUT 1 << 1
@@ -41,12 +45,12 @@ typedef struct {
 } ConfigItem;
 
 typedef struct {
-    char *platform;
-    char *arch;
     char *package_dir;
+    char *tmp_dir;
     char *user_config_basedir;
     char *user_config_file;
     ConfigItem **config;
+    struct utsname sysinfo;
 } spm_vars;
 static spm_vars SPM_GLOBAL;
 

@@ -154,6 +154,9 @@ void config_free(ConfigItem **item) {
 /// \param key search for key in config records
 /// \return success=pointer to record, failure=NULL
 ConfigItem *config_get(ConfigItem **item, const char *key) {
+    if (!item) {
+        return NULL;
+    }
     for (int i = 0; item[i] != NULL; i++) {
         if (!strcmp(item[i]->key, key)) {
             return item[i];
