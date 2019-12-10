@@ -1196,7 +1196,16 @@ int init_config_global() {
     SPM_GLOBAL.user_config_file = get_user_config_file();
     SPM_GLOBAL.package_dir = realpath(PKG_DIR, NULL);
     if (SPM_GLOBAL.user_config_file) {
-        config_read(SPM_GLOBAL.user_config_file);
+        SPM_GLOBAL.config = config_read(SPM_GLOBAL.user_config_file);
+    }
+}
+
+void show_global_config() {
+    printf("configuration directory: %s\n", SPM_GLOBAL.user_config_basedir);
+    printf("configuration file: %s\n", SPM_GLOBAL.user_config_file);
+    printf("configuration:\n");
+    for (int i = 0; SPM_GLOBAL.config[i] != NULL; i++) {
+        printf("-> %s\n", SPM_GLOBAL.config[i]);
     }
 }
 
@@ -1204,6 +1213,10 @@ int main(int argc, char *argv[]) {
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
     // everything here is subject to change without notice
+
+    // Initialize configuration data
+    init_config_global();
+    show_global_config();
 
     // Ensure external programs are available for use.
     check_runtime_environment();
