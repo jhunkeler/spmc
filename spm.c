@@ -6,6 +6,52 @@
 #include "spm.h"
 static int VERBOSE_MODE = 0;
 
+char *get_user_conf_dir() {
+    char *result = NULL;
+    wordexp_t wexp;
+    wordexp("~/.spm", &wexp, 0);
+    if (wexp.we_wordc != 0) {
+        result = (char *)calloc(strlen(wexp.we_wordv[0]) + 1, sizeof(char));
+        if (!result) {
+            wordfree(&wexp);
+            NULL;
+        }
+        strncpy(result, wexp.we_wordv[0], strlen(wexp.we_wordv[0]));
+        if (access(result, F_OK) != 0) {
+            mkdirs(result, 0755);
+        }
+    }
+    wordfree(&wexp);
+    return result;
+}
+
+char *get_user_config_file() {
+    const char *filename = "spm.conf";
+    char *result = NULL;
+    char tmp[PATH_MAX];
+    char *ucb = get_user_conf_dir();
+    if (!ucb) {
+        return NULL;
+    }
+    // Initialize temporary path
+    tmp[0] = '\0';
+
+    sprintf(tmp, "%s%c%s", ucb, DIRSEP, filename);
+    if (access(tmp, F_OK) != 0) {
+        // No configuration exists, so fail
+        return NULL;
+    }
+
+    // Allocate and return path to configuration file
+    result = (char *)calloc(strlen(tmp) + 1, sizeof(char));
+    if (!result) {
+        return NULL;
+    }
+    strncpy(result, tmp, strlen(tmp));
+
+    return result;
+}
+
 /**
  * A wrapper for `popen()` that executes non-interactive programs and reports their exit value.
  * To redirect stdout and stderr you must do so from within the `fmt` string
@@ -131,6 +177,30 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
     char cmd[PATH_MAX];
 
     sprintf(cmd, "tar xf %s %s -C %s 2>&1", archive, filename, destination);
+    shell(&proc, SHELL_OUTPUT, cmd);
+    if (!proc) {
+        fprintf(SYSERROR);
+        return -1;
+    }
+
+    status = proc->returncode;
+    shell_free(proc);
+
+    return status;
+}
+
+int tar_extract_archive(const char *archive, const char *destination) {
+    Process *proc = NULL;
+    int status;
+    char cmd[PATH_MAX];
+
+    // sanitize archive
+    strchrdel(archive, "&;|");
+    // sanitize destination
+    strchrdel(destination, "&;|");
+
+    sprintf(cmd, "tar xf %s -C %s 2>&1", archive, destination);
+    printf("Executing: %s\n", cmd);
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
@@ -636,7 +706,7 @@ int set_rpath(const char *filename, char *_rpath) {
  * @param dirpath
  * @param result
  */
-void walkdir(char *dirpath, Dirwalk **result) {
+void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs) {
     static int i = 0;
     static int locked = 0;
     size_t dirpath_size = strlen(dirpath);
@@ -659,20 +729,26 @@ void walkdir(char *dirpath, Dirwalk **result) {
         (*result)->paths = (char **) reallocarray((*result)->paths, (initial_records + i), sizeof(char *));
         char *name = entry->d_name;
 
+        char path[PATH_MAX];
+        char sep = DIRSEP;
+        int path_size = snprintf(path, PATH_MAX, "%s%c%s", dirpath, sep, entry->d_name);
+
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+            continue;
+        }
+
+        (*result)->paths[i] = (char *) calloc((size_t) (path_size + 1), sizeof(char));
         if (entry->d_type == DT_DIR) {
-            if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
-                continue;
+            if (dirs) {
+                strncpy((*result)->paths[i], path, (size_t) path_size);
+                i++;
             }
             dirpath[dirpath_size] = DIRSEP;
             strcpy(dirpath + dirpath_size + 1, name);
-            walkdir(dirpath, result);
+            walkdir(dirpath, result, dirs);
             dirpath[dirpath_size] = '\0';
         }
         else {
-            char path[PATH_MAX];
-            char sep = DIRSEP;
-            int path_size = snprintf(path, PATH_MAX, "%s%c%s", dirpath, sep, entry->d_name);
-            (*result)->paths[i] = (char *) calloc((size_t) (path_size + 1), sizeof(char));
             strncpy((*result)->paths[i], path, (size_t) path_size);
             i++;
         }
@@ -690,15 +766,22 @@ void walkdir(char *dirpath, Dirwalk **result) {
  * @param path
  * @return success=array of paths, failure=NULL
  */
-char **fstree(const char *path) {
+char **fstree(const char *path, unsigned int get_dir_flag) {
     Dirwalk *dlist = NULL;
     char wpath[PATH_MAX];
     strcpy(wpath, path);
 
-    walkdir(wpath, &dlist);
+    if (access(wpath, F_OK) != 0) {
+        return NULL;
+    }
+
+    walkdir(wpath, &dlist, get_dir_flag);
     char **result = (char **)calloc((size_t) (dlist->count + 1), sizeof(char *));
     for (int i = 0; dlist->paths[i] != NULL; i++) {
         result[i] = (char *)calloc(strlen(dlist->paths[i]) + 1, sizeof(char));
+        if (!result[i]) {
+            return NULL;
+        }
         memcpy(result[i], dlist->paths[i], strlen(dlist->paths[i]));
         free(dlist->paths[i]);
     }
@@ -731,6 +814,48 @@ void strsort(char **arr) {
         arr_size = i;
     }
     qsort(arr, arr_size, sizeof(char *), _strsort_compare);
+}
+
+/*
+ * Helper function for `strsortlen`
+ */
+static int _strsortlen_asc_compare(const void *a, const void *b) {
+    const char *aa = *(const char**)a;
+    const char *bb = *(const char**)b;
+    size_t len_a = strlen(aa);
+    size_t len_b = strlen(bb);
+    return len_a > len_b;
+}
+
+/*
+ * Helper function for `strsortlen`
+ */
+static int _strsortlen_dsc_compare(const void *a, const void *b) {
+    const char *aa = *(const char**)a;
+    const char *bb = *(const char**)b;
+    size_t len_a = strlen(aa);
+    size_t len_b = strlen(bb);
+    return len_a < len_b;
+}
+/**
+ * Sort an array of strings by length
+ * @param arr
+ */
+void strsortlen(char **arr, unsigned int sort_mode) {
+    typedef int (*compar)(const void *, const void *);
+
+    compar fn = _strsortlen_asc_compare;
+    if (sort_mode != 0) {
+        fn = _strsortlen_dsc_compare;
+    }
+
+    size_t arr_size = 0;
+
+    // Determine size of array
+    for (size_t i = 0; arr[i] != NULL; i++) {
+        arr_size = i;
+    }
+    qsort(arr, arr_size, sizeof(char *), fn);
 }
 
 long int get_file_size(const char *filename) {
@@ -786,11 +911,11 @@ int mkdirs(const char *_path, mode_t mode) {
     int result = 0;
     char *path = normpath(_path);
     char tmp[PATH_MAX];
+    tmp[0] = '\0';
 
     char sep[2];
     sprintf(sep, "%c", DIRSEP);
     char **parts = split(path, sep);
-    //strcat(tmp, sep);
     for (int i = 0; parts[i] != NULL; i++) {
         strcat(tmp, parts[i]);
         strcat(tmp, sep);
@@ -840,8 +965,8 @@ char *find_executable(const char *program) {
 void check_runtime_environment(void) {
     int bad_rt = 0;
     char *required[] = {
-        "readelf",
         "patchelf",
+        "rsync",
         "tar",
         "bash",
         NULL,
@@ -999,6 +1124,65 @@ Process *patchelf(const char *_filename, const char *_args) {
     return proc_info;
 }
 
+
+int rmdirs(const char *_path) {
+    char *path = strdup(_path);
+    if (!path) {
+        return -1;
+    }
+    if (access(path, F_OK) != 0) {
+        fprintf(SYSERROR);
+        free(path);
+        return -1;
+    }
+
+    char **files = fstree(path, 1);
+    if (!files) {
+        free(path);
+        return -1;
+    }
+
+    while (access(path, F_OK) == 0) {
+        for (int i = 0; files[i] != NULL; i++) {
+            remove(files[i]);
+        }
+        remove(path);
+    }
+
+    for (int i = 0; files[i] != NULL; i++) {
+        free(files[i]);
+    }
+
+    free(files);
+    free(path);
+    return 0;
+}
+
+int install(const char *destroot, const char *_package) {
+    char *package = find_package(_package);
+    if (!package) {
+        fprintf(SYSERROR);
+        return -1;
+    }
+    if (access(destroot, F_OK) != 0) {
+        if (mkdirs(destroot, 0755) != 0) {
+            fprintf(SYSERROR);
+            return -2;
+        }
+    }
+
+    char template[PATH_MAX];
+    char suffix[PATH_MAX] = "spm_destroot_XXXXXX";
+    char *ucd = get_user_conf_dir();
+    sprintf(template, "%s%c%s", ucd, DIRSEP, suffix);
+    char *tmpdir = mkdtemp(template);
+    tar_extract_archive(package, tmpdir);
+    getchar();
+    rmdirs(tmpdir);
+    free(package);
+    free(ucd);
+}
+
 int main(int argc, char *argv[]) {
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
@@ -1054,6 +1238,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "RPATH assignment failed\n");
     }
 
+    install("/tmp/root", "python-*");
     free(test_path);
     free(rpath);
     return 0;

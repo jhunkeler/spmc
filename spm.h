@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <wordexp.h>
 
 #include "config.h"
 
@@ -76,8 +77,8 @@ char *get_rpath(const char *_filename);
 char *gen_rpath(const char *_filename);
 int set_rpath(const char *filename, char *_rpath);
 
-void walkdir(char *dirpath, Dirwalk **result);
-char **fstree(const char *path);
+void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs);
+char **fstree(const char *path, unsigned int get_dir_flag);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
 char *dirname(const char *_path);
