@@ -42,6 +42,8 @@
 typedef struct {
     char *key;
     char *value;
+    size_t key_length;
+    size_t value_length;
 } ConfigItem;
 
 typedef struct {
@@ -70,6 +72,7 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...);
 void shell_free(Process *proc_info);
 int tar_extract_archive(const char *_archive, const char *_destination);
 int tar_extract_file(const char *archive, const char* filename, const char *destination);
+int rsync(const char *_args, const char *_source, const char *_destination);
 int errglob(const char *epath, int eerrno);
 
 int num_chars(const char *sptr, int ch);

@@ -1001,12 +1001,13 @@ void check_runtime_environment(void) {
         "rsync",
         "tar",
         "bash",
+        "reloc",
         NULL,
     };
     for (int i = 0; required[i] != NULL; i++) {
         char *result = find_executable(required[i]);
         if (!result) {
-            fprintf(stderr, "Required program '%s' is not installed or on your PATH\n", required[i]);
+            fprintf(stderr, "Required program '%s' is not installed\n", required[i]);
             bad_rt = 1;
         }
         free(result);
@@ -1203,11 +1204,20 @@ int install(const char *destroot, const char *_package) {
         }
     }
 
+    char source[PATH_MAX];
     char template[PATH_MAX];
     char suffix[PATH_MAX] = "spm_destroot_XXXXXX";
     sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+
     char *tmpdir = mkdtemp(template);
     tar_extract_archive(package, tmpdir);
+    // do things
+
+    sprintf(source, "%s%c", tmpdir, DIRSEP);
+    char *wtf = source;
+    if (rsync(NULL, source, destroot) != 0) {
+        exit(1);
+    }
     rmdirs(tmpdir);
     free(package);
 }
@@ -1297,6 +1307,59 @@ void show_global_config(void) {
     printf("# package storage: %s\n", SPM_GLOBAL.package_dir);
     printf("# temp storage: %s\n", SPM_GLOBAL.tmp_dir);
     printf("\n");
+}
+
+/**
+ * Basic rsync wrapper for copying files
+ * @param _args arguments to pass to rsync (set to `NULL` for default options)
+ * @param _source source file or directory
+ * @param _destination destination file or directory
+ * @return success=0, failure=-1
+ */
+int rsync(const char *_args, const char *_source, const char *_destination) {
+    int returncode;
+    Process *proc = NULL;
+    char *args = NULL;
+    if (_args) {
+        args = strdup(_args);
+    }
+    char *source = strdup(_source);
+    char *destination = strdup(_destination);
+    char cmd[PATH_MAX];
+    char args_combined[PATH_MAX];
+
+    memset(cmd, '\0', sizeof(cmd));
+    memset(args_combined, '\0', sizeof(args_combined));
+    strcpy(args_combined, "--archive --hard-links ");
+    if (args) {
+        strcat(args_combined, _args);
+    }
+
+    sprintf(cmd, "rsync %s \"%s\" \"%s\"", args_combined, source, destination);
+    // sanitize command
+    strchrdel(cmd, "&;|");
+    shell(&proc, SHELL_OUTPUT, cmd);
+    if (!proc) {
+        if (args) {
+            free(args);
+        }
+        free(source);
+        free(destination);
+        return -1;
+    }
+
+    returncode = proc->returncode;
+    if (returncode != 0 && proc->output) {
+        fprintf(stderr, proc->output);
+    }
+    shell_free(proc);
+
+    if (args) {
+        free(args);
+    }
+    free(source);
+    free(destination);
+    return returncode;
 }
 
 int main(int argc, char *argv[]) {

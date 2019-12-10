@@ -91,7 +91,9 @@ ConfigItem **config_read(const char *filename) {
             continue;
         }
 
-        // Calculate key and value lengths dynamically
+        // These values are approximations.  The real length(s) are recorded using strlen below.
+        // At most we'll lose a few heap bytes to whitespace, but it's better than allocating PATH_MAX or BUFSIZ
+        // for a measly ten byte string.
         size_t key_length = strcspn(lptr, &sep);
         size_t value_length = strlen(sep_pos);
 
@@ -103,6 +105,10 @@ ConfigItem **config_read(const char *filename) {
         // Shortcut our array at this point. Things get pretty ugly otherwise.
         char *key = config[record]->key;
         char *value = config[record]->value;
+
+        // Copy the array pointers (used to populate config->key/value_length
+        char *key_orig = key;
+        char *value_orig = value;
 
         // Populate the key and remove any trailing space
         while (lptr != sep_pos) {
@@ -133,6 +139,10 @@ ConfigItem **config_read(const char *filename) {
             }
             *value++ = *lptr++;
         }
+
+        // Populate length data
+        config[record]->key_length = strlen(key_orig);
+        config[record]->value_length = strlen(value_orig);
 
         // increment record count
         record++;
