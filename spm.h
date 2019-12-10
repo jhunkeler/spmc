@@ -36,12 +36,19 @@
 #define SHELL_BENCHMARK 1 << 2
 
 typedef struct {
+    char *key;
+    char *value;
+} ConfigItem;
+
+typedef struct {
     char *platform;
     char *arch;
     char *package_dir;
     char *user_config_basedir;
     char *user_config_file;
+    ConfigItem **config;
 } spm_vars;
+static spm_vars SPM_GLOBAL;
 
 typedef struct {
     int count;
@@ -99,17 +106,13 @@ void check_runtime_environment(void);
 // config.c
 #define CONFIG_BUFFER_SIZE 1024
 
-typedef struct {
-    char *key;
-    char *value;
-} Config;
-
 char *lstrip(char *sptr);
 char *strip(char *sptr);
 int isempty(char *sptr);
 int isquoted(char *sptr);
-Config **config_read(const char *filename);
-void config_free(Config **config);
+ConfigItem **config_read(const char *filename);
+ConfigItem *config_get(ConfigItem **item, const char *key);
+void config_free(ConfigItem **item);
 void config_test(void);
 
 #endif //SPM_SPM_H

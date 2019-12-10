@@ -1191,6 +1191,15 @@ int install(const char *destroot, const char *_package) {
     free(ucd);
 }
 
+int init_config_global() {
+    SPM_GLOBAL.user_config_basedir = get_user_conf_dir();
+    SPM_GLOBAL.user_config_file = get_user_config_file();
+    SPM_GLOBAL.package_dir = realpath(PKG_DIR, NULL);
+    if (SPM_GLOBAL.user_config_file) {
+        config_read(SPM_GLOBAL.user_config_file);
+    }
+}
+
 int main(int argc, char *argv[]) {
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse

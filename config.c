@@ -55,7 +55,7 @@ int isquoted(char *sptr) {
     return 1;
 }
 
-Config **config_read(const char *filename) {
+ConfigItem **config_read(const char *filename) {
     const char sep = '=';
     char line[CONFIG_BUFFER_SIZE];
     FILE *fp = fopen(filename, "r");
@@ -64,7 +64,7 @@ Config **config_read(const char *filename) {
         return NULL;
     }
     int record_initial = 2;
-    Config **config = (Config **) calloc(record_initial, sizeof(Config *));
+    ConfigItem **config = (ConfigItem **) calloc(record_initial, sizeof(ConfigItem *));
     int record = 0;
 
 
@@ -95,8 +95,8 @@ Config **config_read(const char *filename) {
         size_t key_length = strcspn(lptr, &sep);
         size_t value_length = strlen(sep_pos);
 
-        // Allocate a Config record
-        config[record] = (Config *)calloc(1, sizeof(Config));
+        // Allocate a ConfigItem record
+        config[record] = (ConfigItem *)calloc(1, sizeof(ConfigItem));
         config[record]->key = (char *)calloc(key_length + 1, sizeof(char));
         config[record]->value = (char *)calloc(value_length + 1, sizeof(char));
 
@@ -137,40 +137,40 @@ Config **config_read(const char *filename) {
         // increment record count
         record++;
         // Expand config by another record
-        config = (Config **)reallocarray(config, record + record_initial + 1, sizeof(Config *));
+        config = (ConfigItem **)reallocarray(config, record + record_initial + 1, sizeof(ConfigItem *));
     }
     return config;
 }
 
-void config_free(Config **config) {
-    for (int i = 0; config[i] != NULL; i++) {
-        free(config[i]);
+void config_free(ConfigItem **item) {
+    for (int i = 0; item[i] != NULL; i++) {
+        free(item[i]);
     }
-    free(config);
+    free(item);
 }
 
 /// If the configuration contains `key` return a pointer to that record
-/// \param config pointer to array of config records
+/// \param item pointer to array of config records
 /// \param key search for key in config records
 /// \return success=pointer to record, failure=NULL
-Config *config_get(Config **config, const char *key) {
-    for (int i = 0; config[i] != NULL; i++) {
-        if (!strcmp(config[i]->key, key)) {
-            return config[i];
+ConfigItem *config_get(ConfigItem **item, const char *key) {
+    for (int i = 0; item[i] != NULL; i++) {
+        if (!strcmp(item[i]->key, key)) {
+            return item[i];
         }
     }
     return NULL;
 }
 
 void config_test(void) {
-    Config **config = config_read("program.conf");
+    ConfigItem **config = config_read("program.conf");
     printf("Data Parsed:\n");
     for (int i = 0; config[i] != NULL; i++) {
         printf("key: '%s', value: '%s'\n", config[i]->key, config[i]->value);
     }
 
     printf("Testing config_get():\n");
-    Config *cptr = NULL;
+    ConfigItem *cptr = NULL;
     if ((cptr = config_get(config, "integer_value"))) {
         printf("%s = %d\n", cptr->key, atoi(cptr->value));
     }
