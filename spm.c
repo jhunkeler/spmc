@@ -6,7 +6,7 @@
 #include "spm.h"
 static int VERBOSE_MODE = 0;
 
-char *get_user_conf_dir() {
+char *get_user_conf_dir(void) {
     char *result = NULL;
     wordexp_t wexp;
     wordexp("~/.spm", &wexp, 0);
@@ -25,7 +25,7 @@ char *get_user_conf_dir() {
     return result;
 }
 
-char *get_user_config_file() {
+char *get_user_config_file(void) {
     const char *filename = "spm.conf";
     char template[PATH_MAX];
     char *ucb = get_user_conf_dir();
@@ -45,7 +45,7 @@ char *get_user_config_file() {
     return strdup(template);
 }
 
-char *get_user_tmp_dir() {
+char *get_user_tmp_dir(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
     sprintf(template, "%s%ctmp", ucd, DIRSEP);
@@ -60,7 +60,7 @@ char *get_user_tmp_dir() {
     return strdup(template);
 }
 
-char *get_user_package_dir() {
+char *get_user_package_dir(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
     sprintf(template, "%s%cpkgs", ucd, DIRSEP);
@@ -1212,7 +1212,7 @@ int install(const char *destroot, const char *_package) {
     free(package);
 }
 
-int init_config_global() {
+void init_config_global(void) {
     SPM_GLOBAL.user_config_basedir = NULL;
     SPM_GLOBAL.user_config_file = NULL;
     SPM_GLOBAL.package_dir = NULL;
@@ -1264,7 +1264,7 @@ int init_config_global() {
     }
 }
 
-void free_global_config() {
+void free_global_config(void) {
     if (SPM_GLOBAL.package_dir) {
         free(SPM_GLOBAL.package_dir);
     }
@@ -1282,7 +1282,7 @@ void free_global_config() {
     }
 }
 
-void show_global_config() {
+void show_global_config(void) {
     printf("#---------------------------\n");
     printf("#---- SPM CONFIGURATION ----\n");
     printf("#---------------------------\n");

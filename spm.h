@@ -101,11 +101,21 @@ void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs);
 char **fstree(const char *path, unsigned int get_dir_flag);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
+int rmdirs(const char *_path);
 char *dirname(const char *_path);
 char *basename(const char *_path);
 
+char *get_user_conf_dir(void);
+char *get_user_config_file(void);
+char *get_user_tmp_dir(void);
+char *get_user_package_dir(void);
 
+void init_config_global(void);
+void free_global_config(void);
+void show_global_config(void);
 void check_runtime_environment(void);
+
+int install(const char *destroot, const char *_package);
 
 // config.c
 #define CONFIG_BUFFER_SIZE 1024
