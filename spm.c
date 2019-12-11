@@ -1240,6 +1240,50 @@ char *replace_text(char *_oldbuf, const char *_oldstr, const char *_newstr) {
     return result;
 }
 
+/**
+ * Replace all occurrences of `oldstr` in file `path` with `newstr`
+ * @param filename
+ * @param oldstr
+ * @param newstr
+ * @return success=0, failure=-1, or value of `ferror()`
+ */
+int file_replace_text(const char *filename, const char *oldstr, const char *newstr) {
+    int err = 0;
+    long int file_size = get_file_size(filename);
+    char *data_orig = (char *)calloc(file_size + 1, sizeof(char));
+    FILE *fp = fopen(filename, "r+");
+    if (!fp) {
+        free(data_orig);
+        return -1;
+    }
+
+    // Read the entire file into memory
+    fread(data_orig, file_size, sizeof(char), fp);
+    if ((err = ferror(fp)) < 0) {
+        free(data_orig);
+        return err;
+    }
+    // Jump back to the beginning of the file
+    rewind(fp);
+
+    // Create a new buffer
+    char *data_new = replace_text(data_orig, oldstr, newstr);
+    // Update expected file size
+    file_size = strlen(data_new);
+    // Write back changes
+    fwrite(data_new, file_size, sizeof(char), fp);
+    if ((err = ferror(fp)) < 0) {
+        free(data_orig);
+        free(data_new);
+        return err;
+    }
+
+    free(data_orig);
+    free(data_new);
+    fclose(fp);
+    return 0;
+}
+
 int install(const char *destroot, const char *_package) {
     char *package = find_package(_package);
     if (!package) {
@@ -1267,41 +1311,29 @@ int install(const char *destroot, const char *_package) {
 
     chdir(tmpdir);
     {
-        RelocationEntry **b_record = read_prefixes(".SPM_PREFIX_BIN");
+        // Rewrite binary prefixes
+        RelocationEntry **b_record = prefixes_read(".SPM_PREFIX_BIN");
         if (!b_record) {
             fprintf(SYSERROR);
             exit(1);
         }
 
-        // Rewrite binary prefixes
         for (int i = 0; b_record[i] != NULL; i++) {
-            relocate(b_record[i]->prefix, destroot, b_record[i]->path);
+            relocate(b_record[i]->path, b_record[i]->prefix, destroot);
         }
-        free_prefixes(b_record);
+        prefixes_free(b_record);
 
-
-        RelocationEntry **t_record = read_prefixes(".SPM_PREFIX_TEXT");
+        // Rewrite text prefixes
+        RelocationEntry **t_record = prefixes_read(".SPM_PREFIX_TEXT");
         if (!t_record) {
             fprintf(SYSERROR);
             exit(1);
         }
 
-        // Rewrite text prefixes
         for (int i = 0; t_record[i] != NULL; i++) {
-            long int t_record_len = get_file_size(t_record[i]->path);
-            char *data_orig = (char *)calloc(t_record_len + 1, sizeof(char));
-            FILE *fp = fopen(t_record[i]->path, "r+");
-            fread(data_orig, t_record_len, sizeof(char), fp);
-            rewind(fp);
-
-            char *data_new = replace_text(data_orig, t_record[i]->prefix, destroot);
-            t_record_len = strlen(data_new);
-            fwrite(data_new, t_record_len, sizeof(char), fp);
-            free(data_orig);
-            free(data_new);
-            fclose(fp);
+            file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
         }
-        free_prefixes(t_record);
+        prefixes_free(t_record);
     }
     chdir(cwd);
 
@@ -1319,7 +1351,7 @@ int install(const char *destroot, const char *_package) {
  * Free memory allocated by `read_prefixes` function
  * @param entry array of RelocationEntry
  */
-void free_prefixes(RelocationEntry **entry) {
+void prefixes_free(RelocationEntry **entry) {
     if (!entry) {
         return;
     }
@@ -1345,7 +1377,7 @@ void free_prefixes(RelocationEntry **entry) {
  * @param filename
  * @return success=array of RelocationEntry, failure=NULL
  */
-RelocationEntry **read_prefixes(const char *filename) {
+RelocationEntry **prefixes_read(const char *filename) {
     const int initial_records = 2;
     size_t i = 0;
     FILE *fp = fopen(filename, "r");
@@ -1368,7 +1400,7 @@ RelocationEntry **read_prefixes(const char *filename) {
         // Allocate a relocation record
         entry[i] = (RelocationEntry *)calloc(1, sizeof(RelocationEntry));
         if (!entry[i]) {
-            free_prefixes(entry);
+            prefixes_free(entry);
             fclose(fp);
             return NULL;
         }
@@ -1376,7 +1408,7 @@ RelocationEntry **read_prefixes(const char *filename) {
         // Populate prefix data (a prefix starts with a #)
         entry[i]->prefix = (char *)calloc(strlen(prefix) + 1, sizeof(char));
         if (!entry[i]->prefix) {
-            free_prefixes(entry);
+            prefixes_free(entry);
             fclose(fp);
             return NULL;
         }
@@ -1388,7 +1420,7 @@ RelocationEntry **read_prefixes(const char *filename) {
         // Populate path data
         entry[i]->path = (char *)calloc(strlen(path) + 1, sizeof(char));
         if (!entry[i]->path) {
-            free_prefixes(entry);
+            prefixes_free(entry);
             fclose(fp);
             return NULL;
         }
@@ -1542,7 +1574,7 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
     return returncode;
 }
 
-int relocate(const char *_oldstr, const char *_newstr, const char *_filename) {
+int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     int returncode;
     Process *proc = NULL;
     char *oldstr = strdup(_oldstr);

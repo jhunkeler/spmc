@@ -78,10 +78,12 @@ void shell_free(Process *proc_info);
 int tar_extract_archive(const char *_archive, const char *_destination);
 int tar_extract_file(const char *archive, const char* filename, const char *destination);
 int rsync(const char *_args, const char *_source, const char *_destination);
-int relocate(const char *_oldstr, const char *_newstr, const char *_filename);
-RelocationEntry **read_prefixes(const char *filename);
-void free_prefixes(RelocationEntry **entry);
+int relocate(const char *filename, const char *_oldstr, const char *_newstr);
+int file_replace_text(const char *filename, const char *oldstr, const char *newstr);
+RelocationEntry **prefixes_read(const char *filename);
+void prefixes_free(RelocationEntry **entry);
 
+int file_replace_text(const char *filename, const char *oldstr, const char *newstr);
 int num_chars(const char *sptr, int ch);
 int startswith(const char *sptr, const char *pattern);
 int endswith(const char *sptr, const char *pattern);
