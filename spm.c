@@ -754,7 +754,7 @@ void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs) {
         (*result) = (Dirwalk *)reallocarray((*result),1, sizeof(Dirwalk));
         (*result)->paths = (char **)calloc(initial_records, sizeof(char *));
         i = 0;
-        locked = 1;
+        locked++;
     }
 
     struct dirent *entry;
@@ -810,6 +810,9 @@ char **fstree(const char *path, unsigned int get_dir_flag) {
 
     walkdir(wpath, &dlist, get_dir_flag);
     char **result = (char **)calloc((size_t) (dlist->count + 1), sizeof(char *));
+    if (!result) {
+        return NULL;
+    }
     for (int i = 0; dlist->paths[i] != NULL; i++) {
         result[i] = (char *)calloc(strlen(dlist->paths[i]) + 1, sizeof(char));
         if (!result[i]) {
@@ -1059,7 +1062,7 @@ char *basename(const char *_path) {
 
     // Perform a lookahead ensuring the string is valid beyond the last separator
     if ((last + 1) != NULL) {
-        result = strdup(last + 1);
+        result = last + 1;
     }
     free(path);
 
@@ -1284,12 +1287,113 @@ int file_replace_text(const char *filename, const char *oldstr, const char *news
     return 0;
 }
 
+/**
+ * Search for string in an array of strings
+ * @param arr array of strings
+ * @param str string to search for
+ * @return yes=0, no=1, failure=-1
+ */
+int strstr_array(char **arr, const char *str) {
+    if (!arr) {
+        return -1;
+    }
+
+    for (int i = 0; arr[i] != NULL; i++) {
+        if (strstr(arr[i], str) == arr[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/**
+ * Remove duplicate strings from an array of strings
+ * @param arr
+ * @return success=array of unique strings, failure=NULL
+ */
+char **strdeldup(char **arr) {
+    if (!arr) {
+        return NULL;
+    }
+
+    int records;
+    // Determine the length of the array
+    for (records = 0; arr[records] != NULL; records++);
+
+    // Allocate enough memory to store the original array contents
+    // (It might not have duplicate values, for example)
+    char **result = (char **)calloc(records + 1, sizeof(char *));
+    if (!result) {
+        return NULL;
+    }
+
+    int rec = 0;
+    int i = 0;
+    while(i < records) {
+        // Search for value in results
+        if (strstr_array(result, arr[i]) == 0) {
+            // value already exists in results so ignore it
+            i++;
+            continue;
+        }
+
+        // Store unique value
+        result[rec] = (char *)calloc(strlen(arr[i]) + 1, sizeof(char));
+        if (!result[rec]) {
+            free(result);
+            return NULL;
+        }
+        strncpy(result[rec], arr[i], strlen(arr[i]));
+        i++;
+        rec++;
+    }
+    return result;
+}
+
+char **depends_read(const char *filename) {
+    int records = 0;
+    char line[BUFSIZ];
+    memset(line, '\0', BUFSIZ);
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(SYSERROR);
+        return NULL;
+    }
+
+    while (fgets(line, BUFSIZ, fp) != NULL) {
+        if (strstr(line, "\n") != NULL || strstr(line, "\r\n") != NULL) {
+            records++;
+        }
+    }
+    rewind(fp);
+
+    int i = 0;
+    char **result = (char **)calloc(records + 1, sizeof(char *));
+    char *wtf = line;
+    while (fgets(line, BUFSIZ, fp) != NULL) {
+        if (isempty(line) || startswith(line, "#") == 0) {
+            continue;
+        }
+        if (endswith(line, "\n") == 0) {
+            memset(&line[strlen(line) - 1], '\0', 1);
+        }
+        else if (endswith(line, "\r\n") == 0) {
+            memset(&line[strlen(line) - 2], '\0', 2);
+        }
+        result[i] = find_package(line);
+        i++;
+    }
+    fclose(fp);
+    return result;
+}
+
 int install(const char *destroot, const char *_package) {
     char *package = find_package(_package);
     if (!package) {
         fprintf(SYSERROR);
         return -1;
     }
+    printf("Installing: %s\n", package);
     if (access(destroot, F_OK) != 0) {
         if (mkdirs(destroot, 0755) != 0) {
             fprintf(SYSERROR);
@@ -1303,7 +1407,7 @@ int install(const char *destroot, const char *_package) {
     char suffix[PATH_MAX] = "spm_destroot_XXXXXX";
     sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
 
-    // Create a new temporary directory and extract the request package into it
+    // Create a new temporary directory and extract the requested package into it
     char *tmpdir = mkdtemp(template);
     tar_extract_archive(package, tmpdir);
 
@@ -1334,15 +1438,29 @@ int install(const char *destroot, const char *_package) {
             file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
         }
         prefixes_free(t_record);
+
+        char **deptmp = depends_read(".SPM_DEPENDS");
+        char **depends = strdeldup(deptmp);
+        for (int i = 0; deptmp[i]; i++) {
+            free(deptmp[i]);
+        }
+        free(deptmp);
+
+        for (int i = 0; depends[i] != NULL; i++) {
+            install(destroot, basename(depends[i]));
+            free(depends[i]);
+        }
+        free(depends);
     }
     chdir(cwd);
+
 
     // Append a trailing slash to tmpdir to direct rsync to copy files, not the directory, into destroot
     sprintf(source, "%s%c", tmpdir, DIRSEP);
     if (rsync(NULL, source, destroot) != 0) {
         exit(1);
     }
-    rmdirs(tmpdir);
+    //rmdirs(tmpdir);
 
     free(package);
 }
