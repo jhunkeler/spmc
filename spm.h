@@ -68,12 +68,19 @@ typedef struct {
     char *output;
 } Process;
 
+typedef struct {
+    char *prefix;
+    char *path;
+} RelocationEntry;
+
 void shell(Process **proc_info, u_int64_t option, const char *fmt, ...);
 void shell_free(Process *proc_info);
 int tar_extract_archive(const char *_archive, const char *_destination);
 int tar_extract_file(const char *archive, const char* filename, const char *destination);
 int rsync(const char *_args, const char *_source, const char *_destination);
-int errglob(const char *epath, int eerrno);
+int relocate(const char *_oldstr, const char *_newstr, const char *_filename);
+RelocationEntry **read_prefixes(const char *filename);
+void free_prefixes(RelocationEntry **entry);
 
 int num_chars(const char *sptr, int ch);
 int startswith(const char *sptr, const char *pattern);
@@ -92,6 +99,7 @@ int fstrstr(const char *filename, const char *pattern);
 char *find_executable(const char *program);
 char *find_file(const char *root, const char *filename);
 char *find_package(const char *filename);
+int errglob(const char *epath, int eerrno);
 
 Process *patchelf(const char *_filename, const char *_args);
 char *libdir_nearest(const char *filename);

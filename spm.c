@@ -1191,6 +1191,55 @@ int rmdirs(const char *_path) {
     return 0;
 }
 
+/**
+ * Replace all occurrences of `_oldstr` in `_oldbuf` with `_newstr`
+ * @param _oldbuf
+ * @param _oldstr
+ * @param _newstr
+ * @return
+ */
+char *replace_text(char *_oldbuf, const char *_oldstr, const char *_newstr) {
+    int occurrences = 0;
+    size_t _oldstr_len = strlen(_oldstr);
+    size_t _newstr_len = strlen(_newstr);
+    size_t _oldbuf_len = strlen(_oldbuf);
+
+    // Determine the number of times _oldstr occurs in _oldbuf.
+    char *tmp = _oldbuf;
+    while (*tmp) {
+        if (strstr(tmp, _oldstr) == tmp) {
+            occurrences++;
+            // Move pointer past last occurrence
+            tmp += _oldstr_len - 1;
+        }
+        tmp++;
+    }
+
+    int i = 0;
+    char *result = (char *)calloc(1, ((occurrences * _newstr_len) + _oldbuf_len) + 1);
+    if (!result) {
+        return NULL;
+    }
+
+    // Continuously scan until _oldstr has been completely removed
+    while (strstr(_oldbuf, _oldstr) != NULL) {
+        // Search for _oldstr in _oldbuf
+        if (strstr(_oldbuf, _oldstr) == _oldbuf) {
+            // Copy replacement string into result buffer
+            strncpy(&result[i], _newstr, _newstr_len);
+            i += _newstr_len;
+            _oldbuf += _oldstr_len;
+        }
+        else {
+            // Write non-matches to result buffer
+            result[i++] = *_oldbuf++;
+        }
+
+    }
+
+    return result;
+}
+
 int install(const char *destroot, const char *_package) {
     char *package = find_package(_package);
     if (!package) {
@@ -1204,22 +1253,153 @@ int install(const char *destroot, const char *_package) {
         }
     }
 
+    char cwd[PATH_MAX];
     char source[PATH_MAX];
     char template[PATH_MAX];
     char suffix[PATH_MAX] = "spm_destroot_XXXXXX";
     sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
 
+    // Create a new temporary directory and extract the request package into it
     char *tmpdir = mkdtemp(template);
     tar_extract_archive(package, tmpdir);
-    // do things
 
+    getcwd(cwd, sizeof(cwd));
+
+    chdir(tmpdir);
+    {
+        RelocationEntry **b_record = read_prefixes(".SPM_PREFIX_BIN");
+        if (!b_record) {
+            fprintf(SYSERROR);
+            exit(1);
+        }
+
+        // Rewrite binary prefixes
+        for (int i = 0; b_record[i] != NULL; i++) {
+            relocate(b_record[i]->prefix, destroot, b_record[i]->path);
+        }
+        free_prefixes(b_record);
+
+
+        RelocationEntry **t_record = read_prefixes(".SPM_PREFIX_TEXT");
+        if (!t_record) {
+            fprintf(SYSERROR);
+            exit(1);
+        }
+
+        // Rewrite text prefixes
+        for (int i = 0; t_record[i] != NULL; i++) {
+            long int t_record_len = get_file_size(t_record[i]->path);
+            char *data_orig = (char *)calloc(t_record_len + 1, sizeof(char));
+            FILE *fp = fopen(t_record[i]->path, "r+");
+            fread(data_orig, t_record_len, sizeof(char), fp);
+            rewind(fp);
+
+            char *data_new = replace_text(data_orig, t_record[i]->prefix, destroot);
+            t_record_len = strlen(data_new);
+            fwrite(data_new, t_record_len, sizeof(char), fp);
+            free(data_orig);
+            free(data_new);
+            fclose(fp);
+        }
+        free_prefixes(t_record);
+    }
+    chdir(cwd);
+
+    // Append a trailing slash to tmpdir to direct rsync to copy files, not the directory, into destroot
     sprintf(source, "%s%c", tmpdir, DIRSEP);
-    char *wtf = source;
     if (rsync(NULL, source, destroot) != 0) {
         exit(1);
     }
     rmdirs(tmpdir);
+
     free(package);
+}
+
+/**
+ * Free memory allocated by `read_prefixes` function
+ * @param entry array of RelocationEntry
+ */
+void free_prefixes(RelocationEntry **entry) {
+    if (!entry) {
+        return;
+    }
+    for (int i = 0; entry[i] != NULL; i++) {
+        free(entry[i]);
+    }
+    free(entry);
+}
+
+/**
+ * Parse a prefix file
+ *
+ * The file format is as follows:
+ *
+ * ~~~
+ * #prefix
+ * path
+ * #prefix
+ * path
+ * #...N
+ * ...N
+ * ~~~
+ * @param filename
+ * @return success=array of RelocationEntry, failure=NULL
+ */
+RelocationEntry **read_prefixes(const char *filename) {
+    const int initial_records = 2;
+    size_t i = 0;
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(SYSERROR);
+        return NULL;
+    }
+    char prefix[BUFSIZ];
+    char path[BUFSIZ];
+    RelocationEntry **entry = NULL;
+
+    // Initialize the relocation entry array
+    entry = (RelocationEntry **)calloc(initial_records, sizeof(RelocationEntry *));
+    if (!entry) {
+        return NULL;
+    }
+
+    // Read two lines at a time from the prefix file
+    while (fgets(prefix, BUFSIZ, fp) != NULL && fgets(path, BUFSIZ, fp) != NULL) {
+        // Allocate a relocation record
+        entry[i] = (RelocationEntry *)calloc(1, sizeof(RelocationEntry));
+        if (!entry[i]) {
+            free_prefixes(entry);
+            fclose(fp);
+            return NULL;
+        }
+
+        // Populate prefix data (a prefix starts with a #)
+        entry[i]->prefix = (char *)calloc(strlen(prefix) + 1, sizeof(char));
+        if (!entry[i]->prefix) {
+            free_prefixes(entry);
+            fclose(fp);
+            return NULL;
+        }
+        strncpy(entry[i]->prefix, prefix, strlen(prefix));
+        // Remove prefix delimiter and whitespace
+        strchrdel(entry[i]->prefix, "#");
+        entry[i]->prefix = strip(entry[i]->prefix);
+
+        // Populate path data
+        entry[i]->path = (char *)calloc(strlen(path) + 1, sizeof(char));
+        if (!entry[i]->path) {
+            free_prefixes(entry);
+            fclose(fp);
+            return NULL;
+        }
+        strncpy(entry[i]->path, path, strlen(path));
+        entry[i]->path = strip(entry[i]->path);
+
+        entry = (RelocationEntry **) reallocarray(entry, initial_records + i, sizeof(RelocationEntry *));
+        i++;
+    }
+    fclose(fp);
+    return entry;
 }
 
 void init_config_global(void) {
@@ -1359,6 +1539,40 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
     }
     free(source);
     free(destination);
+    return returncode;
+}
+
+int relocate(const char *_oldstr, const char *_newstr, const char *_filename) {
+    int returncode;
+    Process *proc = NULL;
+    char *oldstr = strdup(_oldstr);
+    char *newstr = strdup(_newstr);
+    char *filename = strdup(_filename);
+    char cmd[PATH_MAX];
+
+    memset(cmd, '\0', sizeof(cmd));
+    sprintf(cmd, "reloc \"%s\" \"%s\" \"%s\" \"%s\"", oldstr, newstr, filename, filename);
+
+    // sanitize command
+    strchrdel(cmd, "&;|");
+
+    shell(&proc, SHELL_OUTPUT, cmd);
+    if (!proc) {
+        free(oldstr);
+        free(newstr);
+        free(filename);
+        return -1;
+    }
+
+    returncode = proc->returncode;
+    if (returncode != 0 && proc->output) {
+        fprintf(stderr, proc->output);
+    }
+
+    shell_free(proc);
+    free(oldstr);
+    free(newstr);
+    free(filename);
     return returncode;
 }
 
