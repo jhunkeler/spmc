@@ -7,8 +7,15 @@
 /// \param sptr pointer to string
 /// \return pointer to first non-whitespace character in string
 char *lstrip(char *sptr) {
-    while (isblank(*sptr)) {
-        sptr++;
+    char *tmp = sptr;
+    size_t bytes = 0;
+    while (isblank(*tmp)) {
+        bytes++;
+        tmp++;
+    }
+    if (tmp != sptr) {
+        memmove(sptr, sptr + bytes, strlen(sptr) - bytes);
+        memset((sptr + strlen(sptr)) - bytes, '\0', bytes);
     }
     return sptr;
 }
@@ -17,11 +24,10 @@ char *lstrip(char *sptr) {
 /// \param sptr pointer to string
 /// \return truncated string
 char *strip(char *sptr) {
-    char *tmp = sptr + strlen(sptr) - 1;
-    while (isblank(*tmp) || *tmp == '\n') {
-        *tmp = '\0';
-        tmp--;
+    if (!strlen(sptr)) {
+        return sptr;
     }
+    strchrdel(sptr, " \r\n");
     return sptr;
 }
 
@@ -57,7 +63,7 @@ int isquoted(char *sptr) {
 
 ConfigItem **config_read(const char *filename) {
     const char sep = '=';
-    char line[CONFIG_BUFFER_SIZE];
+    char *line = (char *)calloc(CONFIG_BUFFER_SIZE, sizeof(char));
     FILE *fp = fopen(filename, "r");
     if (!fp) {
         // errno will be set, so die, and let the caller handle it
@@ -67,13 +73,13 @@ ConfigItem **config_read(const char *filename) {
     ConfigItem **config = (ConfigItem **) calloc(record_initial, sizeof(ConfigItem *));
     int record = 0;
 
-
-    while (fgets(line, sizeof(line), fp) != NULL) {
+    while (fgets(line, CONFIG_BUFFER_SIZE, fp) != NULL) {
         char *lptr = line;
-        // Remove leading space and newlines
-        lptr = lstrip(lptr);
         // Remove trailing space and newlines
         lptr = strip(lptr);
+
+        // Remove leading space and newlines
+        lptr = lstrip(lptr);
 
         // Skip empty lines
         if (isempty(lptr)) {
@@ -144,11 +150,15 @@ ConfigItem **config_read(const char *filename) {
         config[record]->key_length = strlen(key_orig);
         config[record]->value_length = strlen(value_orig);
 
+        // Destroy contents of line buffer
+        memset(line, '\0', CONFIG_BUFFER_SIZE);
+
         // increment record count
         record++;
         // Expand config by another record
         config = (ConfigItem **)reallocarray(config, record + record_initial + 1, sizeof(ConfigItem *));
     }
+    free(line);
     return config;
 }
 

@@ -28,19 +28,19 @@ char *get_user_conf_dir(void) {
 char *get_user_config_file(void) {
     const char *filename = "spm.conf";
     char template[PATH_MAX];
-    char *ucb = get_user_conf_dir();
-    if (!ucb) {
+    char *ucd = get_user_conf_dir();
+    if (!ucd) {
         return NULL;
     }
     // Initialize temporary path
     template[0] = '\0';
 
-    sprintf(template, "%s%c%s", ucb, DIRSEP, filename);
+    sprintf(template, "%s%c%s", ucd, DIRSEP, filename);
     if (access(template, F_OK) != 0) {
         // No configuration exists, so fail
         return NULL;
     }
-
+    free(ucd);
     // Allocate and return path to configuration file
     return strdup(template);
 }
@@ -199,7 +199,7 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
     int status;
     char cmd[PATH_MAX];
 
-    sprintf(cmd, "tar xf %s %s -C %s 2>&1", archive, filename, destination);
+    sprintf(cmd, "tar xf %s -C %s %s 2>&1", archive, destination, filename);
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
@@ -237,12 +237,15 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
+        free(archive);
+        free(destination);
         return -1;
     }
 
     status = proc->returncode;
     shell_free(proc);
-
+    free(archive);
+    free(destination);
     return status;
 }
 
@@ -750,16 +753,27 @@ void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs) {
         return;
     }
 
+    struct dirent *entry;
+    int record_count = 0;
+
+    while ((entry = readdir(dp)) != NULL) {
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+            continue;
+        }
+        record_count++;
+    }
+    rewinddir(dp);
+
     if (!locked) {
         (*result) = (Dirwalk *)reallocarray((*result),1, sizeof(Dirwalk));
-        (*result)->paths = (char **)calloc(initial_records, sizeof(char *));
+        (*result)->paths = (char **)calloc(record_count, sizeof(char *));
         i = 0;
         locked++;
     }
 
-    struct dirent *entry;
+    //(*result)->paths = (char **) reallocarray((*result)->paths, record_count, sizeof(char *));
     while ((entry = readdir(dp)) != NULL) {
-        (*result)->paths = (char **) reallocarray((*result)->paths, (initial_records + i), sizeof(char *));
+        printf("i=%d, dname=%s\n", i, entry->d_name);
         char *name = entry->d_name;
 
         char path[PATH_MAX];
@@ -774,7 +788,7 @@ void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs) {
         if (entry->d_type == DT_DIR) {
             if (dirs) {
                 strncpy((*result)->paths[i], path, (size_t) path_size);
-                i++;
+                //i++;
             }
             dirpath[dirpath_size] = DIRSEP;
             strcpy(dirpath + dirpath_size + 1, name);
@@ -783,8 +797,8 @@ void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs) {
         }
         else {
             strncpy((*result)->paths[i], path, (size_t) path_size);
-            i++;
         }
+        i++;
     }
     (*result)->count = i;
     (*result)->paths[i] = NULL;
@@ -792,40 +806,6 @@ void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs) {
     if (!strcmp(dirpath, "..") || !strcmp(dirpath, ".")) {
         locked = 0;
     }
-}
-
-/**
- * Generate a listing of all files under `path`
- * @param path
- * @return success=array of paths, failure=NULL
- */
-char **fstree(const char *path, unsigned int get_dir_flag) {
-    Dirwalk *dlist = NULL;
-    char wpath[PATH_MAX];
-    strcpy(wpath, path);
-
-    if (access(wpath, F_OK) != 0) {
-        return NULL;
-    }
-
-    walkdir(wpath, &dlist, get_dir_flag);
-    char **result = (char **)calloc((size_t) (dlist->count + 1), sizeof(char *));
-    if (!result) {
-        return NULL;
-    }
-    for (int i = 0; dlist->paths[i] != NULL; i++) {
-        result[i] = (char *)calloc(strlen(dlist->paths[i]) + 1, sizeof(char));
-        if (!result[i]) {
-            return NULL;
-        }
-        memcpy(result[i], dlist->paths[i], strlen(dlist->paths[i]));
-        free(dlist->paths[i]);
-    }
-    strsort(result);
-
-    free(dlist->paths);
-    free(dlist);
-    return result;
 }
 
 /*
@@ -1052,9 +1032,8 @@ char *dirname(const char *_path) {
  * @param _path
  * @return success=file name, failure=NULL
  */
-char *basename(const char *_path) {
+char *basename(char *path) {
     char *result = NULL;
-    char *path = strdup(_path);
     char *last = strrchr(path, DIRSEP);
     if (!last) {
         return NULL;
@@ -1064,7 +1043,6 @@ char *basename(const char *_path) {
     if ((last + 1) != NULL) {
         result = last + 1;
     }
-    free(path);
 
     return result;
 }
@@ -1160,40 +1138,6 @@ Process *patchelf(const char *_filename, const char *_args) {
     return proc_info;
 }
 
-
-int rmdirs(const char *_path) {
-    char *path = strdup(_path);
-    if (!path) {
-        return -1;
-    }
-    if (access(path, F_OK) != 0) {
-        fprintf(SYSERROR);
-        free(path);
-        return -1;
-    }
-
-    char **files = fstree(path, 1);
-    if (!files) {
-        free(path);
-        return -1;
-    }
-
-    while (access(path, F_OK) == 0) {
-        for (int i = 0; files[i] != NULL; i++) {
-            remove(files[i]);
-        }
-        remove(path);
-    }
-
-    for (int i = 0; files[i] != NULL; i++) {
-        free(files[i]);
-    }
-
-    free(files);
-    free(path);
-    return 0;
-}
-
 /**
  * Replace all occurrences of `_oldstr` in `_oldbuf` with `_newstr`
  * @param _oldbuf
@@ -1203,6 +1147,7 @@ int rmdirs(const char *_path) {
  */
 char *replace_text(char *_oldbuf, const char *_oldstr, const char *_newstr) {
     int occurrences = 0;
+    int i = 0;
     size_t _oldstr_len = strlen(_oldstr);
     size_t _newstr_len = strlen(_newstr);
     size_t _oldbuf_len = strlen(_oldbuf);
@@ -1213,18 +1158,22 @@ char *replace_text(char *_oldbuf, const char *_oldstr, const char *_newstr) {
         if (strstr(tmp, _oldstr) == tmp) {
             occurrences++;
             // Move pointer past last occurrence
-            tmp += _oldstr_len - 1;
+            i++;
+            tmp += _oldstr_len;
+            continue;
         }
+        i++;
         tmp++;
     }
 
-    int i = 0;
-    char *result = (char *)calloc(1, ((occurrences * _newstr_len) + _oldbuf_len) + 1);
+    char *result = (char *)calloc(((i + (occurrences * _newstr_len)) + 1), sizeof(char));
     if (!result) {
+        fprintf(SYSERROR);
         return NULL;
     }
 
     // Continuously scan until _oldstr has been completely removed
+    i = 0;
     while (strstr(_oldbuf, _oldstr) != NULL) {
         // Search for _oldstr in _oldbuf
         if (strstr(_oldbuf, _oldstr) == _oldbuf) {
@@ -1237,7 +1186,6 @@ char *replace_text(char *_oldbuf, const char *_oldstr, const char *_newstr) {
             // Write non-matches to result buffer
             result[i++] = *_oldbuf++;
         }
-
     }
 
     return result;
@@ -1256,6 +1204,7 @@ int file_replace_text(const char *filename, const char *oldstr, const char *news
     char *data_orig = (char *)calloc(file_size + 1, sizeof(char));
     FILE *fp = fopen(filename, "r+");
     if (!fp) {
+        fprintf(SYSERROR);
         free(data_orig);
         return -1;
     }
@@ -1264,6 +1213,7 @@ int file_replace_text(const char *filename, const char *oldstr, const char *news
     fread(data_orig, file_size, sizeof(char), fp);
     if ((err = ferror(fp)) < 0) {
         free(data_orig);
+        fclose(fp);
         return err;
     }
     // Jump back to the beginning of the file
@@ -1271,6 +1221,12 @@ int file_replace_text(const char *filename, const char *oldstr, const char *news
 
     // Create a new buffer
     char *data_new = replace_text(data_orig, oldstr, newstr);
+    if (!data_new) {
+        fprintf(SYSERROR);
+        free(data_orig);
+        fclose(fp);
+        return -1;
+    }
     // Update expected file size
     file_size = strlen(data_new);
     // Write back changes
@@ -1278,6 +1234,7 @@ int file_replace_text(const char *filename, const char *oldstr, const char *news
     if ((err = ferror(fp)) < 0) {
         free(data_orig);
         free(data_new);
+        fclose(fp);
         return err;
     }
 
@@ -1299,7 +1256,7 @@ int strstr_array(char **arr, const char *str) {
     }
 
     for (int i = 0; arr[i] != NULL; i++) {
-        if (strstr(arr[i], str) == arr[i]) {
+        if (strstr(arr[i], str) != NULL) {
             return 0;
         }
     }
@@ -1350,41 +1307,29 @@ char **strdeldup(char **arr) {
     return result;
 }
 
-char **depends_read(const char *filename) {
-    int records = 0;
-    char line[BUFSIZ];
-    memset(line, '\0', BUFSIZ);
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        fprintf(SYSERROR);
-        return NULL;
+void depends_all(Dependencies **deps, const char *_package) {
+    static int next = 0;
+    char *package = find_package(_package);
+    char depfile[PATH_MAX];
+    char template[PATH_MAX];
+    char suffix[PATH_MAX] = "spm_depends_all_XXXXXX";
+    sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+
+    // Create a new temporary directory and extract the requested package into it
+    char *tmpdir = mkdtemp(template);
+    tar_extract_file(package, ".SPM_DEPENDS", tmpdir);
+    sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, ".SPM_DEPENDS");
+
+    int resolved = dep_solve(deps, depfile);
+    for (int i = next; i < resolved; i++) {
+        next++;
+        if (dep_seen(deps, (*deps)->list[i])) {
+            depends_all(deps, (*deps)->list[i]);
+        }
     }
 
-    while (fgets(line, BUFSIZ, fp) != NULL) {
-        if (strstr(line, "\n") != NULL || strstr(line, "\r\n") != NULL) {
-            records++;
-        }
-    }
-    rewind(fp);
-
-    int i = 0;
-    char **result = (char **)calloc(records + 1, sizeof(char *));
-    char *wtf = line;
-    while (fgets(line, BUFSIZ, fp) != NULL) {
-        if (isempty(line) || startswith(line, "#") == 0) {
-            continue;
-        }
-        if (endswith(line, "\n") == 0) {
-            memset(&line[strlen(line) - 1], '\0', 1);
-        }
-        else if (endswith(line, "\r\n") == 0) {
-            memset(&line[strlen(line) - 2], '\0', 2);
-        }
-        result[i] = find_package(line);
-        i++;
-    }
-    fclose(fp);
-    return result;
+    unlink(depfile);
+    unlink(tmpdir);
 }
 
 int install(const char *destroot, const char *_package) {
@@ -1413,44 +1358,28 @@ int install(const char *destroot, const char *_package) {
 
     getcwd(cwd, sizeof(cwd));
 
+    RelocationEntry **b_record = NULL;
+    RelocationEntry **t_record = NULL;
     chdir(tmpdir);
     {
         // Rewrite binary prefixes
         RelocationEntry **b_record = prefixes_read(".SPM_PREFIX_BIN");
-        if (!b_record) {
-            fprintf(SYSERROR);
-            exit(1);
+        if (b_record) {
+            for (int i = 0; b_record[i] != NULL; i++) {
+                relocate(b_record[i]->path, b_record[i]->prefix, destroot);
+            }
         }
-
-        for (int i = 0; b_record[i] != NULL; i++) {
-            relocate(b_record[i]->path, b_record[i]->prefix, destroot);
-        }
-        prefixes_free(b_record);
 
         // Rewrite text prefixes
         RelocationEntry **t_record = prefixes_read(".SPM_PREFIX_TEXT");
-        if (!t_record) {
-            fprintf(SYSERROR);
-            exit(1);
+        if (t_record) {
+            for (int i = 0; t_record[i] != NULL; i++) {
+                file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
+            }
         }
 
-        for (int i = 0; t_record[i] != NULL; i++) {
-            file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
-        }
+        prefixes_free(b_record);
         prefixes_free(t_record);
-
-        char **deptmp = depends_read(".SPM_DEPENDS");
-        char **depends = strdeldup(deptmp);
-        for (int i = 0; deptmp[i]; i++) {
-            free(deptmp[i]);
-        }
-        free(deptmp);
-
-        for (int i = 0; depends[i] != NULL; i++) {
-            install(destroot, basename(depends[i]));
-            free(depends[i]);
-        }
-        free(depends);
     }
     chdir(cwd);
 
@@ -1460,13 +1389,13 @@ int install(const char *destroot, const char *_package) {
     if (rsync(NULL, source, destroot) != 0) {
         exit(1);
     }
-    //rmdirs(tmpdir);
+    rmdirs(tmpdir);
 
     free(package);
 }
 
 /**
- * Free memory allocated by `read_prefixes` function
+ * Free memory allocated by `prefixes_read` function
  * @param entry array of RelocationEntry
  */
 void prefixes_free(RelocationEntry **entry) {
@@ -1474,7 +1403,9 @@ void prefixes_free(RelocationEntry **entry) {
         return;
     }
     for (int i = 0; entry[i] != NULL; i++) {
-        free(entry[i]);
+        if (entry[i]->prefix) free(entry[i]->prefix);
+        if (entry[i]->path) free(entry[i]->path);
+        if (entry[i]) free(entry[i]);
     }
     free(entry);
 }
@@ -1496,56 +1427,96 @@ void prefixes_free(RelocationEntry **entry) {
  * @return success=array of RelocationEntry, failure=NULL
  */
 RelocationEntry **prefixes_read(const char *filename) {
-    const int initial_records = 2;
     size_t i = 0;
+    int record_count = 0;
+    int parity = 0;
     FILE *fp = fopen(filename, "r");
     if (!fp) {
         fprintf(SYSERROR);
         return NULL;
     }
-    char prefix[BUFSIZ];
-    char path[BUFSIZ];
     RelocationEntry **entry = NULL;
+    char line[BUFSIZ];
+    memset(line, '\0', BUFSIZ);
+
+    while (fgets(line, BUFSIZ, fp) != NULL) {
+        if (isempty(line)) {
+            continue;
+        }
+        record_count++;
+    }
+    rewind(fp);
 
     // Initialize the relocation entry array
-    entry = (RelocationEntry **)calloc(initial_records, sizeof(RelocationEntry *));
-    if (!entry) {
+    if (record_count == 0) {
         return NULL;
     }
 
-    // Read two lines at a time from the prefix file
-    while (fgets(prefix, BUFSIZ, fp) != NULL && fgets(path, BUFSIZ, fp) != NULL) {
-        // Allocate a relocation record
-        entry[i] = (RelocationEntry *)calloc(1, sizeof(RelocationEntry));
+    parity = record_count % 2;
+    if (parity != 0) {
+        fprintf(stderr, "%s: records are not divisible by 2 (got: %d %% 2 = %d)\n", filename, record_count, parity);
+        return NULL;
+    }
+    record_count /= 2;
+
+    entry = (RelocationEntry **)calloc(record_count + 1, sizeof(RelocationEntry *));
+    if (!entry) {
+        return NULL;
+    }
+    for (int i = 0; i < record_count; i++) {
+        entry[i] = (RelocationEntry *) calloc(1, sizeof(RelocationEntry));
         if (!entry[i]) {
-            prefixes_free(entry);
+            return NULL;
+        }
+    }
+
+    int do_prefix = 0;
+    int do_path = 0;
+    while (fgets(line, BUFSIZ, fp) != NULL) {
+        char *wtf = line;
+        if (isempty(line)) {
+            continue;
+        }
+        if (startswith(line, "#") == 0) {
+            do_prefix = 1;
+        }
+        else {
+            do_path = 1;
+        }
+
+        // Allocate a relocation record
+        if (!entry[i]) {
             fclose(fp);
             return NULL;
         }
 
-        // Populate prefix data (a prefix starts with a #)
-        entry[i]->prefix = (char *)calloc(strlen(prefix) + 1, sizeof(char));
-        if (!entry[i]->prefix) {
-            prefixes_free(entry);
-            fclose(fp);
-            return NULL;
-        }
-        strncpy(entry[i]->prefix, prefix, strlen(prefix));
-        // Remove prefix delimiter and whitespace
-        strchrdel(entry[i]->prefix, "#");
-        entry[i]->prefix = strip(entry[i]->prefix);
 
-        // Populate path data
-        entry[i]->path = (char *)calloc(strlen(path) + 1, sizeof(char));
-        if (!entry[i]->path) {
-            prefixes_free(entry);
-            fclose(fp);
-            return NULL;
+        if (do_prefix) {
+            // Populate prefix data (a prefix starts with a #)
+            entry[i]->prefix = (char *) calloc(strlen(line) + 1, sizeof(char));
+            if (!entry[i]->prefix) {
+                fclose(fp);
+                return NULL;
+            }
+            strncpy(entry[i]->prefix, line, strlen(line));
+            // Remove prefix delimiter and whitespace
+            strchrdel(entry[i]->prefix, "#");
+            entry[i]->prefix = strip(entry[i]->prefix);
+            do_prefix = 0;
+            continue;
         }
-        strncpy(entry[i]->path, path, strlen(path));
-        entry[i]->path = strip(entry[i]->path);
 
-        entry = (RelocationEntry **) reallocarray(entry, initial_records + i, sizeof(RelocationEntry *));
+        else if (do_path) {
+            // Populate path data
+            entry[i]->path = (char *) calloc(strlen(line) + 1, sizeof(char));
+            if (!entry[i]->path) {
+                fclose(fp);
+                return NULL;
+            }
+            strncpy(entry[i]->path, line, strlen(line));
+            entry[i]->path = strip(entry[i]->path);
+            do_path = 0;
+        }
         i++;
     }
     fclose(fp);
@@ -1557,6 +1528,7 @@ void init_config_global(void) {
     SPM_GLOBAL.user_config_file = NULL;
     SPM_GLOBAL.package_dir = NULL;
     SPM_GLOBAL.tmp_dir = NULL;
+    SPM_GLOBAL.config = NULL;
 
     if (uname(&SPM_GLOBAL.sysinfo) != 0) {
         fprintf(SYSERROR);
@@ -1738,41 +1710,20 @@ int main(int argc, char *argv[]) {
     // Ensure external programs are available for use.
     check_runtime_environment();
 
-    printf("find_package test:\n");
-    const char *pkg_name = "python";
-    char *package = NULL;
-    package = find_package(pkg_name);
+    // Install a package to test things out
+    const char *root = "/tmp/root";
+    const char *package = "python-pip";
+    Dependencies *deps;
+    dep_init(&deps);
+    depends_all(&deps, package);
+    dep_show(&deps);
 
-    if (package != NULL) {
-        printf("Package found: %s\n", package);
-        free(package);
-    } else {
-        fprintf(stderr, "Package does not exist: %s\n", pkg_name);
+    for (int i = 0; i < deps->records; i++) {
+        install(root, deps->list[i]);
     }
+    install(root, package);
 
-    /*
-    char *test_path = realpath("root/lib/python3.7/lib-dynload/_multiprocessing.cpython-37m-x86_64-linux-gnu.so", NULL);
-    if (!test_path) {
-        fprintf(stderr, "Unable to get absolute path for %s\n", test_path);
-        exit(1);
-    }
-    char *rpath = gen_rpath(test_path);
-
-    if (!rpath) {
-        fprintf(stderr, "Unable to generate RPATH for %s\n", test_path);
-        free(test_path);
-        exit(1);
-    }
-
-    printf("Setting RPATH: %s\n", test_path);
-    if (set_rpath(test_path, rpath) != 0) {
-        fprintf(stderr, "RPATH assignment failed\n");
-    }
-    */
-
-    install("/tmp/root", "python");
-    //free(test_path);
-    //free(rpath);
+    dep_free(&deps);
     free_global_config();
     return 0;
 }

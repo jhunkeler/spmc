@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fts.h>
 #include <glob.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +39,20 @@
 #define SHELL_DEFAULT 1 << 0
 #define SHELL_OUTPUT 1 << 1
 #define SHELL_BENCHMARK 1 << 2
+
+typedef struct {
+    char *root;
+    char **dirs;
+    size_t dirs_length;
+    char **files;
+    size_t files_length;
+} FSTree;
+
+typedef struct {
+    size_t __size;      // Count of allocated records
+    size_t records;     // Count of usable records
+    char **list;        // Array of dependencies
+} Dependencies;
 
 typedef struct {
     char *key;
@@ -111,12 +126,10 @@ char *gen_rpath(const char *_filename);
 int set_rpath(const char *filename, char *_rpath);
 
 void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs);
-char **fstree(const char *path, unsigned int get_dir_flag);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
-int rmdirs(const char *_path);
 char *dirname(const char *_path);
-char *basename(const char *_path);
+char *basename(char *path);
 
 char *get_user_conf_dir(void);
 char *get_user_config_file(void);
@@ -141,5 +154,20 @@ ConfigItem **config_read(const char *filename);
 ConfigItem *config_get(ConfigItem **item, const char *key);
 void config_free(ConfigItem **item);
 void config_test(void);
+
+// deps.c
+int exists(const char *filename);
+int dep_seen(Dependencies **deps, const char *name);
+int dep_init(Dependencies **deps);
+void dep_free(Dependencies **deps);
+int dep_append(Dependencies **deps, char *name);
+int dep_solve(Dependencies **deps, const char *filename);
+void dep_show(Dependencies **deps);
+
+// fstree.c
+int _fstree_compare(const FTSENT **a, const FTSENT **b);
+void fstree_free(FSTree *fsdata);
+FSTree *fstree(const char *_path);
+int rmdirs(const char *_path);
 
 #endif //SPM_SPM_H
