@@ -105,6 +105,35 @@ int dep_solve(Dependencies **deps, const char *filename) {
     return line_count;
 }
 
+void dep_all(Dependencies **deps, const char *_package) {
+    static int next = 0;
+    char *package = find_package(_package);
+    char depfile[PATH_MAX];
+    char template[PATH_MAX];
+    char suffix[PATH_MAX] = "spm_depends_all_XXXXXX";
+    sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+
+    // Create a new temporary directory and extract the requested package into it
+    char *tmpdir = mkdtemp(template);
+    if (!tmpdir) {
+        perror(tmpdir);
+        exit(errno);
+    }
+    tar_extract_file(package, ".SPM_DEPENDS", tmpdir);
+    sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, ".SPM_DEPENDS");
+
+    int resolved = dep_solve(deps, depfile);
+    for (int i = next; i < resolved; i++) {
+        next++;
+        if (dep_seen(deps, (*deps)->list[i])) {
+            dep_all(deps, (*deps)->list[i]);
+        }
+    }
+
+    unlink(depfile);
+    unlink(tmpdir);
+}
+
 void dep_show(Dependencies **deps) {
     if ((*deps) == NULL) {
         return;

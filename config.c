@@ -3,64 +3,14 @@
  */
 #include "spm.h"
 
-/// Remove leading whitespace from a string
-/// \param sptr pointer to string
-/// \return pointer to first non-whitespace character in string
-char *lstrip(char *sptr) {
-    char *tmp = sptr;
-    size_t bytes = 0;
-    while (isblank(*tmp)) {
-        bytes++;
-        tmp++;
-    }
-    if (tmp != sptr) {
-        memmove(sptr, sptr + bytes, strlen(sptr) - bytes);
-        memset((sptr + strlen(sptr)) - bytes, '\0', bytes);
-    }
-    return sptr;
-}
-
-/// Remove trailing whitespace from a string
-/// \param sptr pointer to string
-/// \return truncated string
-char *strip(char *sptr) {
-    if (!strlen(sptr)) {
-        return sptr;
-    }
-    strchrdel(sptr, " \r\n");
-    return sptr;
-}
-
-/// Determine if a string is empty
-/// \param sptr pointer to string
-/// \return 0=not empty, 1=empty
-int isempty(char *sptr) {
-    char *tmp = sptr;
-    while (*tmp) {
-        if (!isblank(*tmp)) {
-            return 0;
-        }
-        tmp++;
-    }
-    return 1;
-}
-
-/// Determine if a string is encapsulated by quotes
-/// \param sptr pointer to string
-/// \return 0=not quoted, 1=quoted
-int isquoted(char *sptr) {
-    const char *quotes = "'\"";
-    char *quote_open = strpbrk(sptr, quotes);
-    if (!quote_open) {
-        return 0;
-    }
-    char *quote_close = strpbrk(quote_open + 1, quotes);
-    if (!quote_close) {
-        return 0;
-    }
-    return 1;
-}
-
+/**
+ * Parse a basic configuration file
+ *
+ * NOTE: All values are stored as strings. You need to convert non-string values yourself.
+ *
+ * @param filename
+ * @return success=`ConfigItem` array, failure=NULL
+ */
 ConfigItem **config_read(const char *filename) {
     const char sep = '=';
     char *line = (char *)calloc(CONFIG_BUFFER_SIZE, sizeof(char));
@@ -162,6 +112,10 @@ ConfigItem **config_read(const char *filename) {
     return config;
 }
 
+/**
+ * Free memory allocated by `config_read`
+ * @param item `ConfigItem` array
+ */
 void config_free(ConfigItem **item) {
     for (int i = 0; item[i] != NULL; i++) {
         free(item[i]);
@@ -169,10 +123,12 @@ void config_free(ConfigItem **item) {
     free(item);
 }
 
-/// If the configuration contains `key` return a pointer to that record
-/// \param item pointer to array of config records
-/// \param key search for key in config records
-/// \return success=pointer to record, failure=NULL
+/**
+ * If the configuration contains `key` return a pointer to that record
+ * @param item pointer to array of config records
+ * @param key search for key in config records
+ * @return success=pointer to record, failure=NULL
+ */
 ConfigItem *config_get(ConfigItem **item, const char *key) {
     if (!item) {
         return NULL;

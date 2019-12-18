@@ -69,12 +69,6 @@ typedef struct {
     ConfigItem **config;
     struct utsname sysinfo;
 } spm_vars;
-static spm_vars SPM_GLOBAL;
-
-typedef struct {
-    int count;
-    char **paths;
-} Dirwalk;
 
 typedef struct {
     struct timespec start_time, stop_time;
@@ -88,49 +82,61 @@ typedef struct {
     char *path;
 } RelocationEntry;
 
+// GLOBALS
+spm_vars SPM_GLOBAL;
+
+// shell.c
 void shell(Process **proc_info, u_int64_t option, const char *fmt, ...);
 void shell_free(Process *proc_info);
+
+// archive.c
 int tar_extract_archive(const char *_archive, const char *_destination);
 int tar_extract_file(const char *archive, const char* filename, const char *destination);
-int rsync(const char *_args, const char *_source, const char *_destination);
+
+// relocation.c
 int relocate(const char *filename, const char *_oldstr, const char *_newstr);
-int file_replace_text(const char *filename, const char *oldstr, const char *newstr);
+int replace_text(char *data, const char *_spattern, const char *_sreplacement);
+int file_replace_text(char *filename, const char *spattern, const char *sreplacement);
 RelocationEntry **prefixes_read(const char *filename);
 void prefixes_free(RelocationEntry **entry);
 
-int file_replace_text(const char *filename, const char *oldstr, const char *newstr);
+// strings.c
 int num_chars(const char *sptr, int ch);
 int startswith(const char *sptr, const char *pattern);
 int endswith(const char *sptr, const char *pattern);
 char *normpath(const char *path);
 void strchrdel(char *sptr, const char *chars);
 long int strchroff(const char *sptr, int ch);
-void substrdel(char *sptr, const char *suffix);
+void strdelsuffix(char *sptr, const char *suffix);
 char** split(char *sptr, const char* delim);
 void split_free(char **ptr);
 char *substring_between(char *sptr, const char *delims);
 static int _strsort_compare(const void *a, const void *b);
 void strsort(char **arr);
-int fstrstr(const char *filename, const char *pattern);
+int find_in_file(const char *filename, const char *pattern);
 
+// find.c
 char *find_executable(const char *program);
 char *find_file(const char *root, const char *filename);
 char *find_package(const char *filename);
 int errglob(const char *epath, int eerrno);
 
+// rpath.c
 Process *patchelf(const char *_filename, const char *_args);
-char *libdir_nearest(const char *filename);
+char *rpath_autodetect(const char *filename);
 int has_rpath(const char *_filename);
-char *get_rpath(const char *_filename);
-char *gen_rpath(const char *_filename);
-int set_rpath(const char *filename, char *_rpath);
+char *rpath_get(const char *_filename);
+char *rpath_generate(const char *_filename);
+int rpath_set(const char *filename, char *_rpath);
 
-void walkdir(char *dirpath, Dirwalk **result, unsigned int dirs);
+// fs.c
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
 char *dirname(const char *_path);
 char *basename(char *path);
+int rsync(const char *_args, const char *_source, const char *_destination);
 
+// config_global.c
 char *get_user_conf_dir(void);
 char *get_user_config_file(void);
 char *get_user_tmp_dir(void);
@@ -141,6 +147,7 @@ void free_global_config(void);
 void show_global_config(void);
 void check_runtime_environment(void);
 
+// install.c
 int install(const char *destroot, const char *_package);
 
 // config.c
@@ -162,6 +169,7 @@ int dep_init(Dependencies **deps);
 void dep_free(Dependencies **deps);
 int dep_append(Dependencies **deps, char *name);
 int dep_solve(Dependencies **deps, const char *filename);
+void dep_all(Dependencies **deps, const char *_package);
 void dep_show(Dependencies **deps);
 
 // fstree.c
