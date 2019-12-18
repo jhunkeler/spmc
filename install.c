@@ -6,8 +6,8 @@ int install(const char *destroot, const char *_package) {
         fprintf(SYSERROR);
         return -1;
     }
-    printf("Installing: %s\n", package);
-    if (access(destroot, F_OK) != 0) {
+
+    if (exists(destroot) != 0) {
         if (mkdirs(destroot, 0755) != 0) {
             fprintf(SYSERROR);
             return -2;

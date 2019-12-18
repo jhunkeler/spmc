@@ -169,7 +169,7 @@ int dep_init(Dependencies **deps);
 void dep_free(Dependencies **deps);
 int dep_append(Dependencies **deps, char *name);
 int dep_solve(Dependencies **deps, const char *filename);
-void dep_all(Dependencies **deps, const char *_package);
+int dep_all(Dependencies **deps, const char *_package);
 void dep_show(Dependencies **deps);
 
 // fstree.c

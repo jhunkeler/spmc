@@ -42,21 +42,45 @@ void dep_free(Dependencies **deps) {
     free((*deps));
 }
 
-int dep_append(Dependencies **deps, char *name) {
+int dep_append(Dependencies **deps, char *_name) {
+    char *name = NULL;
+    char *bname = NULL;
+
     if (!(*deps)) {
         return -1;
     }
+
+    name = find_package(_name);
+    if (!name) {
+        perror(_name);
+        fprintf(SYSERROR);
+        return -1;
+    }
+
+    bname = basename(name);
+    if (!bname) {
+        perror(name);
+        fprintf(SYSERROR);
+        return -1;
+    }
+
     (*deps)->__size++;
     (*deps)->list = (char **)realloc((*deps)->list, sizeof(char *) * (*deps)->__size);
     if (!(*deps)->list) {
+        free(name);
         return -1;
     }
-    (*deps)->list[(*deps)->records] = (char *)calloc(strlen(name) + 1, sizeof(char));
+
+    (*deps)->list[(*deps)->records] = (char *)calloc(strlen(bname) + 1, sizeof(char));
     if (!(*deps)->list[(*deps)->records]) {
+        free(name);
         return -1;
     }
-    strcpy((*deps)->list[(*deps)->records], name);//, strlen(name));
+
+    strcpy((*deps)->list[(*deps)->records], bname);
     (*deps)->records++;
+
+    free(name);
     return 0;
 }
 
@@ -105,24 +129,42 @@ int dep_solve(Dependencies **deps, const char *filename) {
     return line_count;
 }
 
-void dep_all(Dependencies **deps, const char *_package) {
+int dep_all(Dependencies **deps, const char *_package) {
     static int next = 0;
-    char *package = find_package(_package);
+    char *package = NULL;
     char depfile[PATH_MAX];
     char template[PATH_MAX];
     char suffix[PATH_MAX] = "spm_depends_all_XXXXXX";
-    sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+
+    // Verify the requested package pattern exists
+    package = find_package(_package);
+    if (!package) {
+        perror(_package);
+        fprintf(SYSERROR);
+        return -1;
+    }
 
     // Create a new temporary directory and extract the requested package into it
+    sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
     char *tmpdir = mkdtemp(template);
     if (!tmpdir) {
-        perror(tmpdir);
-        exit(errno);
+        perror(template);
+        fprintf(SYSERROR);
+        return -1;
     }
-    tar_extract_file(package, ".SPM_DEPENDS", tmpdir);
-    sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, ".SPM_DEPENDS");
+    if (tar_extract_file(package, ".SPM_DEPENDS", tmpdir) < 0) {
+        perror(package);
+        fprintf(SYSERROR);
+        return -1;
+    }
 
+    // Scan depencency tree
+    sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, ".SPM_DEPENDS");
     int resolved = dep_solve(deps, depfile);
+
+    // NOTE:
+    //  1. `resolved` is the number of dependencies for the package we're scanning
+    //  2. `next` permits us to converge on `resolved`, otherwise `i` would reset to `0` each time `dep_all` is called
     for (int i = next; i < resolved; i++) {
         next++;
         if (dep_seen(deps, (*deps)->list[i])) {
@@ -130,8 +172,10 @@ void dep_all(Dependencies **deps, const char *_package) {
         }
     }
 
+    // Remove temporary data
     unlink(depfile);
     unlink(tmpdir);
+    return 0;
 }
 
 void dep_show(Dependencies **deps) {

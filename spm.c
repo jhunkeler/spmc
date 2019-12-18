@@ -17,21 +17,42 @@ int main(int argc, char *argv[]) {
     check_runtime_environment();
 
     // Install a package to test things out
+    char *match;
+    char *package;
     const char *root = "/tmp/root";
-    const char *package = "python";
+    if ((match = find_package("python")) == NULL) {
+        fprintf(SYSERROR);
+        exit(1);
+    }
+    if ((package = basename(match)) == NULL) {
+        fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
+        exit(1);
+    }
 
     Dependencies *deps = NULL;
     dep_init(&deps);
-    dep_all(&deps, package);
+
+    if (dep_all(&deps, package) < 0) {
+        dep_free(&deps);
+        free_global_config();
+        exit(1);
+    }
+
     printf("%s requires:\n", package);
     dep_show(&deps);
 
     // Install dependencies first
     for (int i = 0; i < deps->records; i++) {
-        install(root, deps->list[i]);
+        if (install(root, deps->list[i]) < 0) {
+            fprintf(SYSERROR);
+            exit(errno);
+        }
     }
     // Install package
-    install(root, package);
+    if (install(root, package) < 0) {
+        fprintf(SYSERROR);
+        exit(errno);
+    }
 
     dep_free(&deps);
     free_global_config();

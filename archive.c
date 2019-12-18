@@ -14,6 +14,12 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
     char cmd[PATH_MAX];
 
     sprintf(cmd, "tar xf %s -C %s %s 2>&1", archive, destination, filename);
+    if (exists(archive) != 0) {
+        fprintf(stderr, "%s :: ", archive);
+        fprintf(SYSERROR);
+        return -1;
+    }
+
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
@@ -30,6 +36,11 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     Process *proc = NULL;
     int status;
     char cmd[PATH_MAX];
+
+    if (exists(_archive) != 0) {
+        fprintf(SYSERROR);
+        return -1;
+    }
 
     char *archive = strdup(_archive);
     if (!archive) {
