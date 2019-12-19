@@ -183,6 +183,6 @@ void dep_show(Dependencies **deps) {
         return;
     }
     for (int i = 0; i < (*deps)->records; i++) {
-        printf("%d: %s\n", i, (*deps)->list[i]);
+        printf("  -> %s\n", (*deps)->list[i]);
     }
 }

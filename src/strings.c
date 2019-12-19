@@ -21,12 +21,15 @@ int num_chars(const char *sptr, int ch) {
  *
  * @param sptr string to scan
  * @param pattern string to search for
- * @return 0 = success, -1 = failure
+ * @return 0 = found, 1 = not found, -1 = error
  */
 int startswith(const char *sptr, const char *pattern) {
+    if (!sptr) {
+        return -1;
+    }
     for (size_t i = 0; i < strlen(pattern); i++) {
         if (sptr[i] != pattern[i]) {
-            return -1;
+            return 1;
         }
     }
     return 0;
@@ -37,14 +40,17 @@ int startswith(const char *sptr, const char *pattern) {
  *
  * @param sptr string to scan
  * @param pattern string to search for
- * @return 0 = success, -1 = failure
+ * @return 0 = found, 1 = not found, -1 = error
  */
 int endswith(const char *sptr, const char *pattern) {
+    if (!sptr) {
+        return -1;
+    }
     size_t sptr_size = strlen(sptr);
     size_t pattern_size = strlen(pattern);
     for (size_t s = sptr_size - pattern_size, p = 0 ; s < sptr_size; s++, p++) {
         if (sptr[s] != pattern[p]) {
-            return -1;
+            return 1;
         }
     }
     return 0;
