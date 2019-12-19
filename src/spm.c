@@ -97,7 +97,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Dump configuration
-    show_global_config();
+    if (SPM_GLOBAL.verbose) {
+        show_global_config();
+    }
 
     if (RUNTIME_ROOTDIR && !RUNTIME_INSTALL) {
         fprintf(stderr, "-r|--root requires -I|--install\n");
@@ -115,6 +117,7 @@ int main(int argc, char *argv[]) {
         }
 
         printf("Installation root: %s\n", root);
+
         printf("Requested packages:\n");
         for (int i = 0; i < PACKAGE_MAX; i++) {
             if (packages[i] == NULL) {
@@ -125,17 +128,18 @@ int main(int argc, char *argv[]) {
 
         printf("Resolving package requirements...\n");
         for (int i = 0; i < PACKAGE_MAX; i++) {
+            char *match = NULL;
+            char *package = NULL;
+
             if (packages[i] == NULL) {
                 break;
             }
 
-            // Install a package to test things out
-            char *match = NULL;
-            char *package = NULL;
             if ((match = find_package(packages[i])) == NULL) {
                 fprintf(SYSERROR);
                 exit(1);
             }
+
             if ((package = basename(match)) == NULL) {
                 fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
                 exit(1);
@@ -147,28 +151,43 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
         }
-        dep_show(&deps);
 
-        printf("Installing package requirements:\n");
-        for (int i = 0; i < deps->records; i++) {
-            printf("  -> %s\n", deps->list[i]);
-            if (install(root, deps->list[i]) < 0) {
-                fprintf(SYSERROR);
-                exit(errno);
+        if (deps) {
+            // List requirements before installation
+            for (int i = 0; i < deps->records; i++) {
+                printf("  -> %s\n", deps->list[i]);
+            }
+
+            printf("Installing package requirements:\n");
+            for (int i = 0; i < deps->records; i++) {
+                printf("  -> %s\n", deps->list[i]);
+                if (install(root, deps->list[i]) < 0) {
+                    fprintf(SYSERROR);
+                    exit(errno);
+                }
             }
         }
 
-
         printf("Installing package:\n");
         for (int i = 0; i < PACKAGE_MAX; i++) {
+            char *match = NULL;
+            char *package = NULL;
+
             if (!packages[i]) {
                 break;
             }
 
-            char *match = find_package(packages[i]);
-            char *package = basename(match);
+            if ((match = find_package(packages[i])) == NULL) {
+                fprintf(SYSERROR);
+                exit(1);
+            }
 
-            // If the package was already installed as a requirement of another dependency, skip it
+            if ((package = basename(match)) == NULL) {
+                fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
+                exit(1);
+            }
+
+            // If the package was installed as a requirement of another dependency, skip it
             if (dep_seen(&deps, package)) {
                 continue;
             }
