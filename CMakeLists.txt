@@ -1,11 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 project(spm C)
 include(CheckSymbolExists)
-
 set(CMAKE_C_STANDARD 99)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-check_symbol_exists(strsep string.h HAVE_STRSEP)
-configure_file(config.h.in config.h)
 
-add_executable(spm spm.c config.c spm.h config.h.in compat.c deps.c fs.c rpath.c find.c shell.c archive.c strings.c relocation.c install.c config_global.c)
-target_link_libraries(spm rt)
+check_symbol_exists(strsep string.h HAVE_STRSEP)
+configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/include/config.h)
+
+add_subdirectory(src)

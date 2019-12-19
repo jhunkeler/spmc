@@ -1,0 +1,17 @@
+include_directories(
+	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_BINARY_DIR}/include
+)
+
+add_executable(spm spm.c config.c compat.c deps.c fs.c rpath.c find.c shell.c archive.c strings.c relocation.c install.c config_global.c)
+target_link_libraries(spm rt)
+install(
+	TARGETS spm
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+)
+install(
+	FILES
+		${CMAKE_BINARY_DIR}/include/config.h
+		${CMAKE_SOURCE_DIR}/include/spm.h
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}"
+)
