@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
                 exit(0);
             }
             else if (strcmp(arg, "-V") == 0 || strcmp(arg, "--version") == 0) {
-                printf("want version\n");
+                printf("%s\n", SPM_VERSION);
                 exit(0);
             }
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {

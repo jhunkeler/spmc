@@ -2,5 +2,6 @@
 #define SPM_CONFIG_IN_H
 
 #cmakedefine HAVE_STRSEP 1
+#define SPM_VERSION "${VERSION}"
 
 #endif //SPM_CONFIG_IN_H
