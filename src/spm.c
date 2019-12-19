@@ -5,7 +5,6 @@
 #include <errno.h>
 #include "spm.h"
 
-int RUNTIME_VERBOSE = 0;
 int RUNTIME_INSTALL = 0;
 int RUNTIME_ROOTDIR = 0;
 const int PACKAGE_MAX = 0xff;
@@ -26,14 +25,12 @@ int main(int argc, char *argv[]) {
     memset(program_name, '\0', sizeof(program_name) + 1);
     strcpy(program_name, basename(argv[0]));
 
-
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
     // everything here is subject to change without notice
 
     // Initialize configuration data
     init_config_global();
-    show_global_config();
 
     // Ensure external programs are available for use.
     check_runtime_environment();
@@ -61,10 +58,10 @@ int main(int argc, char *argv[]) {
             }
             else if (strcmp(arg, "-V") == 0 || strcmp(arg, "--version") == 0) {
                 printf("want version\n");
+                exit(0);
             }
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
-                printf("verbose mode\n");
-                RUNTIME_VERBOSE = 1;
+                SPM_GLOBAL.verbose = 1;
             }
             else if (strcmp(arg, "-r") == 0 || strcmp(arg, "--root") == 0) {
                 RUNTIME_ROOTDIR = 1;
@@ -99,20 +96,23 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Dump configuration
+    show_global_config();
+
     if (RUNTIME_ROOTDIR && !RUNTIME_INSTALL) {
         fprintf(stderr, "-r|--root requires -I|--install\n");
         usage(program_name);
         exit(1);
     }
 
-    if (isempty(root)) {
-        printf("Using default installation root\n");
-        sprintf(root, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
-    }
-
     if (RUNTIME_INSTALL) {
         Dependencies *deps = NULL;
         dep_init(&deps);
+
+        if (isempty(root)) {
+            printf("Using default installation root\n");
+            sprintf(root, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
+        }
 
         printf("Installation root: %s\n", root);
         printf("Requested packages:\n");

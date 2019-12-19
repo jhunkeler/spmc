@@ -66,6 +66,7 @@ typedef struct {
     char *tmp_dir;
     char *user_config_basedir;
     char *user_config_file;
+    int verbose;
     ConfigItem **config;
     struct utsname sysinfo;
 } spm_vars;

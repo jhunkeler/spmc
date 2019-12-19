@@ -103,6 +103,7 @@ void init_config_global(void) {
     SPM_GLOBAL.package_dir = NULL;
     SPM_GLOBAL.tmp_dir = NULL;
     SPM_GLOBAL.config = NULL;
+    SPM_GLOBAL.verbose = 0;
 
     if (uname(&SPM_GLOBAL.sysinfo) != 0) {
         fprintf(SYSERROR);
