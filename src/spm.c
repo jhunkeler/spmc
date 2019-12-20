@@ -63,6 +63,10 @@ int main(int argc, char *argv[]) {
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
                 SPM_GLOBAL.verbose = 1;
             }
+            else if (strcmp(arg, "--reindex") == 0) {
+                manifest_create(SPM_GLOBAL.package_dir);
+                exit(0);
+            }
             else if (strcmp(arg, "-r") == 0 || strcmp(arg, "--root") == 0) {
                 RUNTIME_ROOTDIR = 1;
                 if (!arg_next) {
