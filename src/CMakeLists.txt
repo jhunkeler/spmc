@@ -3,8 +3,8 @@ include_directories(
 	${CMAKE_BINARY_DIR}/include
 )
 
-add_executable(spm spm.c config.c compat.c deps.c fs.c rpath.c find.c shell.c archive.c strings.c relocation.c install.c config_global.c)
-target_link_libraries(spm rt)
+add_executable(spm spm.c config.c compat.c deps.c fs.c rpath.c find.c shell.c archive.c strings.c relocation.c install.c config_global.c manifest.c checksum.c)
+target_link_libraries(spm rt crypto ssl)
 install(
 	TARGETS spm
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
