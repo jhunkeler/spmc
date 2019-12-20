@@ -193,6 +193,56 @@ void split_free(char **ptr) {
 }
 
 /**
+ * Create new a string from an array of strings
+ *
+ * ~~~{.c}
+ * char *array[] = {
+ *     "this",
+ *     "is",
+ *     "a",
+ *     "test",
+ *     NULL,
+ * }
+ *
+ * char *test = join(array, " ");    // "this is a test"
+ * char *test2 = join(array, "_");   // "this_is_a_test"
+ * char *test3 = join(array, ", ");  // "this, is, a, test"
+ *
+ * free(test);
+ * free(test2);
+ * free(test3);
+ * ~~~
+ *
+ * @param arr
+ * @param separator characters to insert between elements in string
+ * @return new joined string
+ */
+char *join(char **arr, const char *separator) {
+    char *result = NULL;
+    int records = 0;
+    size_t total_bytes = 0;
+
+    if (!arr) {
+        return NULL;
+    }
+
+    for (int i = 0; arr[i] != NULL; i++) {
+        total_bytes += strlen(arr[i]);
+        records++;
+    }
+    total_bytes += records * (strlen(separator) + 1);
+
+    result = (char *)calloc(total_bytes, sizeof(char));
+    for (int i = 0; i < records; i++) {
+        strcat(result, arr[i]);
+        if (i < (records - 1)) {
+            strcat(result, separator);
+        }
+    }
+    return result;
+}
+
+/**
  * Extract the string encapsulated by characters listed in `delims`
  *
  * ~~~{.c}
