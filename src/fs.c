@@ -101,6 +101,79 @@ void fstree_free(FSTree *fsdata) {
 }
 
 /**
+ * Expand "~" to the user's home directory
+ *
+ * Example:
+ * ~~~{.c}
+ * char *home = expandpath("~");             // == /home/username
+ * char *config = expandpath("~/.config");   // == /home/username/.config
+ * char *nope = expandpath("/tmp/test");     // == /tmp/test
+ * char *nada = expandpath("/~/broken");     // == /~/broken
+ *
+ * free(home);
+ * free(config);
+ * free(nope);
+ * free(nada);
+ * ~~~
+ *
+ * @param _path (Must start with a `~`)
+ * @return success=expanded path or original path, failure=NULL
+ */
+char *expandpath(const char *_path) {
+    const char *homes[] = {
+            "HOME",
+            "USERPROFILE",
+    };
+    char home[PATH_MAX];
+    char tmp[PATH_MAX];
+    char *ptmp = tmp;
+    char result[PATH_MAX];
+    char *sep = NULL;
+
+    memset(home, '\0', sizeof(home));
+    memset(ptmp, '\0', sizeof(tmp));
+    memset(result, '\0', sizeof(result));
+
+    strncpy(ptmp, _path, strlen(_path));
+
+    // Check whether there's a reason to continue processing the string
+    if (*ptmp != '~') {
+        return strdup(ptmp);
+    }
+
+    // Remove tilde from the string and shift its contents to the left
+    strchrdel(ptmp, "~");
+
+    // Figure out where the user's home directory resides
+    for (int i = 0; i < sizeof(homes); i++) {
+        char *tmphome;
+        if ((tmphome = getenv(homes[i])) != NULL) {
+            strncpy(home, tmphome, strlen(tmphome));
+            break;
+        }
+    }
+
+    // A broken runtime environment means we can't do anything else here
+    if (!home) {
+        return NULL;
+    }
+
+    // Scan the path for a directory separator
+    if ((sep = strpbrk(ptmp, "/\\")) != NULL) {
+        // Jump past it
+        ptmp = sep + 1;
+    }
+
+    // Construct the new path
+    strncat(result, home, strlen(home));
+    if (sep) {
+        sprintf(result, "%c%s", DIRSEP, ptmp);
+    }
+
+    return strdup(result);
+}
+
+/**
  * Converts Win32 path to Unix path, and vice versa
  *  - On UNIX, Win32 paths will be converted UNIX
  *  - On Win32, UNIX paths will be converted to Win32
@@ -124,6 +197,7 @@ char *normpath(const char *path) {
     }
     return result;
 }
+
 
 /**
  * Strip file name from directory
