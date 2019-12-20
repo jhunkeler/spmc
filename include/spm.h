@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
@@ -33,12 +34,24 @@
 #define NOT_DIRSEP DIRSEP_WIN32
 #endif
 
+#define SPM_PACKAGE_EXTENSION ".tar.gz"
 #define PKG_DIR SPM_GLOBAL.package_dir
 #define TMP_DIR SPM_GLOBAL.tmp_dir
 
 #define SHELL_DEFAULT 1 << 0
 #define SHELL_OUTPUT 1 << 1
 #define SHELL_BENCHMARK 1 << 2
+
+#define PACKAGE_MEMBER_SIZE 0xff
+
+typedef struct {
+    char **requirements;
+    size_t size;
+    char archive[PACKAGE_MEMBER_SIZE];
+    char name[PACKAGE_MEMBER_SIZE];
+    char version[PACKAGE_MEMBER_SIZE];
+    char revision[PACKAGE_MEMBER_SIZE];
+} ManifestPackage;
 
 typedef struct {
     char *root;
@@ -111,6 +124,7 @@ long int strchroff(const char *sptr, int ch);
 void strdelsuffix(char *sptr, const char *suffix);
 char** split(char *sptr, const char* delim);
 void split_free(char **ptr);
+char *join(char **arr, const char *separator);
 char *substring_between(char *sptr, const char *delims);
 static int _strsort_compare(const void *a, const void *b);
 void strsort(char **arr);
@@ -178,5 +192,12 @@ int _fstree_compare(const FTSENT **a, const FTSENT **b);
 void fstree_free(FSTree *fsdata);
 FSTree *fstree(const char *_path);
 int rmdirs(const char *_path);
+
+// manifest.c
+int manifest_create(const char *package_dir);
+
+// checksum.c
+char *md5sum(const char *filename);
+char *sha256sum(const char *filename);
 
 #endif //SPM_SPM_H
