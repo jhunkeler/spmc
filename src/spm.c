@@ -64,7 +64,9 @@ int main(int argc, char *argv[]) {
                 SPM_GLOBAL.verbose = 1;
             }
             else if (strcmp(arg, "--reindex") == 0) {
-                manifest_create(SPM_GLOBAL.package_dir);
+                Manifest *info = manifest_from(SPM_GLOBAL.package_dir);
+                manifest_write(info);
+                manifest_free(info);
                 exit(0);
             }
             else if (strcmp(arg, "-r") == 0 || strcmp(arg, "--root") == 0) {
@@ -115,6 +117,14 @@ int main(int argc, char *argv[]) {
         Dependencies *deps = NULL;
         dep_init(&deps);
 
+        printf("Reading package manifest... ");
+        Manifest *manifest = manifest_read();
+        if (!manifest) {
+            fprintf(stderr, "Package manifest is missing or corrupt\n");
+            exit(1);
+        }
+        printf("done\n");
+
         if (isempty(root)) {
             printf("Using default installation root\n");
             sprintf(root, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
@@ -132,13 +142,20 @@ int main(int argc, char *argv[]) {
 
         printf("Resolving package requirements...\n");
         for (int i = 0; i < PACKAGE_MAX; i++) {
-            char *match = NULL;
-            char *package = NULL;
-
+            ManifestPackage *package = NULL;
             if (packages[i] == NULL) {
                 break;
             }
 
+            package = manifest_search(manifest, packages[i]);
+
+            // If the package has dependencies listed, append them to `deps` now
+            if (package && package->requirements) {
+                for (int p = 0; package->requirements[p] != NULL; p++) {
+                    dep_append(&deps, package->requirements[p]);
+                }
+            }
+            /*
             if ((match = find_package(packages[i])) == NULL) {
                 fprintf(SYSERROR);
                 exit(1);
@@ -148,8 +165,9 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
                 exit(1);
             }
+            */
 
-            if (dep_all(&deps, package) < 0) {
+            if (dep_all(&deps, package->archive) < 0) {
                 dep_free(&deps);
                 free_global_config();
                 exit(1);

@@ -54,6 +54,11 @@ typedef struct {
 } ManifestPackage;
 
 typedef struct {
+    int records;
+    ManifestPackage **packages;
+} Manifest;
+
+typedef struct {
     char *root;
     char **dirs;
     size_t dirs_length;
@@ -77,6 +82,7 @@ typedef struct {
 typedef struct {
     char *package_dir;
     char *tmp_dir;
+    char *package_manifest;
     char *user_config_basedir;
     char *user_config_file;
     int verbose;
@@ -156,6 +162,7 @@ char *get_user_conf_dir(void);
 char *get_user_config_file(void);
 char *get_user_tmp_dir(void);
 char *get_user_package_dir(void);
+char *get_package_manifest(void);
 
 void init_config_global(void);
 void free_global_config(void);
@@ -194,7 +201,11 @@ FSTree *fstree(const char *_path);
 int rmdirs(const char *_path);
 
 // manifest.c
-int manifest_create(const char *package_dir);
+Manifest *manifest_from(const char *package_dir);
+Manifest *manifest_read(void);
+int manifest_write(Manifest *info);
+void manifest_free(Manifest *info);
+ManifestPackage *manifest_search(Manifest *info, const char *package);
 
 // checksum.c
 char *md5sum(const char *filename);

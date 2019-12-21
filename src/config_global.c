@@ -42,7 +42,7 @@ char *get_user_config_file(void) {
 char *get_user_tmp_dir(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
-    sprintf(template, "%s%ctmp", ucd, DIRSEP);
+    sprintf(template, "%s%c%s", ucd, DIRSEP, "tmp");
 
     if (access(template, F_OK) != 0) {
         if (mkdirs(template, 0755) != 0) {
@@ -57,7 +57,7 @@ char *get_user_tmp_dir(void) {
 char *get_user_package_dir(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
-    sprintf(template, "%s%cpkgs", ucd, DIRSEP);
+    sprintf(template, "%s%c%s", ucd, DIRSEP, "pkgs");
 
     if (access(template, F_OK) != 0) {
         if (mkdirs(template, 0755) != 0) {
@@ -69,6 +69,23 @@ char *get_user_package_dir(void) {
     return strdup(template);
 }
 
+char *get_package_manifest(void) {
+    char template[PATH_MAX];
+    char *ucd = get_user_conf_dir();
+
+    sprintf(template, "%s%c%s", ucd, DIRSEP, "manifest.dat");
+    char *wtf = template;
+
+    if (access(template, F_OK) != 0) {
+        fprintf(stderr, "Package manifest not found: %s\n", template);
+        Manifest *manifest = manifest_from(PKG_DIR);
+        manifest_write(manifest);
+        manifest_free(manifest);
+    }
+
+    free(ucd);
+    return strdup(template);
+}
 /**
  * Check whether SPM has access to external programs it needs
  */
@@ -95,13 +112,12 @@ void check_runtime_environment(void) {
     }
 }
 
-
-
 void init_config_global(void) {
     SPM_GLOBAL.user_config_basedir = NULL;
     SPM_GLOBAL.user_config_file = NULL;
     SPM_GLOBAL.package_dir = NULL;
     SPM_GLOBAL.tmp_dir = NULL;
+    SPM_GLOBAL.package_manifest = NULL;
     SPM_GLOBAL.config = NULL;
     SPM_GLOBAL.verbose = 0;
 
@@ -149,6 +165,21 @@ void init_config_global(void) {
     else {
         SPM_GLOBAL.package_dir = get_user_package_dir();
     }
+
+    // Initialize package manifest
+    item = config_get(SPM_GLOBAL.config, "package_manifest");
+    if (item) {
+        SPM_GLOBAL.package_manifest = item->value;
+        if (access(SPM_GLOBAL.package_manifest, F_OK) != 0) {
+            fprintf(stderr, "Package manifest not found: %s\n", SPM_GLOBAL.package_manifest);
+            Manifest *manifest = manifest_from(PKG_DIR);
+            manifest_write(manifest);
+            manifest_free(manifest);
+        }
+    }
+    else {
+        SPM_GLOBAL.package_manifest = get_package_manifest();
+    }
 }
 
 void free_global_config(void) {
@@ -157,6 +188,9 @@ void free_global_config(void) {
     }
     if (SPM_GLOBAL.tmp_dir) {
         free(SPM_GLOBAL.tmp_dir);
+    }
+    if (SPM_GLOBAL.package_manifest) {
+        free(SPM_GLOBAL.package_manifest);
     }
     if (SPM_GLOBAL.user_config_basedir) {
         free(SPM_GLOBAL.user_config_basedir);
@@ -183,5 +217,6 @@ void show_global_config(void) {
     }
     printf("# package storage: %s\n", SPM_GLOBAL.package_dir);
     printf("# temp storage: %s\n", SPM_GLOBAL.tmp_dir);
+    printf("# package manifest: %s\n", SPM_GLOBAL.package_manifest);
     printf("\n");
 }
