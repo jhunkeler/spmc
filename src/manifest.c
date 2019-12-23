@@ -12,7 +12,7 @@ Manifest *manifest_from(const char *package_dir) {
     info->packages = (ManifestPackage **) calloc(info->records + 1, sizeof(ManifestPackage *));
 
     printf("Initializing package manifest:\n");
-    for (int i = 0; i < fsdata->files_length && i < 0xffff; i++) {
+    for (int i = 0; i < fsdata->files_length; i++) {
         float percent = (((float)i + 1) / fsdata->files_length) * 100;
         printf("[%3.0f%%] %s\n", percent, basename(fsdata->files[i]));
         Dependencies *deps = NULL;
