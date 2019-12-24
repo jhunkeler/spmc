@@ -16,6 +16,7 @@ void usage(const char *program_name) {
             "  -V,  --version  show version\n"
             "  -v,  --verbose  show more information\n"
             "  -I,  --install  install package(s)\n"
+            "  -r   --root     installation prefix (requires --install)\n"
             , program_name
     );
 }

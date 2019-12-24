@@ -211,4 +211,12 @@ ManifestPackage *manifest_search(Manifest *info, const char *package);
 char *md5sum(const char *filename);
 char *sha256sum(const char *filename);
 
+// version_spec.c
+char *version_suffix_get_alpha(char *str);
+char *version_suffix_get_modifier(char *str);
+int64_t version_suffix_modifier_calc(char *str);
+int version_suffix_alpha_calc(char *str);
+int64_t version_from(const char *version_str);
+
+
 #endif //SPM_SPM_H
