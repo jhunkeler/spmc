@@ -44,8 +44,16 @@
 
 #define PACKAGE_MEMBER_SIZE 0xff
 
+#define VERSION_NOOP 1 << 0
+#define VERSION_EQ 1 << 1
+#define VERSION_NE 1 << 2
+#define VERSION_GT 1 << 3
+#define VERSION_LT 1 << 4
+#define VERSION_COMPAT 1 << 5
+
 typedef struct {
     char **requirements;
+    int requirements_records;
     size_t size;
     char archive[PACKAGE_MEMBER_SIZE];
     char name[PACKAGE_MEMBER_SIZE];
@@ -135,6 +143,7 @@ char *substring_between(char *sptr, const char *delims);
 static int _strsort_compare(const void *a, const void *b);
 void strsort(char **arr);
 int find_in_file(const char *filename, const char *pattern);
+int isrelational(char ch);
 
 // find.c
 char *find_executable(const char *program);
@@ -151,11 +160,16 @@ char *rpath_generate(const char *_filename);
 int rpath_set(const char *filename, char *_rpath);
 
 // fs.c
+int _fstree_compare(const FTSENT **a, const FTSENT **b);
+void fstree_free(FSTree *fsdata);
+FSTree *fstree(const char *_path);
+int rmdirs(const char *_path);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
 char *dirname(const char *_path);
 char *basename(char *path);
 int rsync(const char *_args, const char *_source, const char *_destination);
+char *human_readable_size(uint64_t n);
 
 // config_global.c
 char *get_user_conf_dir(void);
@@ -194,12 +208,6 @@ int dep_solve(Dependencies **deps, const char *filename);
 int dep_all(Dependencies **deps, const char *_package);
 void dep_show(Dependencies **deps);
 
-// fstree.c
-int _fstree_compare(const FTSENT **a, const FTSENT **b);
-void fstree_free(FSTree *fsdata);
-FSTree *fstree(const char *_path);
-int rmdirs(const char *_path);
-
 // manifest.c
 Manifest *manifest_from(const char *package_dir);
 Manifest *manifest_read(void);
@@ -217,6 +225,8 @@ char *version_suffix_get_modifier(char *str);
 int64_t version_suffix_modifier_calc(char *str);
 int version_suffix_alpha_calc(char *str);
 int64_t version_from(const char *version_str);
-
+int version_spec_from(const char *op);
+static int _find_by_spec_compare(const void *a, const void *b);
+ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str);
 
 #endif //SPM_SPM_H

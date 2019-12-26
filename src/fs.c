@@ -336,3 +336,27 @@ int mkdirs(const char *_path, mode_t mode) {
     split_free(parts);
     return result;
 }
+
+char *human_readable_size(uint64_t n) {
+    int i;
+    double result = (double)n;
+    char *unit[] = {"B", "K", "M", "G", "T", "P", "E"};
+    char r[255];
+    memset(r, '\0', sizeof(r));
+
+    for (i = 0; i < sizeof(unit); i++) {
+        if (labs(result) < 1024) {
+            break;
+        }
+        result /= 1024.0;
+    }
+
+    if (unit[i][0] == 'B') {
+        sprintf(r, "%0.0lf%s", result, unit[i]);
+    }
+    else {
+        sprintf(r, "%0.2lf%s", result, unit[i]);
+    }
+
+    return strdup(r);
+}

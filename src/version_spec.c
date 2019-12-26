@@ -80,14 +80,20 @@ int64_t version_suffix_modifier_calc(char *str) {
 }
 
 int version_suffix_alpha_calc(char *str) {
-    if (version_suffix_get_modifier(str) != NULL) {
-        return 0;
-    }
     int x = 0;
     char chs[255];
     char *ch = chs;
     memset(chs, '\0', sizeof(chs));
     strncpy(chs, str, strlen(str));
+
+    // Handle cases where the two suffixes are not delimited by anything
+    // Start scanning one character ahead of the alphabetic suffix and terminate the string
+    // when/if we reach another alphabetic character (presumably a version modifer)
+    for (int i = 1; chs[i] != '\0'; i++) {
+        if (isalpha(chs[i])) {
+            chs[i] = '\0';
+        }
+    }
 
     // Convert character to hex-ish
     x =  (*ch - 'a') + 0xa;
@@ -191,4 +197,102 @@ int64_t version_from(const char *version_str) {
 
     free(vstr);
     return result;
+}
+
+int version_spec_from(const char *op) {
+    int flags = VERSION_NOOP;
+    size_t len = strlen(op);
+    for (int i = 0; i < len; i++) {
+        if (op[i] == '>') {
+            flags |= VERSION_GT;
+        }
+        else if (op[i] == '<') {
+            flags |= VERSION_LT;
+        }
+        else if (op[i] == '=' || (len > 1 && strncmp(&op[i], "==", 2) == 0)) {
+            flags |= VERSION_EQ;
+        }
+        else if (op[i] == '!') {
+            flags |= VERSION_NE;
+        }
+        else if (op[i] == '~') {
+            flags |= VERSION_COMPAT;
+        }
+    }
+    return flags;
+};
+
+static int _find_by_spec_compare(const void *a, const void *b) {
+    const ManifestPackage *aa = *(const ManifestPackage**)a;
+    const ManifestPackage *bb = *(const ManifestPackage**)b;
+    int64_t version_a = version_from(aa->version);
+    int64_t version_b = version_from(bb->version);
+    return version_a > version_b;
+}
+
+ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str) {
+    int64_t version_a = 0;
+    int64_t version_b = 0;
+    int spec = VERSION_NOOP;
+    int record = 0;
+    ManifestPackage **list = (ManifestPackage **) calloc(manifest->records + 1, sizeof(ManifestPackage *));
+
+    for (int i = 0; i < manifest->records; i++) {
+        if (strcmp(manifest->packages[i]->name, name) == 0) {
+            int is_equal = 0,
+                    is_not_equal = 0,
+                    is_less_than = 0,
+                    is_greater_than = 0,
+                    is_compat = 0;
+
+            version_a = version_from(manifest->packages[i]->version);
+            version_b = version_from(version_str);
+
+            spec = version_spec_from(op);
+
+            int res = 0;
+            if (spec & VERSION_GT && spec & VERSION_EQ) {
+                res = version_a >= version_b;
+            }
+            else if (spec & VERSION_LT && spec & VERSION_EQ) {
+                res = version_a <= version_b;
+            }
+            else if (spec & VERSION_NE && spec & VERSION_EQ) {
+                res = version_a != version_b;
+            }
+            else if (spec & VERSION_GT) {
+                res = version_a > version_b;
+            }
+            else if (spec & VERSION_LT) {
+                res = version_a < version_b;
+            }
+            else if (spec & VERSION_COMPAT) {
+                // TODO
+            }
+            else if (spec & VERSION_EQ) {
+                res = version_a == version_b;
+            }
+
+            if (res > 0 || res < 0) {
+                list[record] = (ManifestPackage *)calloc(1, sizeof(ManifestPackage));
+                if (!list[record]) {
+                    perror("Unable to allocate memory for manifest record");
+                    fprintf(SYSERROR);
+                    return NULL;
+                }
+
+                memcpy(list[record], manifest->packages[i], sizeof(ManifestPackage));
+                list[record]->requirements = (char **) calloc(manifest->packages[i]->requirements_records, sizeof(char *));
+
+                for (int j = 0; j < manifest->packages[i]->requirements_records; j++) {
+                    list[record]->requirements[j] = (char *) calloc(strlen(manifest->packages[i]->requirements[j]) + 1, sizeof(char));
+                    strncpy(list[record]->requirements[j], manifest->packages[i]->requirements[j], strlen(manifest->packages[i]->requirements[j]));
+                }
+                record++;
+            }
+        }
+    }
+    qsort(list, record, sizeof(ManifestPackage *), _find_by_spec_compare);
+
+    return list;
 }

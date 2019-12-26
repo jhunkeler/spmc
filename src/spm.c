@@ -7,6 +7,7 @@
 
 int RUNTIME_INSTALL = 0;
 int RUNTIME_ROOTDIR = 0;
+int RUNTIME_SEARCH = 0;
 const int PACKAGE_MAX = 0xff;
 
 void usage(const char *program_name) {
@@ -16,6 +17,7 @@ void usage(const char *program_name) {
             "  -V,  --version  show version\n"
             "  -v,  --verbose  show more information\n"
             "  -I,  --install  install package(s)\n"
+            "  -S   --search   search for a package\n"
             "  -r   --root     installation prefix (requires --install)\n"
             , program_name
     );
@@ -41,6 +43,9 @@ int main(int argc, char *argv[]) {
 
     char *packages[PACKAGE_MAX];
     memset(packages, '\0', sizeof(char *));
+
+    char package_search_str[PATH_MAX];
+    memset(package_search_str, '\0', PATH_MAX);
 
     if (argc < 2) {
         usage(program_name);
@@ -69,6 +74,16 @@ int main(int argc, char *argv[]) {
                 manifest_write(info);
                 manifest_free(info);
                 exit(0);
+            }
+            else if (strcmp(arg, "--search") == 0) {
+                RUNTIME_SEARCH = 1;
+                if (arg_next == NULL) {
+                    fprintf(stderr, "--search requires a package name\n");
+                    usage(program_name);
+                    exit(1);
+                }
+                strncpy(package_search_str, arg_next, strlen(arg_next));
+                i++;
             }
             else if (strcmp(arg, "-r") == 0 || strcmp(arg, "--root") == 0) {
                 RUNTIME_ROOTDIR = 1;
@@ -156,18 +171,8 @@ int main(int argc, char *argv[]) {
                     dep_append(&deps, package->requirements[p]);
                 }
             }
-            /*
-            if ((match = find_package(packages[i])) == NULL) {
-                fprintf(SYSERROR);
-                exit(1);
-            }
 
-            if ((package = basename(match)) == NULL) {
-                fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
-                exit(1);
-            }
-            */
-
+            // Process any additional dependencies the package requires
             if (dep_all(&deps, package->archive) < 0) {
                 dep_free(&deps);
                 free_global_config();
@@ -223,6 +228,58 @@ int main(int argc, char *argv[]) {
             free(match);
         }
         dep_free(&deps);
+    }
+
+    if (RUNTIME_SEARCH) {
+        Manifest *info = manifest_read();
+        char name[255];
+        char op[25];
+        char ver[255];
+        memset(name, '\0', sizeof(name));
+        memset(op, '\0', sizeof(op));
+        memset(ver, '\0', sizeof(ver));
+
+        // Parse the argument string
+        int p = 0;
+
+        // Populate name
+        for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
+            if (isrelational(package_search_str[p])) {
+                break;
+            }
+            name[j] = package_search_str[p];
+        }
+
+        // Populate op
+        for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
+            if (!isrelational(package_search_str[p])) {
+                break;
+            }
+            op[j] = package_search_str[p];
+        }
+
+        if (strlen(op)) {
+            // Populate version
+            for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
+                ver[j] = package_search_str[p];
+            }
+        }
+        else {
+            // No operator, so find all versions instead
+            strcpy(op, ">=");
+            ver[0] = '0';
+        }
+
+        ManifestPackage **package = find_by_spec(info, name, op, ver);
+
+        printf("# %-20s %-20s %-20s %-20s\n", "name", "version", "revision", "size");
+        for (int p = 0; package[p] != NULL; p++) {
+            char *package_hsize = human_readable_size(package[p]->size);
+            printf("  %-20s %-20s %-20s %-20s\n", package[p]->name, package[p]->version, package[p]->revision, package_hsize);
+            free(package_hsize);
+        }
+
+        exit(0);
     }
     free_global_config();
     return 0;

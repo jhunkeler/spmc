@@ -485,3 +485,21 @@ int isquoted(char *sptr) {
     }
     return 1;
 }
+
+/**
+ * Determine whether the input character is a relational operator
+ * Note: `~` is non-standard
+ * @param ch
+ * @return 0=no, 1=yes
+ */
+int isrelational(char ch) {
+    char symbols[] = "~!=<>";
+    char *symbol = symbols;
+    while (*symbol != '\0') {
+        if (ch == *symbol) {
+            return 1;
+        }
+        symbol++;
+    }
+    return 0;
+}

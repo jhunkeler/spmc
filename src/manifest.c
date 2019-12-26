@@ -3,6 +3,7 @@
 //
 #include "spm.h"
 #include <fnmatch.h>
+#define PACKAGE_MIN_DELIM 2
 
 Manifest *manifest_from(const char *package_dir) {
     FSTree *fsdata = NULL;
@@ -27,14 +28,31 @@ Manifest *manifest_from(const char *package_dir) {
         // Copy dependencies
         if (deps->records) {
             info->packages[i]->requirements = (char **) calloc(deps->__size, sizeof(char *));
-            for (int j = 0; j < deps->records; j++) {
+            info->packages[i]->requirements_records = deps->records;
+            int j;
+            for (j = 0; j < deps->records; j++) {
                 info->packages[i]->requirements[j] = (char *) calloc(strlen(deps->list[j]) + 1, sizeof(char));
                 strncpy(info->packages[i]->requirements[j], deps->list[j], strlen(deps->list[j]));
             }
         }
         dep_free(&deps);
 
+        int delims = num_chars(fsdata->files[i], '-');
+        if (delims > PACKAGE_MIN_DELIM) {
+            for (int t = strlen(fsdata->files[i]); t != 0; t--) {
+                if (fsdata->files[i][t] == '-') {
+                    delims--;
+                    if (delims == 0) {
+                        fsdata->files[i][t] = '*';
+                    }
+                }
+            }
+        }
+
         char **parts = split(fsdata->files[i], "-");
+        replace_text(parts[0], "*", "-");
+        replace_text(fsdata->files[i], "*", "-");
+
         info->packages[i]->size = get_file_size(fsdata->files[i]);
         strncpy(info->packages[i]->archive, basename(fsdata->files[i]), PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->name, basename(parts[0]), PACKAGE_MEMBER_SIZE);
@@ -75,12 +93,14 @@ int manifest_write(Manifest *info) {
                    "%-20s: %lu\n"
                    "%-20s: %s\n"
                    "%-20s: %s\n"
-                   "%-20s: %s\n",
+                   "%-20s: %s\n"
+                   "%-20s: %d\n",
                    "archive", info->packages[i]->archive,
                    "size", info->packages[i]->size,
                    "name", info->packages[i]->name,
                    "version", info->packages[i]->version,
-                   "revision", info->packages[i]->revision
+                   "revision", info->packages[i]->revision,
+                   "requirements_records", info->packages[i]->requirements_records
             );
             reqs = join(info->packages[i]->requirements, ", ");
             printf("%-20s: %s\n", "requirements", reqs ? reqs : "NONE");
@@ -100,11 +120,18 @@ int manifest_write(Manifest *info) {
         reqs = join(info->packages[i]->requirements, ",");
         sprintf(dptr, "%s|" // archive
                       "%lu|" // size
-                      "%s|" // name
-                      "%s|" // version
-                      "%s|" // revision
-                      "%s" // requirements
-                      , info->packages[i]->archive, info->packages[i]->size, info->packages[i]->name, info->packages[i]->version, info->packages[i]->revision, reqs ? reqs : "*");
+                      "%s|"  // name
+                      "%s|"  // version
+                      "%s|"  // revision
+                      "%d|"  // requirements_records
+                      "%s"   // requirements
+                      , info->packages[i]->archive,
+                      info->packages[i]->size,
+                      info->packages[i]->name,
+                      info->packages[i]->version,
+                      info->packages[i]->revision,
+                      info->packages[i]->requirements_records,
+                      reqs ? reqs : "*");
         fprintf(fp, "%s\n", dptr);
         free(reqs);
     }
@@ -147,10 +174,12 @@ Manifest *manifest_read(void) {
         strncpy(info->packages[i]->name, parts[2], strlen(parts[2]));
         strncpy(info->packages[i]->version, parts[3], strlen(parts[3]));
         strncpy(info->packages[i]->revision, parts[4], strlen(parts[4]));
+        info->packages[i]->requirements_records = atoi(parts[5]);
 
         info->packages[i]->requirements = NULL;
-        if (strncmp(parts[5], "*", 2) != 0) {
-            info->packages[i]->requirements = split(parts[5], ",");
+        if (strncmp(parts[6], "*", 2) != 0) {
+            info->packages[i]->requirements = split(parts[6], ",");
+
         }
         split_free(parts);
         info->records = i;
