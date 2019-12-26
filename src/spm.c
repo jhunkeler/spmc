@@ -7,6 +7,7 @@
 
 int RUNTIME_INSTALL = 0;
 int RUNTIME_ROOTDIR = 0;
+int RUNTIME_LIST = 0;
 int RUNTIME_SEARCH = 0;
 const int PACKAGE_MAX = 0xff;
 
@@ -18,6 +19,7 @@ void usage(const char *program_name) {
             "  -v,  --verbose  show more information\n"
             "  -I,  --install  install package(s)\n"
             "  -S   --search   search for a package\n"
+            "  -L   --list     list available packages\n"
             "  -r   --root     installation prefix (requires --install)\n"
             , program_name
     );
@@ -75,7 +77,10 @@ int main(int argc, char *argv[]) {
                 manifest_free(info);
                 exit(0);
             }
-            else if (strcmp(arg, "--search") == 0) {
+            else if (strcmp(arg, "-L") == 0 || strcmp(arg, "--list") == 0) {
+                RUNTIME_LIST = 1;
+            }
+            else if (strcmp(arg, "-S") == 0 || strcmp(arg, "--search") == 0) {
                 RUNTIME_SEARCH = 1;
                 if (arg_next == NULL) {
                     fprintf(stderr, "--search requires a package name\n");
@@ -230,7 +235,7 @@ int main(int argc, char *argv[]) {
         dep_free(&deps);
     }
 
-    if (RUNTIME_SEARCH) {
+    if (RUNTIME_SEARCH || RUNTIME_LIST) {
         Manifest *info = manifest_read();
         char name[255];
         char op[25];
@@ -250,33 +255,49 @@ int main(int argc, char *argv[]) {
             name[j] = package_search_str[p];
         }
 
-        // Populate op
-        for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
-            if (!isrelational(package_search_str[p])) {
-                break;
-            }
-            op[j] = package_search_str[p];
-        }
-
-        if (strlen(op)) {
-            // Populate version
+        if (RUNTIME_SEARCH) {
+            // Populate op
             for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
-                ver[j] = package_search_str[p];
+                if (!isrelational(package_search_str[p])) {
+                    break;
+                }
+                op[j] = package_search_str[p];
+            }
+
+            if (strlen(op)) {
+                // Populate version
+                for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
+                    ver[j] = package_search_str[p];
+                }
+            } else {
+                // No operator, so find all versions instead
+                strcpy(op, ">=");
+                ver[0] = '0';
+            }
+
+        }
+
+        int banner_size = 77;
+        printf("# ");
+        print_banner("-", banner_size);
+        printf("# %-20s %-20s %-20s %-20s\n", "name", "version", "revision", "size");
+        printf("# ");
+        print_banner("-", banner_size);
+
+        if (RUNTIME_SEARCH) {
+            ManifestPackage **package = find_by_spec(info, name, op, ver);
+            for (int p = 0; package[p] != NULL; p++) {
+                char *package_hsize = human_readable_size(package[p]->size);
+                printf("  %-20s %-20s %-20s %-20s\n", package[p]->name, package[p]->version, package[p]->revision, package_hsize);
+                free(package_hsize);
             }
         }
-        else {
-            // No operator, so find all versions instead
-            strcpy(op, ">=");
-            ver[0] = '0';
-        }
-
-        ManifestPackage **package = find_by_spec(info, name, op, ver);
-
-        printf("# %-20s %-20s %-20s %-20s\n", "name", "version", "revision", "size");
-        for (int p = 0; package[p] != NULL; p++) {
-            char *package_hsize = human_readable_size(package[p]->size);
-            printf("  %-20s %-20s %-20s %-20s\n", package[p]->name, package[p]->version, package[p]->revision, package_hsize);
-            free(package_hsize);
+        else if(RUNTIME_LIST) {
+            for (int p = 0; p < info->records; p++) {
+                char *package_hsize = human_readable_size(info->packages[p]->size);
+                printf("  %-20s %-20s %-20s %-20s\n", info->packages[p]->name, info->packages[p]->version, info->packages[p]->revision, package_hsize);
+                free(package_hsize);
+            }
         }
 
         exit(0);

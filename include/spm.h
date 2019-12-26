@@ -144,6 +144,8 @@ static int _strsort_compare(const void *a, const void *b);
 void strsort(char **arr);
 int find_in_file(const char *filename, const char *pattern);
 int isrelational(char ch);
+void print_banner(const char *s, int len);
+
 
 // find.c
 char *find_executable(const char *program);

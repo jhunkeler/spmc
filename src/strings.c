@@ -503,3 +503,21 @@ int isrelational(char ch) {
     }
     return 0;
 }
+
+/**
+ * Repeatedly print string `s`, `len` times
+ * @param s
+ * @param len
+ */
+void print_banner(const char *s, int len) {
+    size_t s_len = strlen(s);
+    if (!s || !s_len) {
+        return;
+    }
+    for (int i = 0; i < (len / s_len); i++) {
+        for (int c = 0; c < s_len; c++) {
+            putchar(s[c]);
+        }
+    }
+    putchar('\n');
+}
