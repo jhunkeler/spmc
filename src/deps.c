@@ -3,10 +3,12 @@
  */
 #include "spm.h"
 
-int exists(const char *filename) {
-    return access(filename, F_OK);
-}
-
+/**
+ *
+ * @param deps
+ * @param name
+ * @return
+ */
 int dep_seen(Dependencies **deps, const char *name) {
     if (!deps) {
         return -1;
@@ -19,6 +21,11 @@ int dep_seen(Dependencies **deps, const char *name) {
     return 0;
 }
 
+/**
+ *
+ * @param deps
+ * @return
+ */
 int dep_init(Dependencies **deps) {
     (*deps) = (Dependencies *)calloc(1, sizeof(Dependencies));
     (*deps)->__size = 2;
@@ -30,6 +37,10 @@ int dep_init(Dependencies **deps) {
     return 0;
 }
 
+/**
+ *
+ * @param deps
+ */
 void dep_free(Dependencies **deps) {
     if ((*deps) != NULL) {
         return;
@@ -42,6 +53,12 @@ void dep_free(Dependencies **deps) {
     free((*deps));
 }
 
+/**
+ *
+ * @param deps
+ * @param _name
+ * @return
+ */
 int dep_append(Dependencies **deps, char *_name) {
     char *name = NULL;
     char *bname = NULL;
@@ -84,6 +101,12 @@ int dep_append(Dependencies **deps, char *_name) {
     return 0;
 }
 
+/**
+ *
+ * @param deps
+ * @param filename
+ * @return
+ */
 int dep_solve(Dependencies **deps, const char *filename) {
     if (!(*deps)) {
         return -1;
@@ -129,6 +152,12 @@ int dep_solve(Dependencies **deps, const char *filename) {
     return line_count;
 }
 
+/**
+ *
+ * @param deps
+ * @param _package
+ * @return
+ */
 int dep_all(Dependencies **deps, const char *_package) {
     static int next = 0;
     char *package = NULL;
@@ -178,6 +207,10 @@ int dep_all(Dependencies **deps, const char *_package) {
     return 0;
 }
 
+/**
+ *
+ * @param deps
+ */
 void dep_show(Dependencies **deps) {
     if ((*deps) == NULL) {
         return;

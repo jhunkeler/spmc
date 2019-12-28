@@ -6,9 +6,9 @@
 #define PACKAGE_MIN_DELIM 2
 
 /**
- *
- * @param package_dir
- * @return
+ * Generate a `Manifest` of package data
+ * @param package_dir a directory containing SPM packages
+ * @return `Manifest`
  */
 Manifest *manifest_from(const char *package_dir) {
     FSTree *fsdata = NULL;
@@ -42,6 +42,8 @@ Manifest *manifest_from(const char *package_dir) {
         }
         dep_free(&deps);
 
+        // Replace unwanted hyphens in the package name with an invalid character to prevent splitting on the wrong
+        // hyphen below
         int delims = num_chars(fsdata->files[i], '-');
         if (delims > PACKAGE_MIN_DELIM) {
             for (int t = strlen(fsdata->files[i]); t != 0; t--) {
@@ -54,10 +56,14 @@ Manifest *manifest_from(const char *package_dir) {
             }
         }
 
+        // Split the package name into parts (invalid characters are ignored)
         char **parts = split(fsdata->files[i], "-");
+
+        // Replace invalid character with a hyphen
         replace_text(parts[0], "*", "-");
         replace_text(fsdata->files[i], "*", "-");
 
+        // Populate `ManifestPackage` record
         info->packages[i]->size = get_file_size(fsdata->files[i]);
         strncpy(info->packages[i]->archive, basename(fsdata->files[i]), PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->name, basename(parts[0]), PACKAGE_MEMBER_SIZE);
@@ -66,13 +72,13 @@ Manifest *manifest_from(const char *package_dir) {
         strdelsuffix(info->packages[i]->revision, SPM_PACKAGE_EXTENSION);
         split_free(parts);
     }
-    //printf("\n");
+
     return info;
 }
 
 /**
- *
- * @param info
+ * Free a `Manifest` structure
+ * @param info `Manifest`
  */
 void manifest_free(Manifest *info) {
     for (int i = 0; i < info->records; i++) {
@@ -89,7 +95,7 @@ void manifest_free(Manifest *info) {
 }
 
 /**
- *
+ * Write a `Manifest` to the configuration directory
  * @param info
  * @return
  */
@@ -101,6 +107,7 @@ int manifest_write(Manifest *info) {
     FILE *fp = fopen(path, "w+");
     char *reqs = NULL;
 
+    // A little too much information (debug?)
     if (SPM_GLOBAL.verbose) {
         for (int i = 0; i < info->records; i++) {
             printf("%-20s: %s\n"
@@ -154,8 +161,8 @@ int manifest_write(Manifest *info) {
 }
 
 /**
- *
- * @return
+ * Read the package manifest stored in the configuration directory
+ * @return `Manifest` structure
  */
 Manifest *manifest_read(void) {
     const char *filename = "manifest.dat";
@@ -180,6 +187,7 @@ Manifest *manifest_read(void) {
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->packages = (ManifestPackage **)calloc(total_records + 1, sizeof(ManifestPackage *));
 
+    // Begin parsing the manifest
     int i = 0;
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         dptr = strip(dptr);
@@ -209,10 +217,10 @@ Manifest *manifest_read(void) {
 }
 
 /**
- *
- * @param info
- * @param _package
- * @return
+ * Find a package in a `Manifest`
+ * @param info `Manifest`
+ * @param _package package name
+ * @return found=`ManifestPackage`, not found=NULL
  */
 ManifestPackage *manifest_search(Manifest *info, const char *_package) {
     char package[PATH_MAX];

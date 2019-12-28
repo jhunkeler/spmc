@@ -138,6 +138,12 @@ char *rpath_generate(const char *_filename) {
     return result;
 }
 
+/**
+ * Set the RPATH of an executable
+ * @param filename
+ * @param _rpath
+ * @return
+ */
 int rpath_set(const char *filename, char *_rpath) {
     int returncode;
 

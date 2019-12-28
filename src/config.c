@@ -8,6 +8,16 @@
  *
  * NOTE: All values are stored as strings. You need to convert non-string values yourself.
  *
+ * Example:
+ * ~~~{.c}
+ * ConfigItem **items = config_read("example.cfg");
+ * if (!items) {
+ *     // handle error
+ * }
+ * config_free(items);
+ * ~~~
+ *
+ *
  * @param filename
  * @return success=`ConfigItem` array, failure=NULL
  */
@@ -124,7 +134,19 @@ void config_free(ConfigItem **item) {
 }
 
 /**
- * If the configuration contains `key` return a pointer to that record
+ * If the `ConfigItem` array contains `key`, return a pointer to that record
+ *
+ * Example:
+ * ~~~{.c}
+ * char *nptr = NULL;
+ * ConfigItem *item = config_get(items, "a_number");
+ * if (!item) {
+ *     // handle error
+ * }
+ * int the_number = strtol(item->value, &nptr, 10);
+ * printf("%s = %d\n", item->key, the_number);
+ * ~~~
+ *
  * @param item pointer to array of config records
  * @param key search for key in config records
  * @return success=pointer to record, failure=NULL

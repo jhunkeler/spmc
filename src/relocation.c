@@ -280,6 +280,13 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
     return 0;
 }
 
+/**
+ * Wrapper for `reloc` program. Replace text in binary data.
+ * @param _filename
+ * @param _oldstr
+ * @param _newstr
+ * @return
+ */
 int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     int returncode;
     Process *proc = NULL;

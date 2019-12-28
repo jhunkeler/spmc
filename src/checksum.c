@@ -5,6 +5,11 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
+/**
+ *
+ * @param filename
+ * @return
+ */
 char *md5sum(const char *filename) {
     size_t bytes = 0;
     unsigned char digest[MD5_DIGEST_LENGTH];
@@ -36,6 +41,11 @@ char *md5sum(const char *filename) {
     return result;
 }
 
+/**
+ *
+ * @param filename
+ * @return
+ */
 char *sha256sum(const char *filename) {
     size_t bytes = 0;
     unsigned char digest[SHA256_DIGEST_LENGTH];

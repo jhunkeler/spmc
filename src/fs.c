@@ -3,6 +3,11 @@
  */
 #include "spm.h"
 
+/**
+ *
+ * @param _path
+ * @return
+ */
 FSTree *fstree(const char *_path) {
     FTS *parent = NULL;
     FTSENT *node = NULL;
@@ -58,10 +63,21 @@ FSTree *fstree(const char *_path) {
     return fsdata;
 }
 
+/**
+ *
+ * @param one
+ * @param two
+ * @return
+ */
 int _fstree_compare(const FTSENT **one, const FTSENT **two) {
     return (strcmp((*one)->fts_name, (*two)->fts_name));
 }
 
+/**
+ *
+ * @param _path
+ * @return
+ */
 int rmdirs(const char *_path) {
     if (access(_path, F_OK) != 0) {
         return -1;
@@ -84,6 +100,10 @@ int rmdirs(const char *_path) {
     return 0;
 }
 
+/**
+ * Free a `FSTree` structure
+ * @param fsdata
+ */
 void fstree_free(FSTree *fsdata) {
     if (fsdata != NULL) {
         if (fsdata->root != NULL) {
@@ -343,6 +363,22 @@ int mkdirs(const char *_path, mode_t mode) {
     }
     split_free(parts);
     return result;
+}
+
+/**
+ * Short wrapper for `access`. Check if file exists.
+ *
+ * Example:
+ * ~~~{.c}
+ * if (exists("example.txt") != 0) {
+ *     // handle error
+ * }
+ * ~~~
+ * @param filename
+ * @return
+ */
+int exists(const char *filename) {
+    return access(filename, F_OK);
 }
 
 /**

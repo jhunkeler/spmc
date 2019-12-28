@@ -3,6 +3,11 @@
  */
 #include "spm.h"
 
+/**
+ * Get path to user's local configuration directory
+ * (The path will be created if it doesn't exist)
+ * @return
+ */
 char *get_user_conf_dir(void) {
     char *result = NULL;
     wordexp_t wexp;
@@ -22,6 +27,10 @@ char *get_user_conf_dir(void) {
     return result;
 }
 
+/**
+ * Get path to user's local configuration file
+ * @return
+ */
 char *get_user_config_file(void) {
     const char *filename = "spm.conf";
     char template[PATH_MAX];
@@ -42,6 +51,10 @@ char *get_user_config_file(void) {
     return strdup(template);
 }
 
+/**
+ * Determine location of temporary storage location
+ * @return
+ */
 char *get_user_tmp_dir(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
@@ -57,6 +70,10 @@ char *get_user_tmp_dir(void) {
     return strdup(template);
 }
 
+/**
+ * Determine location of package directory
+ * @return
+ */
 char *get_user_package_dir(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
@@ -72,6 +89,10 @@ char *get_user_package_dir(void) {
     return strdup(template);
 }
 
+/**
+ * Determine location of the package manifest
+ * @return
+ */
 char *get_package_manifest(void) {
     char template[PATH_MAX];
     char *ucd = get_user_conf_dir();
@@ -89,12 +110,14 @@ char *get_package_manifest(void) {
     free(ucd);
     return strdup(template);
 }
+
 /**
  * Check whether SPM has access to external programs it needs
  */
 void check_runtime_environment(void) {
     int bad_rt = 0;
     char *required[] = {
+            "file",
             "patchelf",
             "rsync",
             "tar",
@@ -115,6 +138,9 @@ void check_runtime_environment(void) {
     }
 }
 
+/**
+ * Populate global configuration structure
+ */
 void init_config_global(void) {
     SPM_GLOBAL.user_config_basedir = NULL;
     SPM_GLOBAL.user_config_file = NULL;
@@ -185,6 +211,9 @@ void init_config_global(void) {
     }
 }
 
+/**
+ * Free memory allocated for global configuration
+ */
 void free_global_config(void) {
     if (SPM_GLOBAL.package_dir) {
         free(SPM_GLOBAL.package_dir);
@@ -206,6 +235,9 @@ void free_global_config(void) {
     }
 }
 
+/**
+ * Display global configuration data
+ */
 void show_global_config(void) {
     printf("#---------------------------\n");
     printf("#---- SPM CONFIGURATION ----\n");

@@ -35,6 +35,12 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
     return status;
 }
 
+/**
+ *
+ * @param _archive
+ * @param _destination
+ * @return
+ */
 int tar_extract_archive(const char *_archive, const char *_destination) {
     Process *proc = NULL;
     int status;
