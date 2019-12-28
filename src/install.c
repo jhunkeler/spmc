@@ -1,5 +1,40 @@
 #include "spm.h"
 
+/**
+ *
+ * @param _path
+ * @return
+ */
+int metadata_remove(const char *_path) {
+    char *metadata[] = {
+            SPM_META_DEPENDS,
+            SPM_META_PREFIX_BIN,
+            SPM_META_PREFIX_TEXT,
+            SPM_META_MANIFEST,
+            NULL,
+    };
+
+    if (exists(_path) != 0) {
+        perror(_path);
+        fprintf(SYSERROR);
+        return -1;
+    }
+
+    for (int i = 0; metadata[i] != NULL; i++) {
+        char path[PATH_MAX];
+        sprintf(path, "%s%c%s", _path, DIRSEP, metadata[i]);
+        if (exists(path) != 0) {
+            continue;
+        }
+        if (unlink(path) < 0) {
+            perror(path);
+            fprintf(SYSERROR);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 int install(const char *destroot, const char *_package) {
     char *package = find_package(_package);
     if (!package) {
@@ -31,7 +66,7 @@ int install(const char *destroot, const char *_package) {
     chdir(tmpdir);
     {
         // Rewrite binary prefixes
-        RelocationEntry **b_record = prefixes_read(".SPM_PREFIX_BIN");
+        RelocationEntry **b_record = prefixes_read(SPM_META_PREFIX_BIN);
         if (b_record) {
             for (int i = 0; b_record[i] != NULL; i++) {
                 relocate(b_record[i]->path, b_record[i]->prefix, destroot);
@@ -39,7 +74,7 @@ int install(const char *destroot, const char *_package) {
         }
 
         // Rewrite text prefixes
-        RelocationEntry **t_record = prefixes_read(".SPM_PREFIX_TEXT");
+        RelocationEntry **t_record = prefixes_read(SPM_META_PREFIX_TEXT);
         if (t_record) {
             for (int i = 0; t_record[i] != NULL; i++) {
                 file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
@@ -51,9 +86,13 @@ int install(const char *destroot, const char *_package) {
     }
     chdir(cwd);
 
-
     // Append a trailing slash to tmpdir to direct rsync to copy files, not the directory, into destroot
     sprintf(source, "%s%c", tmpdir, DIRSEP);
+
+    // Remove metadata files before copying
+    metadata_remove(source);
+
+    // Copy temporary directory to destination
     if (rsync(NULL, source, destroot) != 0) {
         exit(1);
     }

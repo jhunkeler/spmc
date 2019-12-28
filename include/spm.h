@@ -34,6 +34,14 @@
 #define NOT_DIRSEP DIRSEP_WIN32
 #endif
 
+#define SPM_META_DEPENDS ".SPM_DEPENDS"
+#define SPM_META_PREFIX_BIN ".SPM_PREFIX_BIN"
+#define SPM_META_PREFIX_TEXT ".SPM_PREFIX_TEXT"
+#define SPM_META_MANIFEST ".SPM_MANIFEST" // TODO: Implement
+
+#define PREFIX_WRITE_BIN 0
+#define PREFIX_WRITE_TEXT 1
+
 #define SPM_PACKAGE_EXTENSION ".tar.gz"
 #define PKG_DIR SPM_GLOBAL.package_dir
 #define TMP_DIR SPM_GLOBAL.tmp_dir
@@ -110,6 +118,12 @@ typedef struct {
     char *path;
 } RelocationEntry;
 
+typedef struct {
+    char *origin;
+    char *type;
+    char *charset;
+} Mime;
+
 // GLOBALS
 spm_vars SPM_GLOBAL;
 
@@ -127,6 +141,7 @@ int replace_text(char *data, const char *_spattern, const char *_sreplacement);
 int file_replace_text(char *filename, const char *spattern, const char *sreplacement);
 RelocationEntry **prefixes_read(const char *filename);
 void prefixes_free(RelocationEntry **entry);
+int prefixes_write(const char *output_file, int mode, char **prefix, const char *tree);
 
 // strings.c
 int num_chars(const char *sptr, int ch);
@@ -186,6 +201,7 @@ void show_global_config(void);
 void check_runtime_environment(void);
 
 // install.c
+int metadata_remove(const char *_path);
 int install(const char *destroot, const char *_package);
 
 // config.c
@@ -230,5 +246,16 @@ int64_t version_from(const char *version_str);
 int version_spec_from(const char *op);
 static int _find_by_spec_compare(const void *a, const void *b);
 ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str);
+
+// build.c
+Process *file_command(const char *_filename);
+Mime *file_mimetype(const char *filename);
+void mime_free(Mime *m);
+int build(int bargc, char **bargv);
+int file_is_binary(const char *filename);
+int file_is_text(const char *filename);
+
+// internal_cmd.c
+int internal_cmd(int argc, char **argv);
 
 #endif //SPM_SPM_H

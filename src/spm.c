@@ -13,14 +13,15 @@ const int PACKAGE_MAX = 0xff;
 
 void usage(const char *program_name) {
     printf(
-            "usage: %s [-hVv] [-I|--install {package ...}]\n"
+            "usage: %s [-hVvBIrLS]\n"
             "  -h,  --help     show this help message\n"
             "  -V,  --version  show version\n"
             "  -v,  --verbose  show more information\n"
+            "  -B,  --build    build package(s)\n"
             "  -I,  --install  install package(s)\n"
-            "  -S   --search   search for a package\n"
-            "  -L   --list     list available packages\n"
-            "  -r   --root     installation prefix (requires --install)\n"
+            "  -r,  --root     installation prefix (requires --install)\n"
+            "  -L,  --list     list available packages\n"
+            "  -S,  --search   search for a package\n"
             , program_name
     );
 }
@@ -76,6 +77,16 @@ int main(int argc, char *argv[]) {
                 manifest_write(info);
                 manifest_free(info);
                 exit(0);
+            }
+            else if (strcmp(arg, "--cmd") == 0) {
+                int c = argc - i;
+                char **a = &argv[i];
+                exit(internal_cmd(c, a));
+            }
+            else if (strcmp(arg, "-B") == 0 || strcmp(arg, "--build") == 0) {
+                int c = argc - i;
+                char **a = &argv[i];
+                exit(build(c, a));
             }
             else if (strcmp(arg, "-L") == 0 || strcmp(arg, "--list") == 0) {
                 RUNTIME_LIST = 1;

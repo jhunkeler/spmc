@@ -299,6 +299,11 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
     return returncode;
 }
 
+/**
+ * Return the size of a file
+ * @param filename
+ * @return
+ */
 long int get_file_size(const char *filename) {
     long int result = 0;
     FILE *fp = fopen(filename, "rb");
@@ -337,6 +342,26 @@ int mkdirs(const char *_path, mode_t mode) {
     return result;
 }
 
+/**
+ * Convert size in bytes to the closest human-readable unit
+ *
+ * NOTE: Caller is responsible for freeing memory
+ *
+ * Example:
+ * ~~~{.c}
+ * char *output;
+ * output = human_readable_size(1);       // "1B"
+ * free(output);
+ * output = human_readable_size(1024)     // "1.0K"
+ * free(output);
+ * output = human_readable_size(1024000)  // "1.0MB"
+ * free(output);
+ * // and so on
+ * ~~~
+ *
+ * @param n size to convert
+ * @return string
+ */
 char *human_readable_size(uint64_t n) {
     int i;
     double result = (double)n;

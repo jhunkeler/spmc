@@ -201,6 +201,57 @@ RelocationEntry **prefixes_read(const char *filename) {
     return entry;
 }
 
+/**
+ * Generate a prefix manifest
+ *
+ * Example:
+ * ~~~{.c}
+ * char **prefixes = {"/usr", "/var", NULL};
+ * prefixes_write("binary.manifest", PREFIX_WRITE_BIN, prefixes, "/usr/bin");
+ * prefixes_write("text.manifest", PREFIX_WRITE_TEXT, prefixes, "/usr/share/man/7");
+ * ~~~
+ *
+ * @param output_file file path to create
+ * @param mode `PREFIX_WRITE_BIN`, `PREFIX_WRITE_TEXT`
+ * @param prefix array of prefix strings
+ * @param tree directory to scan
+ * @return success=0, failure=1, error=-1
+ */
+int prefixes_write(const char *output_file, int mode, char **prefix, const char *tree) {
+    FILE *fp = fopen(output_file, "w+");
+    if (!fp) {
+        perror(output_file);
+        fprintf(SYSERROR);
+        return -1;
+    }
+
+    FSTree *fsdata = fstree(tree);
+    if (!fsdata) {
+        fprintf(SYSERROR);
+        return -1;
+    }
+    for (int i = 0; i < fsdata->files_length; i++) {
+        for (int p = 0; prefix[p] != NULL; p++) {
+            int proceed = 0;
+            if (find_in_file(fsdata->files[i], prefix[p]) == 0) {
+                if (mode == PREFIX_WRITE_BIN) {
+                    proceed = file_is_binary(fsdata->files[i]);
+                } else if (mode == PREFIX_WRITE_TEXT) {
+                    proceed = file_is_text(fsdata->files[i]);
+                }
+
+                if (!proceed) {
+                    continue;
+                }
+
+                fprintf(fp, "#%s\n%s\n", prefix[p], fsdata->files[i]);
+            }
+        }
+    }
+    fclose(fp);
+    return 0;
+}
+
 int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     int returncode;
     Process *proc = NULL;
