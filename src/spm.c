@@ -288,11 +288,11 @@ int main(int argc, char *argv[]) {
 
         }
 
-        int banner_size = 77;
-        printf("# ");
+        int banner_size = 79;
+        putchar('#');
         print_banner("-", banner_size);
         printf("# %-20s %-20s %-20s %-20s\n", "name", "version", "revision", "size");
-        printf("# ");
+        putchar('#');
         print_banner("-", banner_size);
 
         if (RUNTIME_SEARCH) {

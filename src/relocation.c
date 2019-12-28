@@ -1,5 +1,24 @@
+/**
+ * @file relocation.c
+ */
 #include "spm.h"
 
+/**
+ * Replace all occurrences of `spattern` with `sreplacement` in `data`
+ *
+ * ~~~{.c}
+ * char *str = (char *)calloc(100, sizeof(char));
+ * strcpy(str, "This are a test.");
+ * replace_text(str, "are", "is");
+ * // str is: "This is a test."
+ * free(str);
+ * ~~~
+ *
+ * @param data string to modify
+ * @param spattern string value to replace
+ * @param sreplacement replacement string value
+ * @return success=0, error=-1
+ */
 int replace_text(char *data, const char *spattern, const char *sreplacement) {
     char *tmp = data;
     size_t data_len = strlen(data);
@@ -23,9 +42,9 @@ int replace_text(char *data, const char *spattern, const char *sreplacement) {
 
 /**
  * Replace all occurrences of `oldstr` in file `path` with `newstr`
- * @param filename
- * @param oldstr
- * @param newstr
+ * @param filename file to modify
+ * @param oldstr string to replace
+ * @param newstr replacement string
  * @return success=0, failure=-1, or value of `ferror()`
  */
 int file_replace_text(char *filename, const char *spattern, const char *sreplacement) {
@@ -101,7 +120,7 @@ void prefixes_free(RelocationEntry **entry) {
  * #...N
  * ...N
  * ~~~
- * @param filename
+ * @param filename path to prefix manifest
  * @return success=array of RelocationEntry, failure=NULL
  */
 RelocationEntry **prefixes_read(const char *filename) {
@@ -202,13 +221,22 @@ RelocationEntry **prefixes_read(const char *filename) {
 }
 
 /**
- * Generate a prefix manifest
+ * Scan `tree` for files containing `prefix`. Matches are recorded in `output_file` with the following format:
+ *
+ * ~~~
+ * #prefix
+ * path
+ * #prefix
+ * path
+ * #...N
+ * ...N
+ * ~~~
  *
  * Example:
  * ~~~{.c}
  * char **prefixes = {"/usr", "/var", NULL};
  * prefixes_write("binary.manifest", PREFIX_WRITE_BIN, prefixes, "/usr/bin");
- * prefixes_write("text.manifest", PREFIX_WRITE_TEXT, prefixes, "/usr/share/man/7");
+ * prefixes_write("text.manifest", PREFIX_WRITE_TEXT, prefixes, "/etc");
  * ~~~
  *
  * @param output_file file path to create

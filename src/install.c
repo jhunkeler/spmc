@@ -1,9 +1,13 @@
+/**
+ * @file install.c
+ */
 #include "spm.h"
 
 /**
- *
+ * SPM packages contain metadata files that are not useful post-install and would amount to a lot of clutter.
+ * This function removes these data files from a directory tree
  * @param _path
- * @return
+ * @return success=0, error=-1
  */
 int metadata_remove(const char *_path) {
     char *metadata[] = {
@@ -35,6 +39,13 @@ int metadata_remove(const char *_path) {
     return 0;
 }
 
+/**
+ * Install a package and its dependencies into a destination root.
+ * The destination is created if it does not exist.
+ * @param destroot directory to install package
+ * @param _package name of archive to install (not a path)
+ * @return success=0, error=-1 (general), -2 (unable to create `destroot`)
+ */
 int install(const char *destroot, const char *_package) {
     char *package = find_package(_package);
     if (!package) {
@@ -99,4 +110,5 @@ int install(const char *destroot, const char *_package) {
     rmdirs(tmpdir);
 
     free(package);
+    return 0;
 }

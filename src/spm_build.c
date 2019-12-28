@@ -1,5 +1,14 @@
+/**
+ * @file spm_build.c
+ */
 #include "spm.h"
 
+/**
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
 int build(int argc, char **argv) {
     printf("build:\n");
     printf("argc: %d\n", argc);

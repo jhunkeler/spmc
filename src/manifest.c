@@ -1,10 +1,15 @@
-//
-// Created by jhunk on 12/20/19.
-//
+/**
+ * @file manifest.c
+ */
 #include "spm.h"
 #include <fnmatch.h>
 #define PACKAGE_MIN_DELIM 2
 
+/**
+ *
+ * @param package_dir
+ * @return
+ */
 Manifest *manifest_from(const char *package_dir) {
     FSTree *fsdata = NULL;
     fsdata = fstree(package_dir);
@@ -65,6 +70,10 @@ Manifest *manifest_from(const char *package_dir) {
     return info;
 }
 
+/**
+ *
+ * @param info
+ */
 void manifest_free(Manifest *info) {
     for (int i = 0; i < info->records; i++) {
         if (info->packages[i]->requirements) {
@@ -79,6 +88,11 @@ void manifest_free(Manifest *info) {
     free(info);
 }
 
+/**
+ *
+ * @param info
+ * @return
+ */
 int manifest_write(Manifest *info) {
     const char *filename = "manifest.dat";
     char path[PATH_MAX];
@@ -139,6 +153,10 @@ int manifest_write(Manifest *info) {
     return 0;
 }
 
+/**
+ *
+ * @return
+ */
 Manifest *manifest_read(void) {
     const char *filename = "manifest.dat";
     char path[PATH_MAX];
@@ -190,6 +208,12 @@ Manifest *manifest_read(void) {
     return info;
 }
 
+/**
+ *
+ * @param info
+ * @param _package
+ * @return
+ */
 ManifestPackage *manifest_search(Manifest *info, const char *_package) {
     char package[PATH_MAX];
 

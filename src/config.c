@@ -70,7 +70,7 @@ ConfigItem **config_read(const char *filename) {
         while (lptr != sep_pos) {
             *key++ = *lptr++;
         }
-        key = strip(key);
+        key = strip(key_orig);
 
         // We're at the separator now, so skip over it
         lptr++;

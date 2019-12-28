@@ -1,3 +1,6 @@
+/**
+ * @file strings.c
+ */
 #include "spm.h"
 
 /**
@@ -445,10 +448,19 @@ char *lstrip(char *sptr) {
  * @return truncated string
  */
 char *strip(char *sptr) {
-    if (!strlen(sptr)) {
+    size_t len = strlen(sptr);
+    if (len < 1) {
+        *sptr = '\0';
         return sptr;
     }
-    strchrdel(sptr, " \r\n");
+    for (size_t i = len - 1; i >= 0; i--) {
+        if (isspace(sptr[i]) || isblank(sptr[i])) {
+            sptr[i] = '\0';
+        }
+        else {
+            break;
+        }
+    }
     return sptr;
 }
 
@@ -505,7 +517,7 @@ int isrelational(char ch) {
 }
 
 /**
- * Repeatedly print string `s`, `len` times
+ * Print characters in `s`, `len` times
  * @param s
  * @param len
  */

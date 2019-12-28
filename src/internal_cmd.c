@@ -1,11 +1,20 @@
+/**
+ * @file internal_cmd.c
+ */
 #include "spm.h"
 
+/**
+ * List of valid internal commands
+ */
 static char *internal_commands[] = {
         "mkprefixbin", "generate prefix manifest (binary)",
         "mkprefixtext", "generate prefix manifest (text)",
         NULL, NULL,
 };
 
+/**
+ * Show a listing of valid internal commands
+ */
 void internal_command_list(void) {
     printf("possible commands:\n");
     for (int i = 0; internal_commands[i] != NULL; i++) {
@@ -18,6 +27,12 @@ void mkprefix_usage(void) {
     printf("usage: mkprefix[bin|text] {output_file} {dir} {prefix ...}\n");
 }
 
+/**
+ * Execute an internal command
+ * @param argc
+ * @param argv
+ * @return success=0, failure=1, error=-1
+ */
 int internal_cmd(int argc, char **argv) {
     int command_valid = 0;
     char *command = argv[1];

@@ -1,3 +1,6 @@
+/**
+ * @file fs.c
+ */
 #include "spm.h"
 
 FSTree *fstree(const char *_path) {
@@ -354,7 +357,7 @@ int mkdirs(const char *_path, mode_t mode) {
  * free(output);
  * output = human_readable_size(1024)     // "1.0K"
  * free(output);
- * output = human_readable_size(1024000)  // "1.0MB"
+ * output = human_readable_size(1024000)  // "1.0M"
  * free(output);
  * // and so on
  * ~~~

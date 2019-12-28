@@ -1,6 +1,6 @@
-//
-// Created by jhunk on 12/16/19.
-//
+/**
+ * @file deps.c
+ */
 #include "spm.h"
 
 int exists(const char *filename) {

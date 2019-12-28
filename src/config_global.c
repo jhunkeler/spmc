@@ -1,3 +1,6 @@
+/**
+ * @file config_global.c
+ */
 #include "spm.h"
 
 char *get_user_conf_dir(void) {

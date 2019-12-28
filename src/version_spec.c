@@ -1,5 +1,13 @@
+/**
+ * @file version_spec.c
+ */
 #include "spm.h"
 
+/**
+ *
+ * @param str
+ * @return
+ */
 char *version_suffix_get_alpha(char *str) {
     size_t i;
     size_t len = strlen(str);
@@ -12,6 +20,11 @@ char *version_suffix_get_alpha(char *str) {
     return NULL;
 }
 
+/**
+ *
+ * @param str
+ * @return
+ */
 char *version_suffix_get_modifier(char *str) {
     size_t i;
     char *modifiers[] = {
@@ -31,6 +44,11 @@ char *version_suffix_get_modifier(char *str) {
     return NULL;
 }
 
+/**
+ *
+ * @param str
+ * @return
+ */
 int64_t version_suffix_modifier_calc(char *str) {
     int64_t result = 0;
     char *tmp_s = str;
@@ -79,6 +97,11 @@ int64_t version_suffix_modifier_calc(char *str) {
     return result;
 }
 
+/**
+ *
+ * @param str
+ * @return
+ */
 int version_suffix_alpha_calc(char *str) {
     int x = 0;
     char chs[255];
@@ -116,6 +139,11 @@ int version_suffix_alpha_calc(char *str) {
     return x;
 }
 
+/**
+ *
+ * @param version_str
+ * @return
+ */
 int64_t version_from(const char *version_str) {
     const char *delim = ".";
     int64_t result = 0;
@@ -199,6 +227,11 @@ int64_t version_from(const char *version_str) {
     return result;
 }
 
+/**
+ *
+ * @param op
+ * @return
+ */
 int version_spec_from(const char *op) {
     int flags = VERSION_NOOP;
     size_t len = strlen(op);
@@ -222,6 +255,12 @@ int version_spec_from(const char *op) {
     return flags;
 };
 
+/**
+ *
+ * @param a
+ * @param b
+ * @return
+ */
 static int _find_by_spec_compare(const void *a, const void *b) {
     const ManifestPackage *aa = *(const ManifestPackage**)a;
     const ManifestPackage *bb = *(const ManifestPackage**)b;
@@ -230,6 +269,14 @@ static int _find_by_spec_compare(const void *a, const void *b) {
     return version_a > version_b;
 }
 
+/**
+ *
+ * @param manifest
+ * @param name
+ * @param op
+ * @param version_str
+ * @return
+ */
 ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str) {
     int64_t version_a = 0;
     int64_t version_b = 0;

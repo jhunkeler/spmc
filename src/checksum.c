@@ -1,6 +1,6 @@
-//
-// Created by jhunk on 12/20/19.
-//
+/**
+ * @file checksum.c
+ */
 #include "spm.h"
 #include <openssl/md5.h>
 #include <openssl/sha.h>

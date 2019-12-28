@@ -1,3 +1,6 @@
+/**
+ * @file shell.c
+ */
 #include "spm.h"
 
 /**
