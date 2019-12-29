@@ -59,6 +59,7 @@ int file_replace_text(char *filename, const char *spattern, const char *sreplace
     sprintf(tempfile, "%s.spmfrt", filename);
     FILE *tfp = NULL;
     if ((tfp = fopen(tempfile, "w+")) == NULL) {
+        fclose(fp);
         perror(tempfile);
         return -1;
     }
@@ -124,9 +125,8 @@ void prefixes_free(RelocationEntry **entry) {
  * @return success=array of RelocationEntry, failure=NULL
  */
 RelocationEntry **prefixes_read(const char *filename) {
-    size_t i = 0;
-    int record_count = 0;
-    int parity = 0;
+    size_t record_count = 0;
+    size_t parity = 0;
     FILE *fp = fopen(filename, "r");
     if (!fp) {
         fprintf(SYSERROR);
@@ -151,7 +151,7 @@ RelocationEntry **prefixes_read(const char *filename) {
 
     parity = record_count % 2;
     if (parity != 0) {
-        fprintf(stderr, "%s: records are not divisible by 2 (got: %d %% 2 = %d)\n", filename, record_count, parity);
+        fprintf(stderr, "%s: records are not divisible by 2 (got: %zu %% 2 = %zu)\n", filename, record_count, parity);
         return NULL;
     }
     record_count /= 2;
@@ -169,8 +169,8 @@ RelocationEntry **prefixes_read(const char *filename) {
 
     int do_prefix = 0;
     int do_path = 0;
+    size_t i = 0;
     while (fgets(line, BUFSIZ, fp) != NULL) {
-        char *wtf = line;
         if (isempty(line)) {
             continue;
         }
@@ -255,13 +255,14 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
 
     FSTree *fsdata = fstree(tree);
     if (!fsdata) {
+        fclose(fp);
         fprintf(SYSERROR);
         return -1;
     }
     for (int i = 0; i < fsdata->files_length; i++) {
         for (int p = 0; prefix[p] != NULL; p++) {
-            int proceed = 0;
             if (find_in_file(fsdata->files[i], prefix[p]) == 0) {
+                int proceed = 0;
                 if (mode == PREFIX_WRITE_BIN) {
                     proceed = file_is_binary(fsdata->files[i]);
                 } else if (mode == PREFIX_WRITE_TEXT) {

@@ -24,14 +24,27 @@
 ConfigItem **config_read(const char *filename) {
     const char sep = '=';
     char *line = (char *)calloc(CONFIG_BUFFER_SIZE, sizeof(char));
+    if (!line) {
+        perror("config line buffer");
+        fprintf(SYSERROR);
+        return NULL;
+    }
     FILE *fp = fopen(filename, "r");
     if (!fp) {
         // errno will be set, so die, and let the caller handle it
+        free(line);
         return NULL;
     }
-    int record_initial = 2;
+    size_t record_initial = 2;
+    size_t record = 0;
     ConfigItem **config = (ConfigItem **) calloc(record_initial, sizeof(ConfigItem *));
-    int record = 0;
+    if (!config) {
+        perror("ConfigItem");
+        fprintf(SYSERROR);
+        free(line);
+        fclose(fp);
+        return NULL;
+    }
 
     while (fgets(line, CONFIG_BUFFER_SIZE, fp) != NULL) {
         char *lptr = line;
@@ -53,7 +66,7 @@ ConfigItem **config_read(const char *filename) {
         // Get a pointer to the key pair separator
         char *sep_pos = strchr(lptr, sep);
         if (!sep_pos) {
-            printf("invalid entry on line %d: missing '%c': '%s'\n", record, sep, lptr);
+            printf("invalid entry on line %zu: missing '%c': '%s'\n", record, sep, lptr);
             continue;
         }
 
@@ -67,6 +80,12 @@ ConfigItem **config_read(const char *filename) {
         config[record] = (ConfigItem *)calloc(1, sizeof(ConfigItem));
         config[record]->key = (char *)calloc(key_length + 1, sizeof(char));
         config[record]->value = (char *)calloc(value_length + 1, sizeof(char));
+
+        if (!config[record] || !config[record]->key || !config[record]->value) {
+            perror("ConfigItem record");
+            fprintf(SYSERROR);
+            return NULL;
+        }
 
         // Shortcut our array at this point. Things get pretty ugly otherwise.
         char *key = config[record]->key;
@@ -117,6 +136,11 @@ ConfigItem **config_read(const char *filename) {
         record++;
         // Expand config by another record
         config = (ConfigItem **)reallocarray(config, record + record_initial + 1, sizeof(ConfigItem *));
+        if (!config) {
+            perror("ConfigItem array");
+            fprintf(SYSERROR);
+            return NULL;
+        }
     }
     free(line);
     return config;

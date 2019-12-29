@@ -39,6 +39,7 @@ char *find_file(const char *root, const char *filename) {
     }
 
     if (!(rootpath = realpath(root, NULL))) {
+        free(path);
         return NULL;
     }
 
@@ -103,11 +104,13 @@ int find_in_file(const char *filename, const char *pattern) {
     }
 
     long int file_len = get_file_size(filename);
-    if (file_len < 0) {
+    if (file_len == -1) {
+        fclose(fp);
         return -1;
     }
     char *buffer = (char *)calloc((size_t) file_len, sizeof(char));
     if (!buffer) {
+        fclose(fp);
         return -1;
     }
     size_t pattern_len = strlen(pattern);

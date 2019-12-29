@@ -1,7 +1,7 @@
-#include <string.h>
 #include "config.h"
 
 #ifndef HAVE_STRSEP
+#include <string.h>
 // credit: Dan Cross via https://unixpapa.com/incnote/string.html
 char *strsep(char **sp, char *sep)
 {

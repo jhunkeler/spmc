@@ -85,12 +85,12 @@ int rmdirs(const char *_path) {
 
     FSTree *data = fstree(_path);
     if (data->files) {
-        for (int i = 0; data->files[i] != NULL; i++) {
+        for (size_t i = 0; data->files[i] != NULL; i++) {
             remove(data->files[i]);
         }
     }
     if (data->dirs) {
-        for (int i = data->dirs_length - 1; i != 0; i--) {
+        for (size_t i = data->dirs_length - 1; i != 0; i--) {
             remove(data->dirs[i]);
         }
     }
@@ -177,7 +177,7 @@ char *expandpath(const char *_path) {
     }
 
     // A broken runtime environment means we can't do anything else here
-    if (!home) {
+    if (isempty(home)) {
         return NULL;
     }
 
@@ -256,14 +256,14 @@ char *dirname(const char *_path) {
  */
 char *basename(char *path) {
     char *result = NULL;
-    char *last = strrchr(path, DIRSEP);
-    if (!last) {
-        return NULL;
-    }
+    char *last = NULL;
 
+    if ((last = strrchr(path, DIRSEP)) == NULL) {
+        return result;
+    }
     // Perform a lookahead ensuring the string is valid beyond the last separator
-    if ((last + 1) != NULL) {
-        result = last + 1;
+    if (last++ != NULL) {
+        result = last;
     }
 
     return result;
@@ -409,7 +409,7 @@ char *human_readable_size(uint64_t n) {
     memset(r, '\0', sizeof(r));
 
     for (i = 0; i < sizeof(unit); i++) {
-        if (labs(result) < 1024) {
+        if (fabs(result) < 1024) {
             break;
         }
         result /= 1024.0;

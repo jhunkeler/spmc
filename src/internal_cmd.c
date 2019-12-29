@@ -58,9 +58,9 @@ int internal_cmd(int argc, char **argv) {
         char *outfile = argv[2];
         char *tree = argv[3];
 
-        int prefix_start = 4;
-        int prefixes;
-        for (int i = prefix_start; i < argc; i++) {
+        size_t prefix_start = 4;
+        size_t prefixes = 0;
+        for (size_t i = prefix_start; i < argc; i++) {
             prefixes = i;
         }
 
@@ -76,7 +76,7 @@ int internal_cmd(int argc, char **argv) {
             return -1;
         }
         if (!prefixes) {
-            fprintf(stderr, "error: missing prefix string(s) (%d, %d)\n", prefix_start, prefixes);
+            fprintf(stderr, "error: missing prefix string(s)\n");
             mkprefix_usage();
             return -1;
         }

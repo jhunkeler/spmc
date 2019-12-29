@@ -77,7 +77,7 @@ int install(const char *destroot, const char *_package) {
     chdir(tmpdir);
     {
         // Rewrite binary prefixes
-        RelocationEntry **b_record = prefixes_read(SPM_META_PREFIX_BIN);
+        b_record= prefixes_read(SPM_META_PREFIX_BIN);
         if (b_record) {
             for (int i = 0; b_record[i] != NULL; i++) {
                 relocate(b_record[i]->path, b_record[i]->prefix, destroot);
@@ -85,7 +85,7 @@ int install(const char *destroot, const char *_package) {
         }
 
         // Rewrite text prefixes
-        RelocationEntry **t_record = prefixes_read(SPM_META_PREFIX_TEXT);
+        t_record = prefixes_read(SPM_META_PREFIX_TEXT);
         if (t_record) {
             for (int i = 0; t_record[i] != NULL; i++) {
                 file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);

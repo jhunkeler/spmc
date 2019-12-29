@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <fts.h>
 #include <glob.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -64,7 +65,7 @@
 
 typedef struct {
     char **requirements;
-    int requirements_records;
+    size_t requirements_records;
     size_t size;
     char archive[PACKAGE_MEMBER_SIZE];
     char name[PACKAGE_MEMBER_SIZE];
@@ -73,7 +74,7 @@ typedef struct {
 } ManifestPackage;
 
 typedef struct {
-    int records;
+    size_t records;
     ManifestPackage **packages;
 } Manifest;
 

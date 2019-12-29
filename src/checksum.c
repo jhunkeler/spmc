@@ -23,6 +23,7 @@ char *md5sum(const char *filename) {
     }
     char *result = calloc((MD5_DIGEST_LENGTH * 2) + 1, sizeof(char));
     if (!result) {
+        fclose(fp);
         perror("MD5 result");
         return NULL;
     }
@@ -59,6 +60,7 @@ char *sha256sum(const char *filename) {
     }
     char *result = calloc((SHA256_DIGEST_LENGTH * 2) + 1, sizeof(char));
     if (!result) {
+        fclose(fp);
         perror("SHA256 result");
         return NULL;
     }

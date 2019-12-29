@@ -253,7 +253,7 @@ int version_spec_from(const char *op) {
         }
     }
     return flags;
-};
+}
 
 /**
  *
@@ -278,24 +278,19 @@ static int _find_by_spec_compare(const void *a, const void *b) {
  * @return
  */
 ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str) {
-    int64_t version_a = 0;
-    int64_t version_b = 0;
-    int spec = VERSION_NOOP;
-    int record = 0;
+    size_t record = 0;
     ManifestPackage **list = (ManifestPackage **) calloc(manifest->records + 1, sizeof(ManifestPackage *));
+    if (!list) {
+        perror("ManifestPackage array");
+        fprintf(SYSERROR);
+        return NULL;
+    }
 
     for (int i = 0; i < manifest->records; i++) {
         if (strcmp(manifest->packages[i]->name, name) == 0) {
-            int is_equal = 0,
-                    is_not_equal = 0,
-                    is_less_than = 0,
-                    is_greater_than = 0,
-                    is_compat = 0;
-
-            version_a = version_from(manifest->packages[i]->version);
-            version_b = version_from(version_str);
-
-            spec = version_spec_from(op);
+            int64_t version_a = version_from(manifest->packages[i]->version);
+            int64_t version_b = version_from(version_str);
+            int spec = version_spec_from(op);
 
             int res = 0;
             if (spec & VERSION_GT && spec & VERSION_EQ) {

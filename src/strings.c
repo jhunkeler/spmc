@@ -390,7 +390,7 @@ char **strdeldup(char **arr) {
         return NULL;
     }
 
-    int records;
+    size_t records;
     // Determine the length of the array
     for (records = 0; arr[records] != NULL; records++);
 
@@ -453,7 +453,7 @@ char *strip(char *sptr) {
         *sptr = '\0';
         return sptr;
     }
-    for (size_t i = len - 1; i >= 0; i--) {
+    for (size_t i = len - 1; ; i--) {
         if (isspace(sptr[i]) || isblank(sptr[i])) {
             sptr[i] = '\0';
         }
@@ -523,7 +523,7 @@ int isrelational(char ch) {
  */
 void print_banner(const char *s, int len) {
     size_t s_len = strlen(s);
-    if (!s || !s_len) {
+    if (!s_len) {
         return;
     }
     for (int i = 0; i < (len / s_len); i++) {

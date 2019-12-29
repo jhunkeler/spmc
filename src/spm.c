@@ -12,18 +12,16 @@ int RUNTIME_SEARCH = 0;
 const int PACKAGE_MAX = 0xff;
 
 void usage(const char *program_name) {
-    printf(
-            "usage: %s [-hVvBIrLS]\n"
-            "  -h,  --help     show this help message\n"
-            "  -V,  --version  show version\n"
-            "  -v,  --verbose  show more information\n"
-            "  -B,  --build    build package(s)\n"
-            "  -I,  --install  install package(s)\n"
-            "  -r,  --root     installation prefix (requires --install)\n"
-            "  -L,  --list     list available packages\n"
-            "  -S,  --search   search for a package\n"
-            , program_name
-    );
+    printf("usage: %s [-hVvBIrLS]\n"
+           "  -h,  --help     show this help message\n"
+           "  -V,  --version  show version\n"
+           "  -v,  --verbose  show more information\n"
+           "  -B,  --build    build package(s)\n"
+           "  -I,  --install  install package(s)\n"
+           "  -r,  --root     installation prefix (requires --install)\n"
+           "  -L,  --list     list available packages\n"
+           "  -S,  --search   search for a package\n"
+           , program_name);
 }
 
 int main(int argc, char *argv[]) {
@@ -180,9 +178,13 @@ int main(int argc, char *argv[]) {
             }
 
             package = manifest_search(manifest, packages[i]);
+            if (!package) {
+                fprintf(stderr, "Package not found: %s\n", packages[i]);
+                continue;
+            }
 
             // If the package has dependencies listed, append them to `deps` now
-            if (package && package->requirements) {
+            if (package->requirements) {
                 for (int p = 0; package->requirements[p] != NULL; p++) {
                     dep_append(&deps, package->requirements[p]);
                 }
@@ -256,29 +258,29 @@ int main(int argc, char *argv[]) {
         memset(ver, '\0', sizeof(ver));
 
         // Parse the argument string
-        int p = 0;
+        int c = 0;
 
         // Populate name
-        for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
-            if (isrelational(package_search_str[p])) {
+        for (int j = 0; package_search_str[c] != '\0'; j++, c++) {
+            if (isrelational(package_search_str[c])) {
                 break;
             }
-            name[j] = package_search_str[p];
+            name[j] = package_search_str[c];
         }
 
         if (RUNTIME_SEARCH) {
             // Populate op
-            for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
-                if (!isrelational(package_search_str[p])) {
+            for (int j = 0; package_search_str[c] != '\0'; j++, c++) {
+                if (!isrelational(package_search_str[c])) {
                     break;
                 }
-                op[j] = package_search_str[p];
+                op[j] = package_search_str[c];
             }
 
             if (strlen(op)) {
                 // Populate version
-                for (int j = 0; package_search_str[p] != '\0'; j++, p++) {
-                    ver[j] = package_search_str[p];
+                for (int j = 0; package_search_str[c] != '\0'; j++, c++) {
+                    ver[j] = package_search_str[c];
                 }
             } else {
                 // No operator, so find all versions instead

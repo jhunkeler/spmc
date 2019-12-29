@@ -98,7 +98,6 @@ char *get_package_manifest(void) {
     char *ucd = get_user_conf_dir();
 
     sprintf(template, "%s%c%s", ucd, DIRSEP, "manifest.dat");
-    char *wtf = template;
 
     if (access(template, F_OK) != 0) {
         fprintf(stderr, "Package manifest not found: %s\n", template);

@@ -32,9 +32,6 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    size_t bytes_read = 0;
-    size_t i = 0;
-    size_t new_buf_size = 0;
     clockid_t clkid = CLOCK_REALTIME;
     FILE *proc = NULL;
 
@@ -68,6 +65,8 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
 
     proc = popen(cmd, "r");
     if (!proc) {
+        free(outbuf);
+        va_end(args);
         return;
     }
 
@@ -81,10 +80,12 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
     }
 
     if (option & SHELL_OUTPUT) {
+        size_t bytes_read = 0;
+        size_t i = 0;
+        size_t new_buf_size;
         (*proc_info)->output = (char *)calloc(BUFSIZ, sizeof(char));
 
         while ((*outbuf = fgetc(proc)) != EOF) {
-
             if (i >= BUFSIZ) {
                 new_buf_size = BUFSIZ + (i + bytes_read);
                 (*proc_info)->output = (char *)realloc((*proc_info)->output, new_buf_size);

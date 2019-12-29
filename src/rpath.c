@@ -43,9 +43,6 @@ int has_rpath(const char *_filename) {
         return -1;
     }
 
-    Process *proc_info = NULL;
-    char *rpath = NULL;
-
     // sanitize input path
     strchrdel(filename, "&;|");
 
@@ -87,7 +84,6 @@ char *rpath_get(const char *_filename) {
         return NULL;
     }
 
-    Process *proc_info = NULL;
     char *rpath = NULL;
 
     // sanitize input path
@@ -145,7 +141,7 @@ char *rpath_generate(const char *_filename) {
  * @return
  */
 int rpath_set(const char *filename, char *_rpath) {
-    int returncode;
+    int returncode = 0;
 
     char *rpath_new = rpath_generate(filename);
     if (!rpath_new) {
@@ -164,14 +160,18 @@ int rpath_set(const char *filename, char *_rpath) {
         return 0;
     }
 
-    Process *pe = patchelf(filename, "--set-rpath");
-    if (pe) {
+    char args[PATH_MAX];
+    memset(args, '\0', PATH_MAX);
+    sprintf(args, "--set-rpath \"%s\"", _rpath);
+
+    Process *pe = patchelf(filename, args);
+    if (pe != NULL) {
         returncode = pe->returncode;
     }
     shell_free(pe);
     free(rpath_new);
     free(rpath_orig);
-    return pe->returncode;
+    return returncode;
 }
 
 /**
