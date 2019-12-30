@@ -177,7 +177,7 @@ char** split(char *_sptr, const char* delim)
             free(sptr);
             return NULL;
         }
-        strncpy(result[i], token, strlen(token));   // copy the string contents into the record
+        memcpy(result[i], token, strlen(token) + 1);   // copy the string contents into the record
         i++;    // next record
     }
     free(orig);
@@ -402,7 +402,7 @@ char **strdeldup(char **arr) {
     }
 
     int rec = 0;
-    int i = 0;
+    size_t i = 0;
     while(i < records) {
         // Search for value in results
         if (strstr_array(result, arr[i]) == 0) {
@@ -417,7 +417,7 @@ char **strdeldup(char **arr) {
             free(result);
             return NULL;
         }
-        strncpy(result[rec], arr[i], strlen(arr[i]));
+        memcpy(result[rec], arr[i], strlen(arr[i]) + 1);
         i++;
         rec++;
     }
@@ -526,8 +526,8 @@ void print_banner(const char *s, int len) {
     if (!s_len) {
         return;
     }
-    for (int i = 0; i < (len / s_len); i++) {
-        for (int c = 0; c < s_len; c++) {
+    for (size_t i = 0; i < (len / s_len); i++) {
+        for (size_t c = 0; c < s_len; c++) {
             putchar(s[c]);
         }
     }

@@ -171,7 +171,7 @@ int64_t version_from(const char *version_str) {
 
         // populate the head (numeric characters)
         strncpy(head, x, strlen(x));
-        for (int i = 0; i < strlen(head); i++) {
+        for (size_t i = 0; i < strlen(head); i++) {
             if (isalpha(head[i])) {
                 // populate the tail (alphabetic characters)
                 strncpy(tail, &head[i], strlen(&head[i]));
@@ -235,7 +235,7 @@ int64_t version_from(const char *version_str) {
 int version_spec_from(const char *op) {
     int flags = VERSION_NOOP;
     size_t len = strlen(op);
-    for (int i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         if (op[i] == '>') {
             flags |= VERSION_GT;
         }
@@ -286,7 +286,7 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
         return NULL;
     }
 
-    for (int i = 0; i < manifest->records; i++) {
+    for (size_t i = 0; i < manifest->records; i++) {
         if (strcmp(manifest->packages[i]->name, name) == 0) {
             int64_t version_a = version_from(manifest->packages[i]->version);
             int64_t version_b = version_from(version_str);
@@ -326,7 +326,7 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
                 memcpy(list[record], manifest->packages[i], sizeof(ManifestPackage));
                 list[record]->requirements = (char **) calloc(manifest->packages[i]->requirements_records, sizeof(char *));
 
-                for (int j = 0; j < manifest->packages[i]->requirements_records; j++) {
+                for (size_t j = 0; j < manifest->packages[i]->requirements_records; j++) {
                     list[record]->requirements[j] = (char *) calloc(strlen(manifest->packages[i]->requirements[j]) + 1, sizeof(char));
                     strncpy(list[record]->requirements[j], manifest->packages[i]->requirements[j], strlen(manifest->packages[i]->requirements[j]));
                 }

@@ -200,12 +200,12 @@ int main(int argc, char *argv[]) {
 
         if (deps) {
             // List requirements before installation
-            for (int i = 0; i < deps->records; i++) {
+            for (size_t i = 0; i < deps->records; i++) {
                 printf("  -> %s\n", deps->list[i]);
             }
 
             printf("Installing package requirements:\n");
-            for (int i = 0; i < deps->records; i++) {
+            for (size_t i = 0; i < deps->records; i++) {
                 printf("  -> %s\n", deps->list[i]);
                 if (install(root, deps->list[i]) < 0) {
                     fprintf(SYSERROR);
@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
             }
         }
         else if(RUNTIME_LIST) {
-            for (int p = 0; p < info->records; p++) {
+            for (size_t p = 0; p < info->records; p++) {
                 char *package_hsize = human_readable_size(info->packages[p]->size);
                 printf("  %-20s %-20s %-20s %-20s\n", info->packages[p]->name, info->packages[p]->version, info->packages[p]->revision, package_hsize);
                 free(package_hsize);

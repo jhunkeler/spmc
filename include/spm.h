@@ -27,7 +27,7 @@
 #include "config.h"
 
 // spm.c
-#define SYSERROR stderr, "%s:%s:%d: %s\n", __FILE__, __FUNCTION__, __LINE__, strerror(errno)
+#define SYSERROR stderr, "%s:%s:%d: %s\n", basename(__FILE__), __FUNCTION__, __LINE__, strerror(errno)
 #define DIRSEP_WIN32 '\\'
 #define DIRSEP_UNIX '/'
 #if defined(_WIN32)
@@ -159,12 +159,10 @@ char** split(char *sptr, const char* delim);
 void split_free(char **ptr);
 char *join(char **arr, const char *separator);
 char *substring_between(char *sptr, const char *delims);
-static int _strsort_compare(const void *a, const void *b);
 void strsort(char **arr);
 int find_in_file(const char *filename, const char *pattern);
 int isrelational(char ch);
 void print_banner(const char *s, int len);
-
 
 // find.c
 char *find_executable(const char *program);
@@ -178,7 +176,8 @@ char *rpath_autodetect(const char *filename);
 int has_rpath(const char *_filename);
 char *rpath_get(const char *_filename);
 char *rpath_generate(const char *_filename);
-int rpath_set(const char *filename, char *_rpath);
+int rpath_autoset(const char *filename);
+int rpath_set(const char *filename, const char *rpath);
 
 // fs.c
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
@@ -248,7 +247,6 @@ int64_t version_suffix_modifier_calc(char *str);
 int version_suffix_alpha_calc(char *str);
 int64_t version_from(const char *version_str);
 int version_spec_from(const char *op);
-static int _find_by_spec_compare(const void *a, const void *b);
 ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str);
 
 // build.c

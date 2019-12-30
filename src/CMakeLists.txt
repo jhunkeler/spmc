@@ -5,6 +5,13 @@ include_directories(
 
 add_executable(spm spm.c config.c compat.c deps.c fs.c rpath.c find.c shell.c archive.c strings.c relocation.c install.c config_global.c manifest.c checksum.c extern/url.c version_spec.c spm_build.c mime.c internal_cmd.c)
 target_link_libraries(spm rt crypto ssl curl)
+
+if(MSVC)
+	target_compile_options(spm PRIVATE /W4 /WX)
+else()
+	target_compile_options(spm PRIVATE -Wall -Wextra)
+endif()
+
 install(
 	TARGETS spm
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin

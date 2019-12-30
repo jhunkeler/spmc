@@ -34,7 +34,7 @@ Manifest *manifest_from(const char *package_dir) {
         if (deps->records) {
             info->packages[i]->requirements = (char **) calloc(deps->__size, sizeof(char *));
             info->packages[i]->requirements_records = deps->records;
-            int j;
+            size_t j;
             for (j = 0; j < deps->records; j++) {
                 info->packages[i]->requirements[j] = (char *) calloc(strlen(deps->list[j]) + 1, sizeof(char));
                 strncpy(info->packages[i]->requirements[j], deps->list[j], strlen(deps->list[j]));
@@ -81,7 +81,7 @@ Manifest *manifest_from(const char *package_dir) {
  * @param info `Manifest`
  */
 void manifest_free(Manifest *info) {
-    for (int i = 0; i < info->records; i++) {
+    for (size_t i = 0; i < info->records; i++) {
         if (info->packages[i]->requirements) {
             for (int j = 0; info->packages[i]->requirements[j] != NULL; j++) {
                 free(info->packages[i]->requirements[j]);
@@ -109,7 +109,7 @@ int manifest_write(Manifest *info) {
 
     // A little too much information (debug?)
     if (SPM_GLOBAL.verbose) {
-        for (int i = 0; i < info->records; i++) {
+        for (size_t i = 0; i < info->records; i++) {
             printf("%-20s: %s\n"
                    "%-20s: %zu\n"
                    "%-20s: %s\n"
@@ -131,7 +131,7 @@ int manifest_write(Manifest *info) {
     }
 
     printf("Generating manifest file: %s\n", path);
-    for (int i = 0; i < info->records; i++) {
+    for (size_t i = 0; i < info->records; i++) {
         // write CSV-like manifest
         char data[BUFSIZ];
         memset(data, '\0', BUFSIZ);
@@ -229,7 +229,7 @@ ManifestPackage *manifest_search(Manifest *info, const char *_package) {
     strncpy(package, _package, PATH_MAX);
     strcat(package, "*");
 
-    for (int i = 0; i < info->records; i++) {
+    for (size_t i = 0; i < info->records; i++) {
         if (fnmatch(package, info->packages[i]->archive, FNM_PATHNAME) == 0) {
             return info->packages[i];
         }

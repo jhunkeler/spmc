@@ -13,7 +13,7 @@ int dep_seen(Dependencies **deps, const char *name) {
     if (!deps) {
         return -1;
     }
-    for (int i = 0; i != (*deps)->records; i++) {
+    for (size_t i = 0; i != (*deps)->records; i++) {
         if (strstr((*deps)->list[i], name) != NULL) {
             return 1;
         }
@@ -45,7 +45,7 @@ void dep_free(Dependencies **deps) {
     if ((*deps) != NULL) {
         return;
     }
-    for (int i = 0; i < (*deps)->__size; i++) {
+    for (size_t i = 0; i < (*deps)->__size; i++) {
         if ((*deps)->list[i] != NULL) {
             free((*deps)->list[i]);
         }
@@ -163,27 +163,34 @@ int dep_all(Dependencies **deps, const char *_package) {
     char *package = NULL;
     char depfile[PATH_MAX];
     char template[PATH_MAX];
-    char suffix[PATH_MAX] = "spm_depends_all_XXXXXX";
+    char *suffix = (char *)calloc(PATH_MAX, sizeof(char));
+
+    memset(depfile, '\0', PATH_MAX);
+    memset(template, '\0', PATH_MAX);
+    strcpy(suffix, "spm_depends_all_XXXXXX");
 
     // Verify the requested package pattern exists
     package = find_package(_package);
     if (!package) {
         perror(_package);
         fprintf(SYSERROR);
+        free(suffix);
         return -1;
     }
 
     // Create a new temporary directory and extract the requested package into it
-    sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+    snprintf(template, PATH_MAX, "%s%c%s", TMP_DIR, DIRSEP, suffix);
     char *tmpdir = mkdtemp(template);
     if (!tmpdir) {
         perror(template);
         fprintf(SYSERROR);
+        free(suffix);
         return -1;
     }
     if (tar_extract_file(package, ".SPM_DEPENDS", tmpdir) < 0) {
         perror(package);
         fprintf(SYSERROR);
+        free(suffix);
         return -1;
     }
 
@@ -204,6 +211,7 @@ int dep_all(Dependencies **deps, const char *_package) {
     // Remove temporary data
     unlink(depfile);
     unlink(tmpdir);
+    free(suffix);
     return 0;
 }
 
@@ -215,7 +223,7 @@ void dep_show(Dependencies **deps) {
     if ((*deps) == NULL) {
         return;
     }
-    for (int i = 0; i < (*deps)->records; i++) {
+    for (size_t i = 0; i < (*deps)->records; i++) {
         printf("  -> %s\n", (*deps)->list[i]);
     }
 }

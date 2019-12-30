@@ -63,8 +63,16 @@ int install(const char *destroot, const char *_package) {
     char cwd[PATH_MAX];
     char source[PATH_MAX];
     char template[PATH_MAX];
-    char suffix[PATH_MAX] = "spm_destroot_XXXXXX";
-    sprintf(template, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+
+    // circumvent -Wformat-truncation
+    char *suffix = (char *) calloc(PATH_MAX, sizeof(char));
+    if (!suffix) {
+        perror("suffix");
+        fprintf(SYSERROR);
+    }
+    strcpy(suffix, "spm_destroot_XXXXXX");
+    snprintf(template, PATH_MAX, "%s%c%s", TMP_DIR, DIRSEP, suffix);
+    free(suffix);
 
     // Create a new temporary directory and extract the requested package into it
     char *tmpdir = mkdtemp(template);

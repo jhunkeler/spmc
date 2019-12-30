@@ -118,7 +118,7 @@ int find_in_file(const char *filename, const char *pattern) {
     fread(buffer, (size_t) file_len, sizeof(char), fp);
     fclose(fp);
 
-    for (size_t i = 0; i < file_len; i++) {
+    for (size_t i = 0; i < (size_t) file_len; i++) {
         if (!memcmp(&buffer[i], pattern, pattern_len)) {
             result = 0;  // found
             break;

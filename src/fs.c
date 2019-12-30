@@ -168,7 +168,7 @@ char *expandpath(const char *_path) {
     strchrdel(ptmp, "~");
 
     // Figure out where the user's home directory resides
-    for (int i = 0; i < sizeof(homes); i++) {
+    for (size_t i = 0; i < sizeof(homes); i++) {
         char *tmphome;
         if ((tmphome = getenv(homes[i])) != NULL) {
             strncpy(home, tmphome, strlen(tmphome));
@@ -286,16 +286,15 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
     char *source = strdup(_source);
     char *destination = strdup(_destination);
     char cmd[PATH_MAX];
-    char args_combined[PATH_MAX];
+    char *args_combined = (char *)calloc(PATH_MAX, sizeof(char));
 
     memset(cmd, '\0', sizeof(cmd));
-    memset(args_combined, '\0', sizeof(args_combined));
     strcpy(args_combined, "--archive --hard-links ");
     if (args) {
         strcat(args_combined, _args);
     }
 
-    sprintf(cmd, "rsync %s \"%s\" \"%s\"", args_combined, source, destination);
+    snprintf(cmd, PATH_MAX, "rsync %s \"%s\" \"%s\"", args_combined, source, destination);
     // sanitize command
     strchrdel(cmd, "&;|");
     shell(&proc, SHELL_OUTPUT, cmd);
@@ -402,7 +401,7 @@ int exists(const char *filename) {
  * @return string
  */
 char *human_readable_size(uint64_t n) {
-    int i;
+    size_t i;
     double result = (double)n;
     char *unit[] = {"B", "K", "M", "G", "T", "P", "E"};
     char r[255];

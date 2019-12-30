@@ -160,7 +160,7 @@ RelocationEntry **prefixes_read(const char *filename) {
     if (!entry) {
         return NULL;
     }
-    for (int i = 0; i < record_count; i++) {
+    for (size_t i = 0; i < record_count; i++) {
         entry[i] = (RelocationEntry *) calloc(1, sizeof(RelocationEntry));
         if (!entry[i]) {
             return NULL;
@@ -259,7 +259,7 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
         fprintf(SYSERROR);
         return -1;
     }
-    for (int i = 0; i < fsdata->files_length; i++) {
+    for (size_t i = 0; i < fsdata->files_length; i++) {
         for (int p = 0; prefix[p] != NULL; p++) {
             if (find_in_file(fsdata->files[i], prefix[p]) == 0) {
                 int proceed = 0;

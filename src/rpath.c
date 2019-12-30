@@ -137,10 +137,42 @@ char *rpath_generate(const char *_filename) {
 /**
  * Set the RPATH of an executable
  * @param filename
+ * @param rpath
+ * @return
+ */
+int rpath_set(const char *filename, const char *rpath) {
+    int returncode = 0;
+    char *rpath_orig = rpath_get(filename);
+    if (!rpath_orig) {
+        return -1;
+    }
+
+    // Are the original and new RPATH identical?
+    if (strcmp(rpath_orig, rpath) == 0) {
+        free(rpath_orig);
+        return 0;
+    }
+
+    char args[PATH_MAX];
+    memset(args, '\0', PATH_MAX);
+    sprintf(args, "--set-rpath \"%s\"", rpath);
+
+    Process *pe = patchelf(filename, args);
+    if (pe != NULL) {
+        returncode = pe->returncode;
+    }
+    shell_free(pe);
+    free(rpath_orig);
+    return returncode;
+}
+
+/**
+ * Automatically detect the nearest lib directory and set the RPATH of an executable
+ * @param filename
  * @param _rpath
  * @return
  */
-int rpath_set(const char *filename, char *_rpath) {
+int rpath_autoset(const char *filename) {
     int returncode = 0;
 
     char *rpath_new = rpath_generate(filename);
@@ -148,29 +180,9 @@ int rpath_set(const char *filename, char *_rpath) {
         return -1;
     }
 
-    char *rpath_orig = rpath_get(filename);
-    if (!rpath_orig) {
-        return -1;
-    }
-
-    // Are the original and new RPATH identical?
-    if (strcmp(rpath_orig, rpath_new) == 0) {
-        free(rpath_new);
-        free(rpath_orig);
-        return 0;
-    }
-
-    char args[PATH_MAX];
-    memset(args, '\0', PATH_MAX);
-    sprintf(args, "--set-rpath \"%s\"", _rpath);
-
-    Process *pe = patchelf(filename, args);
-    if (pe != NULL) {
-        returncode = pe->returncode;
-    }
-    shell_free(pe);
+    returncode = rpath_set(filename, rpath_new);
     free(rpath_new);
-    free(rpath_orig);
+
     return returncode;
 }
 
@@ -189,22 +201,23 @@ char *rpath_autodetect(const char *filename) {
     // Change directory to the requested root
     chdir(start);
 
-    char visit[PATH_MAX];       // Current directory
+    char *visit = calloc(PATH_MAX, sizeof(char));  // Current directory
     char tmp[PATH_MAX];         // Current directory with lib directory appended
     char relative[PATH_MAX];    // Generated relative path to lib directory
     char sep[2];                // Holds the platform's directory separator
 
     // Initialize character arrays;
-    visit[0] = '\0';
     tmp[0] = '\0';
     relative[0] = '\0';
     sprintf(sep, "%c", DIRSEP);
 
     while(1) {
         // Where are we in the file system?
-        getcwd(visit, sizeof(visit));
+        if((visit = getcwd(NULL, PATH_MAX)) == NULL) {
+            exit(errno);
+        }
         // Using the current visit path, check if it contains a lib directory
-        sprintf(tmp, "%s%clib", visit, DIRSEP);
+        snprintf(tmp, PATH_MAX, "%s%c%s", visit, DIRSEP, "lib");
         if (access(tmp, F_OK) == 0) {
             strcat(relative, "lib");
             has_real_libdir = 1;        // gate for memory allocation below
@@ -221,6 +234,7 @@ char *rpath_autodetect(const char *filename) {
 
         // Step one directory level back
         chdir("..");
+        free(visit);
     }
 
     // If we found a viable lib directory, allocate memory for it
