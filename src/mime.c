@@ -2,6 +2,7 @@
  * @file mime.c
  */
 #include "spm.h"
+#include <fnmatch.h>
 
 /**
  * Execute OS `file` command
@@ -16,7 +17,7 @@ Process *file_command(const char *_filename) {
 #ifdef __APPLE__
     const char *fmt_cmd = "file -I \"%s\"";
 #else  // GNU
-    const char *fmt_cmd = "file -E -i \"%s\"";
+    const char *fmt_cmd = "file -E -i \"%s\" 2>&1";
 #endif
 
     strchrdel(filename, "&;|");
@@ -116,6 +117,18 @@ int file_is_binary(const char *filename) {
     char *path = normpath(filename);
     Mime *type = file_mimetype(path);
     if (startswith(type->type, "application/") == 0 && strcmp(type->charset, "binary") == 0) {
+        result = 1;
+    }
+    free(path);
+    mime_free(type);
+    return result;
+}
+
+int file_is_binexec(const char *filename) {
+    int result = 0;
+    char *path = normpath(filename);
+    Mime *type = file_mimetype(path);
+    if (fnmatch("application/*executable", type->type, FNM_PATHNAME) != FNM_NOMATCH && strcmp(type->charset, "binary") == 0) {
         result = 1;
     }
     free(path);

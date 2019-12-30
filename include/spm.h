@@ -256,6 +256,7 @@ void mime_free(Mime *m);
 int build(int bargc, char **bargv);
 int file_is_binary(const char *filename);
 int file_is_text(const char *filename);
+int file_is_binexec(const char *filename);
 
 // internal_cmd.c
 int internal_cmd(int argc, char **argv);

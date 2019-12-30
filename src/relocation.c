@@ -297,7 +297,7 @@ int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     char cmd[PATH_MAX];
 
     memset(cmd, '\0', sizeof(cmd));
-    sprintf(cmd, "reloc \"%s\" \"%s\" \"%s\" \"%s\"", oldstr, newstr, filename, filename);
+    sprintf(cmd, "reloc \"%s\" \"%s\" \"%s\" \"%s\" 2>&1", oldstr, newstr, filename, filename);
 
     // sanitize command
     strchrdel(cmd, "&;|");

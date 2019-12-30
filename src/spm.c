@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (deps) {
+        if (deps->records) {
             // List requirements before installation
             for (size_t i = 0; i < deps->records; i++) {
                 printf("  -> %s\n", deps->list[i]);

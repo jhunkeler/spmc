@@ -84,9 +84,6 @@ void rpath_set_interface_usage(void) {
  * @return
  */
 int rpath_set_interface(int argc, char **argv) {
-    for (int i = 0; i < argc; i++) {
-        printf("argv[%d] = %s\n", i, argv[i]);
-    }
     if (argc < 3) {
         rpath_set_interface_usage();
         return -1;

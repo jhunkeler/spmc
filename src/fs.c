@@ -294,7 +294,7 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
         strcat(args_combined, _args);
     }
 
-    snprintf(cmd, PATH_MAX, "rsync %s \"%s\" \"%s\"", args_combined, source, destination);
+    snprintf(cmd, PATH_MAX, "rsync %s \"%s\" \"%s\" 2>&1", args_combined, source, destination);
     // sanitize command
     strchrdel(cmd, "&;|");
     shell(&proc, SHELL_OUTPUT, cmd);

@@ -18,7 +18,7 @@ Process *patchelf(const char *_filename, const char *_args) {
 
     strchrdel(args, "&;|");
     strchrdel(filename, "&;|");
-    sprintf(sh_cmd, "patchelf %s %s", args, filename);
+    sprintf(sh_cmd, "patchelf %s %s 2>&1", args, filename);
 
     shell(&proc_info, SHELL_OUTPUT, sh_cmd);
 
@@ -90,6 +90,11 @@ char *rpath_get(const char *_filename) {
     strchrdel(path, "&;|");
 
     Process *pe = patchelf(filename, "--print-rpath");
+    if (pe->returncode != 0) {
+        fprintf(stderr, "patchelf error: %s %s\n", path, strip(pe->output));
+        return NULL;
+    }
+
     rpath = (char *)calloc(strlen(pe->output) + 1, sizeof(char));
     if (!rpath) {
         free(filename);
@@ -97,6 +102,7 @@ char *rpath_get(const char *_filename) {
         shell_free(pe);
         return NULL;
     }
+
     strncpy(rpath, pe->output, strlen(pe->output));
     strip(rpath);
 

@@ -54,6 +54,9 @@ int install(const char *destroot, const char *_package) {
     }
 
     if (exists(destroot) != 0) {
+        if (SPM_GLOBAL.verbose) {
+            printf("Creating destination root: %s\n", destroot);
+        }
         if (mkdirs(destroot, 0755) != 0) {
             fprintf(SYSERROR);
             return -2;
@@ -76,6 +79,15 @@ int install(const char *destroot, const char *_package) {
 
     // Create a new temporary directory and extract the requested package into it
     char *tmpdir = mkdtemp(template);
+    if (exists(tmpdir) != 0) {
+        fprintf(stderr, "Failed to create temporary storage directory\n");
+        fprintf(SYSERROR);
+        exit(errno);
+    }
+
+    if (SPM_GLOBAL.verbose) {
+        printf("Extracting archive: %s\n", package);
+    }
     tar_extract_archive(package, tmpdir);
 
     getcwd(cwd, sizeof(cwd));
@@ -85,9 +97,18 @@ int install(const char *destroot, const char *_package) {
     chdir(tmpdir);
     {
         // Rewrite binary prefixes
-        b_record= prefixes_read(SPM_META_PREFIX_BIN);
+        b_record = prefixes_read(SPM_META_PREFIX_BIN);
         if (b_record) {
             for (int i = 0; b_record[i] != NULL; i++) {
+                if (file_is_binexec(b_record[i]->path)) {
+                    if (SPM_GLOBAL.verbose) {
+                        printf("Relocate RPATH: %s\n", b_record[i]->path);
+                    }
+                    rpath_autoset(b_record[i]->path);
+                }
+                if (SPM_GLOBAL.verbose) {
+                    printf("Relocate DATA : %s\n", b_record[i]->path);
+                }
                 relocate(b_record[i]->path, b_record[i]->prefix, destroot);
             }
         }
@@ -96,6 +117,9 @@ int install(const char *destroot, const char *_package) {
         t_record = prefixes_read(SPM_META_PREFIX_TEXT);
         if (t_record) {
             for (int i = 0; t_record[i] != NULL; i++) {
+                if (SPM_GLOBAL.verbose) {
+                    printf("Relocate TEXT : %s\n", t_record[i]->path);
+                }
                 file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
             }
         }
@@ -109,11 +133,21 @@ int install(const char *destroot, const char *_package) {
     sprintf(source, "%s%c", tmpdir, DIRSEP);
 
     // Remove metadata files before copying
+    if (SPM_GLOBAL.verbose) {
+        printf("Removing metadata\n");
+    }
     metadata_remove(source);
 
     // Copy temporary directory to destination
+    if (SPM_GLOBAL.verbose) {
+        printf("Installing tree: '%s' => '%s'\n", source, destroot);
+    }
     if (rsync(NULL, source, destroot) != 0) {
         exit(1);
+    }
+
+    if (SPM_GLOBAL.verbose) {
+        printf("Removing temporary storage: '%s'\n", tmpdir);
     }
     rmdirs(tmpdir);
 
