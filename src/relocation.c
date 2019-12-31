@@ -296,11 +296,13 @@ int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     char *filename = strdup(_filename);
     char cmd[PATH_MAX];
 
+    // sanitize command
+    strchrdel(oldstr, "&;|");
+    strchrdel(newstr, "&;|");
+    strchrdel(filename, "&;|");
+
     memset(cmd, '\0', sizeof(cmd));
     sprintf(cmd, "reloc \"%s\" \"%s\" \"%s\" \"%s\" 2>&1", oldstr, newstr, filename, filename);
-
-    // sanitize command
-    strchrdel(cmd, "&;|");
 
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {

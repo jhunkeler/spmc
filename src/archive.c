@@ -11,12 +11,31 @@
  * @param destination where to extract file to (must exist)
  * @return
  */
-int tar_extract_file(const char *archive, const char* filename, const char *destination) {
+int tar_extract_file(const char *_archive, const char* _filename, const char *_destination) {
     Process *proc = NULL;
     int status;
     char cmd[PATH_MAX];
+    char *archive = strdup(_archive);
+    if (!archive) {
+        fprintf(SYSERROR);
+        return -1;
+    }
+    char *filename = strdup(_filename);
+    if (!filename) {
+        fprintf(SYSERROR);
+        return -1;
+    }
+    char *destination = strdup(_destination);
+    if (!destination) {
+        fprintf(SYSERROR);
+        return -1;
+    }
 
-    sprintf(cmd, "tar xf %s -C %s %s 2>&1", archive, destination, filename);
+    strchrdel(archive, "&;|");
+    strchrdel(destination, "&;|");
+    strchrdel(filename, "&;|");
+
+    sprintf(cmd, "tar xf \"%s\" -C \"%s\" \"%s\" 2>&1", archive, destination, filename);
     if (exists(archive) != 0) {
         fprintf(stderr, "%s :: ", archive);
         fprintf(SYSERROR);
@@ -30,8 +49,11 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
     }
 
     status = proc->returncode;
-    shell_free(proc);
 
+    shell_free(proc);
+    free(archive);
+    free(filename);
+    free(destination);
     return status;
 }
 

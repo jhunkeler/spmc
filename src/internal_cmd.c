@@ -10,13 +10,23 @@ static char *internal_commands[] = {
         "mkprefixbin", "generate prefix manifest (binary)",
         "mkprefixtext", "generate prefix manifest (text)",
         "rpath_set", "modify binary RPATH",
+        "rpath_autoset", "determine nearest lib directory and set RPATH",
         NULL, NULL,
 };
 
+/**
+ *
+ */
 void mkprefix_interface_usage(void) {
     printf("usage: mkprefix[bin|text] {output_file} {dir} {prefix ...}\n");
 }
 
+/**
+ * Create prefix manifests from the CLI
+ * @param argc
+ * @param argv
+ * @return return value of `prefixes_write`
+ */
 int mkprefix_interface(int argc, char **argv) {
     char *command = argv[0];
     char *outfile = argv[1];
@@ -78,10 +88,10 @@ void rpath_set_interface_usage(void) {
 }
 
 /**
- *
+ * Set a RPATH from the CLI
  * @param argc
  * @param argv
- * @return
+ * @return return value of `rpath_set`
  */
 int rpath_set_interface(int argc, char **argv) {
     if (argc < 3) {
@@ -91,6 +101,32 @@ int rpath_set_interface(int argc, char **argv) {
     char *filename = argv[1];
     char *rpath = argv[2];
     int result = rpath_set(filename, rpath);
+    if (result < 0) {
+        fprintf(SYSERROR);
+    }
+    return result;
+}
+
+/**
+ *
+ */
+void rpath_autoset_interface_usage(void) {
+    printf("usage: rpath_autoset {file} {rpath}\n");
+}
+
+/**
+ * Set a RPATH automatically from the CLI
+ * @param argc
+ * @param argv
+ * @return return value of `rpath_autoset`
+ */
+int rpath_autoset_interface(int argc, char **argv) {
+    if (argc < 2) {
+        rpath_autoset_interface_usage();
+        return -1;
+    }
+    char *filename = argv[1];
+    int result = rpath_autoset(filename);
     if (result < 0) {
         fprintf(SYSERROR);
     }
