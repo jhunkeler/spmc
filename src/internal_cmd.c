@@ -111,7 +111,7 @@ int rpath_set_interface(int argc, char **argv) {
  *
  */
 void rpath_autoset_interface_usage(void) {
-    printf("usage: rpath_autoset {file} {rpath}\n");
+    printf("usage: rpath_autoset {file}\n");
 }
 
 /**
@@ -180,6 +180,9 @@ int internal_cmd(int argc, char **argv) {
     }
     else if (strcmp(command, "rpath_set") == 0) {
         return rpath_set_interface(arg_count, arg_array);
+    }
+    else if (strcmp(command, "rpath_autoset") == 0) {
+        return rpath_autoset_interface(arg_count, arg_array);
     }
     return 0;
 }
