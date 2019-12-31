@@ -72,7 +72,7 @@ int has_rpath(const char *_filename) {
  */
 char *rpath_get(const char *_filename) {
     if ((has_rpath(_filename)) != 0) {
-        return NULL;
+        return strdup("");
     }
     char *filename = strdup(_filename);
     if (!filename) {
