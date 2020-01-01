@@ -24,7 +24,7 @@ void usage(const char *program_name) {
            , program_name);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[], char *arge[]) {
     char program_name[strlen(argv[0]) + 1];
     memset(program_name, '\0', sizeof(program_name) + 1);
     strcpy(program_name, basename(argv[0]));

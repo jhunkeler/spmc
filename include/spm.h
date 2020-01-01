@@ -261,4 +261,9 @@ int file_is_binexec(const char *filename);
 // internal_cmd.c
 int internal_cmd(int argc, char **argv);
 
+// environment.c
+char **runtime_copy(char **env);
+void runtime_export(char **env);
+void runtime_free(char **env);
+
 #endif //SPM_SPM_H

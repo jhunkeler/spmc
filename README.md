@@ -69,7 +69,7 @@ _TODO_
 ## Usage
 
 ```bash
-$ ./spm --help
+$ spm --help
 usage: spm [-hVvBIrLS]
   -h,  --help     show this help message
   -V,  --version  show version
@@ -79,6 +79,37 @@ usage: spm [-hVvBIrLS]
   -r,  --root     installation prefix (requires --install)
   -L,  --list     list available packages
   -S,  --search   search for a package
+```
+
+### Example
+
+#### Install Python
+```bash
+$ spm --root ~/spmenv123 --install "python" # [...]
+```
+
+#### Export environment variables
+
+```bash
+$ export PATH="~/spmenv123/bin:$PATH"
+$ export MANPATH="~/spmenv123/share/man:$MANPATH"
+$ hash -r  # or "rehash" if your shell supports it
+```
+
+#### Use Python
+
+```bash
+$ which python
+/home/example/spmenv123/bin/python
+$ which pip
+/home/example/spmenv123/bin/pip
+$ which git
+/home/example/spmenv123/bin/git
+
+$ python -m venv ~/spmenv123/venv
+$ source ~/spmenv123/venv/bin/activate
+$ pip install https://github.com/spacetelescope/jwst.git#egg=jwst
+# ... do work
 ```
 
 ## Building SPM Packages
