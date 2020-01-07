@@ -54,8 +54,8 @@ $ cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release
 ### Install SPM
 
 ```bash
-$ git clone https://github.com/jhunkeler/spm
-$ cd spm
+$ git clone https://github.com/jhunkeler/spmc
+$ cd spmc
 $ mkdir build
 $ cd build
 $ cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release
