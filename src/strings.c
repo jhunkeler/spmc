@@ -149,6 +149,9 @@ void strdelsuffix(char *sptr, const char *suffix) {
  */
 char** split(char *_sptr, const char* delim)
 {
+    if (_sptr == NULL) {
+        return NULL;
+    }
     size_t split_alloc = 0;
     // Duplicate the input string and save a copy of the pointer to be freed later
     char *orig = strdup(_sptr);
