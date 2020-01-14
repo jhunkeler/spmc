@@ -13,6 +13,11 @@ FSTree *fstree(const char *_path) {
     FTSENT *node = NULL;
     FSTree *fsdata = NULL;
     char *path = realpath(_path, NULL);
+    if (path == NULL) {
+        perror(_path);
+        fprintf(SYSERROR);
+        return NULL;
+    }
     char *root[2] = { path, NULL };
 
     size_t dirs_size = 2;
