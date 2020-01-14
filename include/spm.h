@@ -29,13 +29,33 @@
 // spm.c
 #define SYSERROR stderr, "%s:%s:%d: %s\n", basename(__FILE__), __FUNCTION__, __LINE__, strerror(errno)
 #define DIRSEP_WIN32 '\\'
+#define DIRSEPS_WIN32 "\\"
+#define PATHSEP_WIN32 ';'
+#define PATHSEPS_WIN32 ";"
 #define DIRSEP_UNIX '/'
+#define DIRSEPS_UNIX "/"
+#define PATHSEP_UNIX ';'
+#define PATHSEPS_UNIX ";"
 #if defined(_WIN32)
 #define DIRSEP  DIRSEP_WIN32
+#define DIRSEPS  DIRSEPS_WIN32
 #define NOT_DIRSEP DIRSEP_UNIX
+#define NOT_DIRSEPS DIRSEPS_UNIX
+
+#define PATHSEP PATHSEP_WIN32
+#define PATHSEPS PATHSEPS_WIN32
+#define NOT_PATHSEP PATHSEP_UNIX
+#define NOT_PATHSEPS PATHSEPS_UNIX
 #else
 #define DIRSEP DIRSEP_UNIX
+#define DIRSEPS DIRSEPS_UNIX
 #define NOT_DIRSEP DIRSEP_WIN32
+#define NOT_DIRSEPS DIRSEPS_WIN32
+
+#define PATHSEP PATHSEP_UNIX
+#define PATHSEPS PATHSEPS_UNIX
+#define NOT_PATHSEP PATHSEP_WIN32
+#define NOT_PATHSEPS PATHSEPS_WIN32
 #endif
 
 #define SPM_META_DEPENDS ".SPM_DEPENDS"
@@ -127,6 +147,20 @@ typedef struct {
     char *type;
     char *charset;
 } Mime;
+
+typedef struct {
+    size_t num_alloc;
+    size_t num_inuse;
+    char **env;
+} RuntimeEnv;
+
+typedef struct {
+    char *binpath;
+    char *includepath;
+    char *libpath;
+    char *datapath;
+    char *manpath;
+} SPM_Hierarchy;
 
 // GLOBALS
 spm_vars SPM_GLOBAL;
@@ -262,8 +296,13 @@ int file_is_binexec(const char *filename);
 int internal_cmd(int argc, char **argv);
 
 // environment.c
-char **runtime_copy(char **env);
-void runtime_export(char **env);
-void runtime_free(char **env);
+ssize_t runtime_contains(RuntimeEnv *env, const char *key);
+RuntimeEnv *runtime_copy(char **env);
+char *runtime_get(RuntimeEnv *env, const char *key);
+void runtime_set(RuntimeEnv *env, const char *_key, const char *_value);
+char *runtime_expand_var(RuntimeEnv *env, const char *input);
+void runtime_export(RuntimeEnv *env, char **keys);
+void runtime_apply(RuntimeEnv *env);
+void runtime_free(RuntimeEnv *env);
 
 #endif //SPM_SPM_H

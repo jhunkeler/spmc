@@ -143,6 +143,38 @@ int main(int argc, char *argv[], char *arge[]) {
         exit(1);
     }
 
+    if (isempty(root)) {
+        sprintf(root, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
+    }
+
+    // Construct installation runtime environment
+    RuntimeEnv *rt = runtime_copy(arge);
+    SPM_Hierarchy *root_hierarchy = NULL;
+    // TODO: Move environment allocation out of (above) this loop if possible
+    // TODO: replace variables below with SPM_Hierarchy, and write some control functions
+
+    char *spm_binpath = join((char *[]) {root, "bin"}, DIRSEPS);
+    char *spm_includepath = join((char *[]) {root, "include"}, DIRSEPS);
+    char *spm_libpath = join((char *[]) {root, "lib"}, DIRSEPS);
+    char *spm_datapath = join((char *[]) {root, "share"}, DIRSEPS);
+    char *spm_manpath = join((char *[]) {spm_datapath, "man"}, DIRSEPS);
+
+    runtime_set(rt, "SPM_BIN", spm_binpath);
+    runtime_set(rt, "SPM_INCLUDE", spm_includepath);
+    runtime_set(rt, "SPM_LIB", spm_libpath);
+    runtime_set(rt, "SPM_DATA", spm_datapath);
+    runtime_set(rt, "SPM_MAN", spm_manpath);
+    runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
+    runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
+
+    if (exists(join((char *[]) {spm_binpath, "gcc"}, DIRSEPS)) == 0) {
+        runtime_set(rt, "CC", "$SPM_BIN/gcc");
+    }
+
+    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath $SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
+    runtime_apply(rt);
+
     if (RUNTIME_INSTALL) {
         Dependencies *deps = NULL;
         dep_init(&deps);
@@ -151,14 +183,10 @@ int main(int argc, char *argv[], char *arge[]) {
         Manifest *manifest = manifest_read();
         if (!manifest) {
             fprintf(stderr, "Package manifest is missing or corrupt\n");
+            runtime_free(rt);
             exit(1);
         }
         printf("done\n");
-
-        if (isempty(root)) {
-            printf("Using default installation root\n");
-            sprintf(root, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
-        }
 
         printf("Installation root: %s\n", root);
 
@@ -194,6 +222,7 @@ int main(int argc, char *argv[], char *arge[]) {
             if (dep_all(&deps, package->archive) < 0) {
                 dep_free(&deps);
                 free_global_config();
+                runtime_free(rt);
                 exit(1);
             }
         }
@@ -209,6 +238,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 printf("  -> %s\n", deps->list[i]);
                 if (install(root, deps->list[i]) < 0) {
                     fprintf(SYSERROR);
+                    runtime_free(rt);
                     exit(errno);
                 }
             }
@@ -225,11 +255,13 @@ int main(int argc, char *argv[], char *arge[]) {
 
             if ((match = find_package(packages[i])) == NULL) {
                 fprintf(SYSERROR);
+                runtime_free(rt);
                 exit(1);
             }
 
             if ((package = basename(match)) == NULL) {
                 fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
+                runtime_free(rt);
                 exit(1);
             }
 
@@ -241,6 +273,7 @@ int main(int argc, char *argv[], char *arge[]) {
             printf("  -> %s\n", package);
             if (install(root, packages[i]) < 0) {
                 fprintf(SYSERROR);
+                runtime_free(rt);
                 exit(errno);
             }
             free(match);
@@ -313,8 +346,10 @@ int main(int argc, char *argv[], char *arge[]) {
             }
         }
 
+        runtime_free(rt);
         exit(0);
     }
+
     free_global_config();
     return 0;
 }
