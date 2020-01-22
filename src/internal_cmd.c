@@ -9,6 +9,7 @@
 static char *internal_commands[] = {
         "mkprefixbin", "generate prefix manifest (binary)",
         "mkprefixtext", "generate prefix manifest (text)",
+        "mkmanifest", "generate package repository manifest",
         "rpath_set", "modify binary RPATH",
         "rpath_autoset", "determine nearest lib directory and set RPATH",
         NULL, NULL,
@@ -78,6 +79,55 @@ int mkprefix_interface(int argc, char **argv) {
         result = prefixes_write(outfile, PREFIX_WRITE_TEXT, prefix, tree);
     }
     return result;
+}
+
+/**
+ *
+ */
+void mkmanifest_interface_usage(void) {
+    printf("usage: mkmanifest [package_dir] [output_dir]");
+}
+
+/**
+ * Generate a named package manifest
+ * @param argc
+ * @param argv
+ * @return value of `manifest_write`
+ */
+int mkmanifest_interface(int argc, char **argv) {
+    if (argc < 1) {
+        mkmanifest_interface_usage();
+        return -1;
+    }
+    Manifest *manifest = NULL;
+    char *pkgdir = NULL;
+    char path[PATH_MAX];
+    memset(path, '\0', PATH_MAX);
+
+    if (argc == 2) {
+        pkgdir = argv[1];
+    }
+    else {
+        pkgdir = SPM_GLOBAL.package_dir;
+    }
+
+    if (argc > 2) {
+        strcpy(path, argv[2]);
+    }
+    else {
+        strcpy(path, SPM_MANIFEST_FILENAME);
+    }
+
+    if (exists(pkgdir) != 0) {
+        return -1;
+    }
+
+    manifest = manifest_from(pkgdir);
+    if (manifest == NULL) {
+        return -2;
+    }
+
+    return manifest_write(manifest, path);
 }
 
 /**
@@ -177,6 +227,9 @@ int internal_cmd(int argc, char **argv) {
 
     if (strcmp(command, "mkprefixbin") == 0 || strcmp(command, "mkprefixtext") == 0) {
         return mkprefix_interface(arg_count, arg_array);
+    }
+    else if (strcmp(command, "mkmanifest") == 0) {
+        return mkmanifest_interface(arg_count, arg_array);
     }
     else if (strcmp(command, "rpath_set") == 0) {
         return rpath_set_interface(arg_count, arg_array);

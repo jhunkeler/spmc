@@ -283,7 +283,7 @@ void dep_show(Dependencies **deps);
 // manifest.c
 Manifest *manifest_from(const char *package_dir);
 Manifest *manifest_read(char *file_or_url);
-int manifest_write(Manifest *info);
+int manifest_write(Manifest *info, const char *dest);
 void manifest_free(Manifest *info);
 ManifestPackage *manifest_search(Manifest *info, const char *package);
 

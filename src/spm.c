@@ -72,7 +72,7 @@ int main(int argc, char *argv[], char *arge[]) {
             }
             else if (strcmp(arg, "--reindex") == 0) {
                 Manifest *info = manifest_from(SPM_GLOBAL.package_dir);
-                manifest_write(info);
+                manifest_write(info, SPM_GLOBAL.package_manifest);
                 manifest_free(info);
                 exit(0);
             }

@@ -14,6 +14,7 @@
 Manifest *manifest_from(const char *package_dir) {
     FSTree *fsdata = NULL;
     fsdata = fstree(package_dir);
+
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->records = fsdata->files_length;
     info->packages = (ManifestPackage **) calloc(info->records + 1, sizeof(ManifestPackage *));
@@ -98,13 +99,25 @@ void manifest_free(Manifest *info) {
 /**
  * Write a `Manifest` to the configuration directory
  * @param info
+ * @param outfile
  * @return
  */
-int manifest_write(Manifest *info) {
+int manifest_write(Manifest *info, const char *outfile) {
     char *reqs = NULL;
     char path[PATH_MAX];
     memset(path, '\0', sizeof(path));
-    strcpy(path, SPM_GLOBAL.package_manifest);
+
+    if (outfile == NULL) {
+        strcpy(path, SPM_GLOBAL.package_manifest);
+    }
+    else {
+        strcpy(path, outfile);
+    }
+
+    if (endswith(path, SPM_MANIFEST_FILENAME) != 0) {
+        strcat(path, DIRSEPS);
+        strcat(path, SPM_MANIFEST_FILENAME);
+    }
 
     FILE *fp = fopen(path, "w+");
 #ifdef _DEBUG

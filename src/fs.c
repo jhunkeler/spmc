@@ -9,6 +9,7 @@
  * @return
  */
 FSTree *fstree(const char *_path) {
+    // TODO: Add an argument to filter FSTree content... probably a callback function
     FTS *parent = NULL;
     FTSENT *node = NULL;
     FSTree *fsdata = NULL;
