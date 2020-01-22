@@ -368,19 +368,19 @@ void strsortlen(char **arr, unsigned int sort_mode) {
  * Search for string in an array of strings
  * @param arr array of strings
  * @param str string to search for
- * @return yes=0, no=1, failure=-1
+ * @return yes=`pointer to string`, no=`NULL`, failure=`NULL`
  */
-int strstr_array(char **arr, const char *str) {
-    if (!arr) {
-        return -1;
+char *strstr_array(char **arr, const char *str) {
+    if (arr == NULL) {
+        return NULL;
     }
 
     for (int i = 0; arr[i] != NULL; i++) {
         if (strstr(arr[i], str) != NULL) {
-            return 0;
+            return arr[i];
         }
     }
-    return 1;
+    return NULL;
 }
 
 /**

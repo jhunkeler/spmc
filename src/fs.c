@@ -8,8 +8,8 @@
  * @param _path
  * @return
  */
-FSTree *fstree(const char *_path) {
-    // TODO: Add an argument to filter FSTree content... probably a callback function
+FSTree *fstree(const char *_path, char **filter_by) {
+    // TODO: Implement filter_by
     FTS *parent = NULL;
     FTSENT *node = NULL;
     FSTree *fsdata = NULL;
@@ -89,7 +89,7 @@ int rmdirs(const char *_path) {
         return -1;
     }
 
-    FSTree *data = fstree(_path);
+    FSTree *data = fstree(_path, NULL);
     if (data->files) {
         for (size_t i = 0; data->files[i] != NULL; i++) {
             remove(data->files[i]);

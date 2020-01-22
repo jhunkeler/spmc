@@ -214,6 +214,12 @@ void strsort(char **arr);
 int find_in_file(const char *filename, const char *pattern);
 int isrelational(char ch);
 void print_banner(const char *s, int len);
+char *strstr_array(char **arr, const char *str);
+char **strdeldup(char **arr);
+char *lstrip(char *sptr);
+char *strip(char *sptr);
+int isempty(char *sptr);
+int isquoted(char *sptr);
 
 // find.c
 char *find_executable(const char *program);
@@ -233,7 +239,7 @@ int rpath_set(const char *filename, const char *rpath);
 // fs.c
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
 void fstree_free(FSTree *fsdata);
-FSTree *fstree(const char *_path);
+FSTree *fstree(const char *_path, char **filter_by);
 int rmdirs(const char *_path);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
@@ -261,10 +267,6 @@ int install(const char *destroot, const char *_package);
 // config.c
 #define CONFIG_BUFFER_SIZE 1024
 
-char *lstrip(char *sptr);
-char *strip(char *sptr);
-int isempty(char *sptr);
-int isquoted(char *sptr);
 ConfigItem **config_read(const char *filename);
 ConfigItem *config_get(ConfigItem **item, const char *key);
 void config_free(ConfigItem **item);

@@ -13,7 +13,11 @@
  */
 Manifest *manifest_from(const char *package_dir) {
     FSTree *fsdata = NULL;
-    fsdata = fstree(package_dir);
+    char *filter[] = {
+        SPM_PACKAGE_EXTENSION,
+        NULL,
+    };
+    fsdata = fstree(package_dir, filter);
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->records = fsdata->files_length;
