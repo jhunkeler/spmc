@@ -210,7 +210,7 @@ int dep_all(Dependencies **deps, const char *_package) {
 
     // Remove temporary data
     unlink(depfile);
-    unlink(tmpdir);
+    rmdir(tmpdir);
     free(suffix);
     return 0;
 }

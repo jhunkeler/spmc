@@ -149,7 +149,6 @@ int main(int argc, char *argv[], char *arge[]) {
 
     // Construct installation runtime environment
     RuntimeEnv *rt = runtime_copy(arge);
-    SPM_Hierarchy *root_hierarchy = NULL;
     // TODO: Move environment allocation out of (above) this loop if possible
     // TODO: replace variables below with SPM_Hierarchy, and write some control functions
 
@@ -180,7 +179,7 @@ int main(int argc, char *argv[], char *arge[]) {
         dep_init(&deps);
 
         printf("Reading package manifest... ");
-        Manifest *manifest = manifest_read();
+        Manifest *manifest = manifest_read(NULL);
         if (!manifest) {
             fprintf(stderr, "Package manifest is missing or corrupt\n");
             runtime_free(rt);
@@ -282,7 +281,7 @@ int main(int argc, char *argv[], char *arge[]) {
     }
 
     if (RUNTIME_SEARCH || RUNTIME_LIST) {
-        Manifest *info = manifest_read();
+        Manifest *info = manifest_read(NULL);
         char name[255];
         char op[25];
         char ver[255];

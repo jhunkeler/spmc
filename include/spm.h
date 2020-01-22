@@ -20,6 +20,9 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <wordexp.h>
+#include <openssl/md5.h>
+#include <openssl/sha.h>
+
 #if !defined(_WIN32)
 #include <sys/utsname.h>
 #endif
@@ -63,6 +66,13 @@
 #define SPM_META_PREFIX_TEXT ".SPM_PREFIX_TEXT"
 #define SPM_META_MANIFEST ".SPM_MANIFEST" // TODO: Implement
 
+
+#define SPM_MANIFEST_SEPARATOR '|'
+#define SPM_MANIFEST_SEPARATOR_MAX 7
+#define SPM_MANIFEST_NODATA "*"
+#define SPM_MANIFEST_HEADER "# SPM PACKAGE MANIFEST"
+#define SPM_MANIFEST_FILENAME "manifest.dat"
+
 #define PREFIX_WRITE_BIN 0
 #define PREFIX_WRITE_TEXT 1
 
@@ -75,6 +85,7 @@
 #define SHELL_BENCHMARK 1 << 2
 
 #define PACKAGE_MEMBER_SIZE 0xff
+#define PACKAGE_MEMBER_ORIGIN_SIZE PATH_MAX
 
 #define VERSION_NOOP 1 << 0
 #define VERSION_EQ 1 << 1
@@ -91,6 +102,9 @@ typedef struct {
     char name[PACKAGE_MEMBER_SIZE];
     char version[PACKAGE_MEMBER_SIZE];
     char revision[PACKAGE_MEMBER_SIZE];
+    char checksum_md5[MD5_DIGEST_LENGTH];
+    char checksum_sha256[SHA256_DIGEST_LENGTH];
+    char origin[PACKAGE_MEMBER_ORIGIN_SIZE];
 } ManifestPackage;
 
 typedef struct {
@@ -119,15 +133,26 @@ typedef struct {
     size_t value_length;
 } ConfigItem;
 
+
+typedef struct {
+    char *binpath;
+    char *includepath;
+    char *libpath;
+    char *datapath;
+    char *manpath;
+} SPM_Hierarchy;
+
 typedef struct {
     char *package_dir;
     char *tmp_dir;
     char *package_manifest;
+    char *repo_target;
     char *user_config_basedir;
     char *user_config_file;
     int verbose;
     ConfigItem **config;
     struct utsname sysinfo;
+    SPM_Hierarchy fs;
 } spm_vars;
 
 typedef struct {
@@ -153,14 +178,6 @@ typedef struct {
     size_t num_inuse;
     char **env;
 } RuntimeEnv;
-
-typedef struct {
-    char *binpath;
-    char *includepath;
-    char *libpath;
-    char *datapath;
-    char *manpath;
-} SPM_Hierarchy;
 
 // GLOBALS
 spm_vars SPM_GLOBAL;
@@ -265,7 +282,7 @@ void dep_show(Dependencies **deps);
 
 // manifest.c
 Manifest *manifest_from(const char *package_dir);
-Manifest *manifest_read(void);
+Manifest *manifest_read(char *file_or_url);
 int manifest_write(Manifest *info);
 void manifest_free(Manifest *info);
 ManifestPackage *manifest_search(Manifest *info, const char *package);

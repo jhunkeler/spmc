@@ -98,17 +98,32 @@ char *get_package_manifest(void) {
     char *ucd = get_user_conf_dir();
 
     sprintf(template, "%s%c%s", ucd, DIRSEP, "manifest.dat");
+    return strdup(template);
+
+    /*
+    Manifest *manifest;
+    manifest = manifest_read(NULL);
+    if (manifest != NULL) {
+        manifest_free(manifest);
+    }
 
     if (access(template, F_OK) != 0) {
         fprintf(stderr, "Package manifest not found: %s\n", template);
-        Manifest *manifest = manifest_from(PKG_DIR);
+        manifest = manifest_from(PKG_DIR);
+        if (manifest == NULL) {
+            perror("manifest generator");
+            fprintf(SYSERROR);
+            return NULL;
+        }
         manifest_write(manifest);
         manifest_free(manifest);
     }
 
     free(ucd);
     return strdup(template);
+    */
 }
+
 
 /**
  * Check whether SPM has access to external programs it needs
@@ -148,11 +163,31 @@ void init_config_global(void) {
     SPM_GLOBAL.package_manifest = NULL;
     SPM_GLOBAL.config = NULL;
     SPM_GLOBAL.verbose = 0;
+    SPM_GLOBAL.repo_target = NULL;
 
     if (uname(&SPM_GLOBAL.sysinfo) != 0) {
         fprintf(SYSERROR);
-        exit(1);
+        exit(errno);
     }
+
+    // Initialize filesystem paths structure
+    SPM_GLOBAL.fs.binpath = calloc(strlen(SPM_PROGRAM_BIN) + 1, sizeof(char));
+    SPM_GLOBAL.fs.includepath = calloc(strlen(SPM_PROGRAM_INCLUDE) + 1, sizeof(char));
+    SPM_GLOBAL.fs.libpath = calloc(strlen(SPM_PROGRAM_LIB) + 1, sizeof(char));
+    SPM_GLOBAL.fs.datapath = calloc(strlen(SPM_PROGRAM_DATA) + 1, sizeof(char));
+
+    if (!SPM_GLOBAL.fs.binpath || !SPM_GLOBAL.fs.includepath
+        || !SPM_GLOBAL.fs.libpath) {
+        perror("Unable to allocate memory for global filesystem paths");
+        fprintf(SYSERROR);
+        exit(errno);
+    }
+
+    strcpy(SPM_GLOBAL.fs.binpath, SPM_PROGRAM_BIN);
+    strcpy(SPM_GLOBAL.fs.includepath, SPM_PROGRAM_INCLUDE);
+    strcpy(SPM_GLOBAL.fs.libpath, SPM_PROGRAM_LIB);
+    strcpy(SPM_GLOBAL.fs.datapath, SPM_PROGRAM_DATA);
+    SPM_GLOBAL.fs.manpath = join((char *[]) {SPM_PROGRAM_DATA, "man", NULL}, DIRSEPS);
 
     SPM_GLOBAL.user_config_basedir = get_user_conf_dir();
     SPM_GLOBAL.user_config_file = get_user_config_file();
@@ -161,6 +196,14 @@ void init_config_global(void) {
     }
 
     ConfigItem *item = NULL;
+
+    // Initialize repository target (i.e. repository path suffix)
+    SPM_GLOBAL.repo_target = join((char *[]) {SPM_GLOBAL.sysinfo.sysname, SPM_GLOBAL.sysinfo.machine, NULL}, DIRSEPS);
+    item = config_get(SPM_GLOBAL.config, "repo_target");
+    if (item) {
+        free(SPM_GLOBAL.repo_target);
+        SPM_GLOBAL.repo_target = normpath(item->value);
+    }
 
     // Initialize temp directory
     item = config_get(SPM_GLOBAL.config, "tmp_dir");
@@ -198,12 +241,14 @@ void init_config_global(void) {
     item = config_get(SPM_GLOBAL.config, "package_manifest");
     if (item) {
         SPM_GLOBAL.package_manifest = item->value;
+        /*
         if (access(SPM_GLOBAL.package_manifest, F_OK) != 0) {
             fprintf(stderr, "Package manifest not found: %s\n", SPM_GLOBAL.package_manifest);
             Manifest *manifest = manifest_from(PKG_DIR);
             manifest_write(manifest);
             manifest_free(manifest);
         }
+         */
     }
     else {
         SPM_GLOBAL.package_manifest = get_package_manifest();
