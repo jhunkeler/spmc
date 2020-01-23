@@ -66,12 +66,16 @@
 #define SPM_META_PREFIX_TEXT ".SPM_PREFIX_TEXT"
 #define SPM_META_MANIFEST ".SPM_MANIFEST" // TODO: Implement
 
-
 #define SPM_MANIFEST_SEPARATOR '|'
 #define SPM_MANIFEST_SEPARATOR_MAX 7
 #define SPM_MANIFEST_NODATA "*"
 #define SPM_MANIFEST_HEADER "# SPM PACKAGE MANIFEST"
 #define SPM_MANIFEST_FILENAME "manifest.dat"
+
+#define SPM_FSTREE_FLT_NONE 1 << 0
+#define SPM_FSTREE_FLT_CONTAINS 1 << 1
+#define SPM_FSTREE_FLT_ENDSWITH 1 << 2
+#define SPM_FSTREE_FLT_STARTSWITH 1 << 3
 
 #define PREFIX_WRITE_BIN 0
 #define PREFIX_WRITE_TEXT 1
@@ -239,7 +243,7 @@ int rpath_set(const char *filename, const char *rpath);
 // fs.c
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
 void fstree_free(FSTree *fsdata);
-FSTree *fstree(const char *_path, char **filter_by);
+FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode);
 int rmdirs(const char *_path);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);

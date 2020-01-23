@@ -12,12 +12,9 @@
  * @return `Manifest`
  */
 Manifest *manifest_from(const char *package_dir) {
+    char *package_filter[] = {SPM_PACKAGE_EXTENSION, NULL}; // We only want packages
     FSTree *fsdata = NULL;
-    char *filter[] = {
-        SPM_PACKAGE_EXTENSION,
-        NULL,
-    };
-    fsdata = fstree(package_dir, filter);
+    fsdata = fstree(package_dir, package_filter, SPM_FSTREE_FLT_ENDSWITH);
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->records = fsdata->files_length;

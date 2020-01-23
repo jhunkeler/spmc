@@ -253,7 +253,7 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
         return -1;
     }
 
-    FSTree *fsdata = fstree(tree, NULL);
+    FSTree *fsdata = fstree(tree, NULL, SPM_FSTREE_FLT_NONE);
     if (!fsdata) {
         fclose(fp);
         fprintf(SYSERROR);
