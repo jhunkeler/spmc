@@ -6,6 +6,30 @@
 #include "url.h"
 #define PACKAGE_MIN_DELIM 2
 
+void manifest_package_separator_swap(char **name) {
+    // Replace unwanted separators in the package name with placeholder to prevent splitting on the wrong one
+    int delim_count = num_chars((*name), PACKAGE_MEMBER_SEPARATOR);
+    if (delim_count > PACKAGE_MIN_DELIM) {
+        for (size_t t = strlen((*name)); t != 0; t--) {
+            if ((*name)[t] == PACKAGE_MEMBER_SEPARATOR) {
+                delim_count--;
+                if (delim_count == 0) {
+                    (*name)[t] = PACKAGE_MEMBER_SEPARATOR_PLACEHOLD;
+                }
+            }
+        }
+    }
+}
+
+void manifest_package_separator_restore(char **name) {
+    char separator[2];
+    char placeholder[2];
+    snprintf(separator, sizeof(separator), "%c", PACKAGE_MEMBER_SEPARATOR);
+    snprintf(placeholder, sizeof(placeholder), "%c", PACKAGE_MEMBER_SEPARATOR_PLACEHOLD);
+
+    replace_text((*name), placeholder, separator);
+}
+
 /**
  * Generate a `Manifest` of package data
  * @param package_dir a directory containing SPM packages
@@ -45,26 +69,17 @@ Manifest *manifest_from(const char *package_dir) {
         }
         dep_free(&deps);
 
-        // Replace unwanted hyphens in the package name with an invalid character to prevent splitting on the wrong
-        // hyphen below
-        int delims = num_chars(fsdata->files[i], '-');
-        if (delims > PACKAGE_MIN_DELIM) {
-            for (size_t t = strlen(fsdata->files[i]); t != 0; t--) {
-                if (fsdata->files[i][t] == '-') {
-                    delims--;
-                    if (delims == 0) {
-                        fsdata->files[i][t] = '*';
-                    }
-                }
-            }
-        }
+        // Swap extra package separators with a bogus character
+        manifest_package_separator_swap(&fsdata->files[i]);
 
-        // Split the package name into parts (invalid characters are ignored)
-        char **parts = split(fsdata->files[i], "-");
+        // Split the package name into parts
+        char psep[2];
+        snprintf(psep, sizeof(psep), "%c", PACKAGE_MEMBER_SEPARATOR);
+        char **parts = split(fsdata->files[i], psep);
 
-        // Replace invalid character with a hyphen
-        replace_text(parts[0], SPM_MANIFEST_NODATA, "-");
-        replace_text(fsdata->files[i], SPM_MANIFEST_NODATA, "-");
+        // Restore package separator
+        manifest_package_separator_restore(&parts[0]);
+        manifest_package_separator_restore(&fsdata->files[i]);
 
         // Populate `ManifestPackage` record
         info->packages[i]->size = (size_t) get_file_size(fsdata->files[i]);

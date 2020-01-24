@@ -245,24 +245,20 @@ int main(int argc, char *argv[], char *arge[]) {
 
         printf("Installing package:\n");
         for (int i = 0; i < PACKAGE_MAX; i++) {
-            char *match = NULL;
+            //char *match = NULL;
+            ManifestPackage *match = NULL;
             char *package = NULL;
 
             if (!packages[i]) {
                 break;
             }
 
-            if ((match = find_package(packages[i])) == NULL) {
+            if ((match = manifest_search(manifest, packages[i])) == NULL) {
                 fprintf(SYSERROR);
                 runtime_free(rt);
                 exit(1);
             }
-
-            if ((package = basename(match)) == NULL) {
-                fprintf(stderr, "Unable to derive package name from package path:\n\t-> %s\n", match);
-                runtime_free(rt);
-                exit(1);
-            }
+            package = match->archive;
 
             // If the package was installed as a requirement of another dependency, skip it
             if (dep_seen(&deps, package)) {

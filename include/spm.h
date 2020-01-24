@@ -90,7 +90,10 @@
 
 #define PACKAGE_MEMBER_SIZE 0xff
 #define PACKAGE_MEMBER_ORIGIN_SIZE PATH_MAX
+#define PACKAGE_MEMBER_SEPARATOR '-'
+#define PACKAGE_MEMBER_SEPARATOR_PLACEHOLD '*'
 
+#define VERSION_OPERATORS " ~!=<>"
 #define VERSION_NOOP 1 << 0
 #define VERSION_EQ 1 << 1
 #define VERSION_NE 1 << 2
@@ -287,6 +290,8 @@ int dep_all(Dependencies **deps, const char *_package);
 void dep_show(Dependencies **deps);
 
 // manifest.c
+void manifest_package_separator_swap(char **name);
+void manifest_package_separator_restore(char **name);
 Manifest *manifest_from(const char *package_dir);
 Manifest *manifest_read(char *file_or_url);
 int manifest_write(Manifest *info, const char *dest);

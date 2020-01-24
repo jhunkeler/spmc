@@ -338,3 +338,27 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
 
     return list;
 }
+
+ManifestPackage **find_by_strspec(const char *_strspec) {
+    const char *operators = VERSION_OPERATORS;  // note: whitespace is synonymous with "==" if no other operators are present
+    char *pos = NULL;
+    char op[NAME_MAX];
+    char name[NAME_MAX];
+    char version[NAME_MAX];
+
+    memset(op, '\0', NAME_MAX);
+    memset(name, '\0', NAME_MAX);
+    memset(version, '\0', NAME_MAX);
+
+    // Parse name
+    for (int i = 0; isalnum(_strspec[i]) || _strspec[i] == '_'; i++) {
+        name[i] = _strspec[i];
+    }
+
+    // Parse operators
+    pos = strpbrk(_strspec, operators);
+    for (int i = 0; !isalnum(*pos++); i++) {
+
+    }
+    // hmmmmmm
+}
