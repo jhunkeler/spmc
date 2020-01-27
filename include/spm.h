@@ -101,6 +101,9 @@
 #define VERSION_LT 1 << 4
 #define VERSION_COMPAT 1 << 5
 
+#define SPM_MIRROR_MAX 0xff
+#define SPM_MIRROR_FILENAME "mirrorlist"
+
 typedef struct {
     char **requirements;
     size_t requirements_records;
@@ -109,9 +112,8 @@ typedef struct {
     char name[PACKAGE_MEMBER_SIZE];
     char version[PACKAGE_MEMBER_SIZE];
     char revision[PACKAGE_MEMBER_SIZE];
-    char checksum_md5[MD5_DIGEST_LENGTH];
-    char checksum_sha256[SHA256_DIGEST_LENGTH];
-    char origin[PACKAGE_MEMBER_ORIGIN_SIZE];
+    char checksum_sha256[SHA256_DIGEST_LENGTH + 1];
+    char origin[PACKAGE_MEMBER_ORIGIN_SIZE + 1];
 } ManifestPackage;
 
 typedef struct {
@@ -153,6 +155,8 @@ typedef struct {
     char *package_dir;
     char *tmp_dir;
     char *package_manifest;
+    char *mirror_config;
+    char **mirror_list;
     char *repo_target;
     char *user_config_basedir;
     char *user_config_file;
@@ -290,6 +294,7 @@ int dep_all(Dependencies **deps, const char *_package);
 void dep_show(Dependencies **deps);
 
 // manifest.c
+int fetch(const char *url, const char *dest);
 void manifest_package_separator_swap(char **name);
 void manifest_package_separator_restore(char **name);
 Manifest *manifest_from(const char *package_dir);
@@ -332,5 +337,10 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input);
 void runtime_export(RuntimeEnv *env, char **keys);
 void runtime_apply(RuntimeEnv *env);
 void runtime_free(RuntimeEnv *env);
+
+// mirrors.c
+char **file_readlines(const char *filename);
+char **mirror_list(const char *filename);
+void mirror_clone(Manifest *info, char *dest);
 
 #endif //SPM_SPM_H

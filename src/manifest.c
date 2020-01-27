@@ -292,6 +292,7 @@ int manifest_validate(void) {
 Manifest *manifest_read(char *file_or_url) {
     FILE *fp = NULL;
     char *filename = SPM_MANIFEST_FILENAME;
+    char *tmpdir = NULL;
     char path[PATH_MAX];
 
     // When file_or_url is NULL we want to use the global manifest
@@ -300,22 +301,35 @@ Manifest *manifest_read(char *file_or_url) {
         strcpy(path, SPM_GLOBAL.package_manifest);
     }
     else {
-        strcpy(path, file_or_url);
+        char *template = join((char *[]) {TMP_DIR, "spm_manifest_read_XXXXXX", NULL}, DIRSEPS);
+        tmpdir = mkdtemp(template);
+        if (exists(tmpdir) != 0) {
+            fprintf(stderr, "Failed to create temporary storage directory\n");
+            fprintf(SYSERROR);
+            return NULL;
+        }
+
+        snprintf(path, PATH_MAX, "%s%c%s", template, DIRSEP, filename);
     }
 
     // Handle receiving a path without the manifest filename
     // by appending the manifest to the path
-    if (endswith(path, filename) != 0) {
+    if (startswith(path, "http") != 0 && endswith(path, filename) != 0) {
         strcat(path, DIRSEPS);
         strcat(path, filename);
     }
 
     if (exists(path) != 0) {
         // TODO: Move this out
-        char *remote_manifest = join((char *[]) {"http://astroconda.org/spm", SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
+        //char *remote_manifest = join((char *[]) {"http://astroconda.org/spm", SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
+        char *remote_manifest = join((char *[]) {file_or_url, SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
         int fetch_status = fetch(remote_manifest, path);
         if (fetch_status >= 400) {
             fprintf(stderr, "HTTP %d: %s: %s\n", fetch_status, http_response_str(fetch_status), remote_manifest);
+            free(remote_manifest);
+            return NULL;
+        }
+        else if (fetch_status == 1 || fetch_status < 0) {
             free(remote_manifest);
             return NULL;
         }
@@ -361,18 +375,24 @@ Manifest *manifest_read(char *file_or_url) {
         dptr = strip(dptr);
         char *garbage;
         char **parts = split(dptr, &separator);
-        char *_origin = dirname(path);
+        char *_origin = NULL;
+        if (file_or_url != NULL) {
+            _origin = strdup(file_or_url);
+        }
+        else {
+            _origin = dirname(path);
+        }
 
         info->packages[i] = (ManifestPackage *)calloc(1, sizeof(ManifestPackage));
 
-        strncpy(info->packages[i]->origin, _origin, strlen(_origin));
+        strncpy(info->packages[i]->origin, _origin, PACKAGE_MEMBER_ORIGIN_SIZE);
         free(_origin);
 
-        strncpy(info->packages[i]->archive, parts[0], strlen(parts[0]));
+        strncpy(info->packages[i]->archive, parts[0], PACKAGE_MEMBER_SIZE);
         info->packages[i]->size = strtoul(parts[1], &garbage, 10);
-        strncpy(info->packages[i]->name, parts[2], strlen(parts[2]));
-        strncpy(info->packages[i]->version, parts[3], strlen(parts[3]));
-        strncpy(info->packages[i]->revision, parts[4], strlen(parts[4]));
+        strncpy(info->packages[i]->name, parts[2], PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->version, parts[3], PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->revision, parts[4], PACKAGE_MEMBER_SIZE);
         info->packages[i]->requirements_records = (size_t) atoi(parts[5]);
 
         info->packages[i]->requirements = NULL;
@@ -381,7 +401,9 @@ Manifest *manifest_read(char *file_or_url) {
 
         }
         if (strncmp(parts[7], SPM_MANIFEST_NODATA, strlen(SPM_MANIFEST_NODATA)) != 0) {
-            strncpy(info->packages[i]->checksum_sha256, parts[7], strlen(parts[7]));
+            memset(info->packages[i]->checksum_sha256, '\0', SHA256_DIGEST_LENGTH);
+            strncpy(info->packages[i]->checksum_sha256, parts[7], SHA256_DIGEST_LENGTH);
+
         }
 
         split_free(parts);
@@ -389,6 +411,9 @@ Manifest *manifest_read(char *file_or_url) {
         i++;
     }
 
+    if (tmpdir != NULL) {
+        free(tmpdir);
+    }
     fclose(fp);
     return info;
 }

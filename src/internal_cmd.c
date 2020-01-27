@@ -10,6 +10,7 @@ static char *internal_commands[] = {
         "mkprefixbin", "generate prefix manifest (binary)",
         "mkprefixtext", "generate prefix manifest (text)",
         "mkmanifest", "generate package repository manifest",
+        "mirror_clone", "mirror a mirror",
         "rpath_set", "modify binary RPATH",
         "rpath_autoset", "determine nearest lib directory and set RPATH",
         NULL, NULL,
@@ -133,6 +134,35 @@ int mkmanifest_interface(int argc, char **argv) {
 /**
  *
  */
+void mirror_clone_interface_usage(void) {
+    printf("usage: mirror_clone {url} {output_dir}");
+}
+
+/**
+ * Mirror packages referenced by a remote manifest
+ * @param argc
+ * @param argv
+ * @return value of `manifest_write`
+ */
+int mirror_clone_interface(int argc, char **argv) {
+    if (argc < 3) {
+        mirror_clone_interface_usage();
+        return -1;
+    }
+    char *url = argv[1];
+    char *path = argv[2];
+
+    Manifest *manifest = manifest_read(url);
+    if (manifest == NULL) {
+        return -2;
+    }
+
+    mirror_clone(manifest, path);
+    return 0;
+}
+/**
+ *
+ */
 void rpath_set_interface_usage(void) {
     printf("usage: rpath_set {file} {rpath}\n");
 }
@@ -230,6 +260,9 @@ int internal_cmd(int argc, char **argv) {
     }
     else if (strcmp(command, "mkmanifest") == 0) {
         return mkmanifest_interface(arg_count, arg_array);
+    }
+    else if (strcmp(command, "mirror_clone") == 0) {
+        return mirror_clone_interface(arg_count, arg_array);
     }
     else if (strcmp(command, "rpath_set") == 0) {
         return rpath_set_interface(arg_count, arg_array);

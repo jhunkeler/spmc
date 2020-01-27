@@ -152,11 +152,11 @@ int main(int argc, char *argv[], char *arge[]) {
     // TODO: Move environment allocation out of (above) this loop if possible
     // TODO: replace variables below with SPM_Hierarchy, and write some control functions
 
-    char *spm_binpath = join((char *[]) {root, "bin"}, DIRSEPS);
-    char *spm_includepath = join((char *[]) {root, "include"}, DIRSEPS);
-    char *spm_libpath = join((char *[]) {root, "lib"}, DIRSEPS);
-    char *spm_datapath = join((char *[]) {root, "share"}, DIRSEPS);
-    char *spm_manpath = join((char *[]) {spm_datapath, "man"}, DIRSEPS);
+    char *spm_binpath = join((char *[]) {root, "bin", NULL}, DIRSEPS);
+    char *spm_includepath = join((char *[]) {root, "include", NULL}, DIRSEPS);
+    char *spm_libpath = join((char *[]) {root, "lib", NULL}, DIRSEPS);
+    char *spm_datapath = join((char *[]) {root, "share", NULL}, DIRSEPS);
+    char *spm_manpath = join((char *[]) {spm_datapath, "man", NULL}, DIRSEPS);
 
     runtime_set(rt, "SPM_BIN", spm_binpath);
     runtime_set(rt, "SPM_INCLUDE", spm_includepath);

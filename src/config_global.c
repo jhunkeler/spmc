@@ -164,6 +164,7 @@ void init_config_global(void) {
     SPM_GLOBAL.config = NULL;
     SPM_GLOBAL.verbose = 0;
     SPM_GLOBAL.repo_target = NULL;
+    SPM_GLOBAL.mirror_list = NULL;
 
     if (uname(&SPM_GLOBAL.sysinfo) != 0) {
         fprintf(SYSERROR);
@@ -203,6 +204,18 @@ void init_config_global(void) {
     if (item) {
         free(SPM_GLOBAL.repo_target);
         SPM_GLOBAL.repo_target = normpath(item->value);
+    }
+
+    // Initialize mirror list filename
+    SPM_GLOBAL.mirror_config = join((char *[]) {SPM_GLOBAL.user_config_basedir, SPM_MIRROR_FILENAME, NULL}, DIRSEPS);
+    item = config_get(SPM_GLOBAL.config, "mirror_config");
+    if (item) {
+        free(SPM_GLOBAL.mirror_config);
+        SPM_GLOBAL.mirror_config = normpath(item->value);
+    }
+
+    if (SPM_GLOBAL.mirror_config != NULL) {
+        SPM_GLOBAL.mirror_list = mirror_list(SPM_GLOBAL.mirror_config);
     }
 
     // Initialize temp directory
