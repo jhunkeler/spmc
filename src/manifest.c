@@ -319,10 +319,9 @@ Manifest *manifest_read(char *file_or_url) {
         strcat(path, filename);
     }
 
+    char *remote_manifest = join((char *[]) {file_or_url, SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
     if (exists(path) != 0) {
         // TODO: Move this out
-        //char *remote_manifest = join((char *[]) {"http://astroconda.org/spm", SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
-        char *remote_manifest = join((char *[]) {file_or_url, SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
         int fetch_status = fetch(remote_manifest, path);
         if (fetch_status >= 400) {
             fprintf(stderr, "HTTP %d: %s: %s\n", fetch_status, http_response_str(fetch_status), remote_manifest);
@@ -333,7 +332,6 @@ Manifest *manifest_read(char *file_or_url) {
             free(remote_manifest);
             return NULL;
         }
-        free(remote_manifest);
     }
 
     int valid = 0;
@@ -357,6 +355,17 @@ Manifest *manifest_read(char *file_or_url) {
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->packages = (ManifestPackage **)calloc(total_records + 1, sizeof(ManifestPackage *));
 
+    // Record manifest's origin
+    memset(info->origin, '\0', PACKAGE_MEMBER_ORIGIN_SIZE);
+    if (remote_manifest != NULL) {
+        strncpy(info->origin, remote_manifest, PACKAGE_MEMBER_ORIGIN_SIZE);
+    }
+    else {
+        strncpy(info->origin, path, PACKAGE_MEMBER_ORIGIN_SIZE);
+    }
+    free(remote_manifest);
+
+    // Check validity of the manifest's formatting and field length
     if ((valid = manifest_validate()) != 0) {
         return NULL;
     }
@@ -401,8 +410,8 @@ Manifest *manifest_read(char *file_or_url) {
 
         }
         if (strncmp(parts[7], SPM_MANIFEST_NODATA, strlen(SPM_MANIFEST_NODATA)) != 0) {
-            memset(info->packages[i]->checksum_sha256, '\0', SHA256_DIGEST_LENGTH);
-            strncpy(info->packages[i]->checksum_sha256, parts[7], SHA256_DIGEST_LENGTH);
+            memset(info->packages[i]->checksum_sha256, '\0', SHA256_DIGEST_STRING_LENGTH);
+            strcpy(info->packages[i]->checksum_sha256, parts[7]);
 
         }
 

@@ -58,7 +58,7 @@ char *sha256sum(const char *filename) {
         perror(filename);
         return NULL;
     }
-    char *result = calloc((SHA256_DIGEST_LENGTH * 2) + 1, sizeof(char));
+    char *result = calloc(SHA256_DIGEST_STRING_LENGTH, sizeof(char));
     if (!result) {
         fclose(fp);
         perror("SHA256 result");

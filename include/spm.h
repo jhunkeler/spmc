@@ -104,6 +104,8 @@
 #define SPM_MIRROR_MAX 0xff
 #define SPM_MIRROR_FILENAME "mirrorlist"
 
+#define SHA256_DIGEST_STRING_LENGTH (SHA256_DIGEST_LENGTH * 2) + 1
+
 typedef struct {
     char **requirements;
     size_t requirements_records;
@@ -112,13 +114,14 @@ typedef struct {
     char name[PACKAGE_MEMBER_SIZE];
     char version[PACKAGE_MEMBER_SIZE];
     char revision[PACKAGE_MEMBER_SIZE];
-    char checksum_sha256[SHA256_DIGEST_LENGTH + 1];
-    char origin[PACKAGE_MEMBER_ORIGIN_SIZE + 1];
+    char checksum_sha256[SHA256_DIGEST_STRING_LENGTH];
+    char origin[PACKAGE_MEMBER_ORIGIN_SIZE];
 } ManifestPackage;
 
 typedef struct {
     size_t records;
     ManifestPackage **packages;
+    char origin[PACKAGE_MEMBER_ORIGIN_SIZE];
 } Manifest;
 
 typedef struct {
