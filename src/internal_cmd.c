@@ -86,7 +86,7 @@ int mkprefix_interface(int argc, char **argv) {
  *
  */
 void mkmanifest_interface_usage(void) {
-    printf("usage: mkmanifest [package_dir] [output_dir]");
+    printf("usage: mkmanifest [package_dir] [output_dir]\n");
 }
 
 /**
@@ -158,6 +158,7 @@ int mirror_clone_interface(int argc, char **argv) {
     }
 
     mirror_clone(manifest, path);
+    manifest_free(manifest);
     return 0;
 }
 /**

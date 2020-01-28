@@ -100,7 +100,7 @@ Manifest *manifest_from(const char *package_dir) {
  */
 void manifest_free(Manifest *info) {
     for (size_t i = 0; i < info->records; i++) {
-        if (info->packages[i]->requirements) {
+        if (info->packages[i]->requirements != NULL) {
             for (int j = 0; info->packages[i]->requirements[j] != NULL; j++) {
                 free(info->packages[i]->requirements[j]);
             }

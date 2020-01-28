@@ -98,6 +98,8 @@ char *get_package_manifest(void) {
     char *ucd = get_user_conf_dir();
 
     sprintf(template, "%s%c%s", ucd, DIRSEP, "manifest.dat");
+
+    free(ucd);
     return strdup(template);
 
     /*

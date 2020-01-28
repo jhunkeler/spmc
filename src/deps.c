@@ -184,12 +184,14 @@ int dep_all(Dependencies **deps, const char *_package) {
     if (!tmpdir) {
         perror(template);
         fprintf(SYSERROR);
+        free(package);
         free(suffix);
         return -1;
     }
     if (tar_extract_file(package, ".SPM_DEPENDS", tmpdir) < 0) {
         perror(package);
         fprintf(SYSERROR);
+        free(package);
         free(suffix);
         return -1;
     }
@@ -211,6 +213,7 @@ int dep_all(Dependencies **deps, const char *_package) {
     // Remove temporary data
     unlink(depfile);
     rmdir(tmpdir);
+    free(package);
     free(suffix);
     return 0;
 }

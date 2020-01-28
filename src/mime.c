@@ -69,8 +69,8 @@ Mime *file_mimetype(const char *filename) {
 
     type = (Mime *)calloc(1, sizeof(Mime));
     type->origin = origin;
-    type->type = strdup(what);
-    type->charset = strdup(charset);
+    type->type = what;
+    type->charset = charset;
 
     split_free(output);
     split_free(parts);

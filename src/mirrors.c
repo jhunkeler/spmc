@@ -96,6 +96,7 @@ void mirror_clone(Manifest *info, char *_dest) {
             char *checksum = sha256sum(path);
             if (strcmp(checksum, info->packages[i]->checksum_sha256) == 0) {
                 printf("Skipped: %s\n", archive);
+                //free(checksum);
                 free(archive);
                 free(path);
                 continue;
@@ -116,5 +117,6 @@ void mirror_clone(Manifest *info, char *_dest) {
         fprintf(stderr, "WARNING: HTTP(%ld, %s): %s\n", response, http_response_str(response), info->origin);
     }
     free(dest);
+    free(datafile);
     printf("done!\n");
 }

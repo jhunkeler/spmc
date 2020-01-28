@@ -174,6 +174,12 @@ int main(int argc, char *argv[], char *arge[]) {
     runtime_set(rt, "LDFLAGS", "-Wl,-rpath $SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
     runtime_apply(rt);
 
+    free(spm_binpath);
+    free(spm_includepath);
+    free(spm_libpath);
+    free(spm_datapath);
+    free(spm_manpath);
+
     if (RUNTIME_INSTALL) {
         Dependencies *deps = NULL;
         dep_init(&deps);

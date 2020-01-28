@@ -368,7 +368,7 @@ void runtime_set(RuntimeEnv *env, const char *_key, const char *_value) {
     else {
         env->num_alloc++;
         env->env = reallocarray(env->env, sizeof(char *), env->num_alloc);
-        env->env[env->num_inuse] = (char *)calloc(strlen(now) + 1, sizeof(char));
+        //env->env[env->num_inuse] = (char *)calloc(strlen(now) + 1, sizeof(char));
         env->env[env->num_inuse] = now;
         env->num_inuse++;
     }

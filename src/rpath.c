@@ -128,10 +128,13 @@ char *rpath_generate(const char *_filename) {
     }
     char *nearest_lib = rpath_autodetect(filename);
     if (!nearest_lib) {
+        free(filename);
         return NULL;
     }
     char *result = (char *)calloc(strlen(origin) + strlen(nearest_lib) + 1, sizeof(char));
     if (!result) {
+        free(filename);
+        free(nearest_lib);
         return NULL;
     }
     sprintf(result, "%s%s", origin, nearest_lib);
@@ -227,10 +230,12 @@ char *rpath_autodetect(const char *filename) {
         if (access(tmp, F_OK) == 0) {
             strcat(relative, "lib");
             has_real_libdir = 1;        // gate for memory allocation below
+            free(visit);
             break;
         }
             // Reaching the top of the file system indicates our search for a lib directory failed
         else if (strcmp(visit, "/") == 0) {
+            free(visit);
             break;
         }
 
