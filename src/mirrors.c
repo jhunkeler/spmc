@@ -70,6 +70,16 @@ char **mirror_list(const char *filename) {
     return result;
 }
 
+void mirror_list_free(char **m) {
+    if (m == NULL) {
+        return;
+    }
+    for (size_t i = 0; m[i] != NULL; i++) {
+        free(m[i]);
+    }
+    free(m);
+}
+
 void mirror_clone(Manifest *info, char *_dest) {
     char *dest = NULL;
     if (endswith(_dest, SPM_GLOBAL.repo_target) != 0) {
@@ -96,7 +106,7 @@ void mirror_clone(Manifest *info, char *_dest) {
             char *checksum = sha256sum(path);
             if (strcmp(checksum, info->packages[i]->checksum_sha256) == 0) {
                 printf("Skipped: %s\n", archive);
-                //free(checksum);
+                free(checksum);
                 free(archive);
                 free(path);
                 continue;

@@ -100,15 +100,21 @@ Manifest *manifest_from(const char *package_dir) {
  */
 void manifest_free(Manifest *info) {
     for (size_t i = 0; i < info->records; i++) {
-        if (info->packages[i]->requirements != NULL) {
-            for (int j = 0; info->packages[i]->requirements[j] != NULL; j++) {
-                free(info->packages[i]->requirements[j]);
-            }
-            free(info->packages[i]->requirements);
-        }
-        free(info->packages[i]);
+        manifest_package_free(info->packages[i]);
     }
     free(info->packages);
+    free(info);
+}
+
+/**
+ * Free a `ManifestPackage` structure
+ * @param info `ManifestPackage`
+ */
+void manifest_package_free(ManifestPackage *info) {
+    for (size_t i = 0; i < info->requirements_records; i++) {
+        free(info->requirements[i]);
+    }
+    free(info->requirements);
     free(info);
 }
 
@@ -219,7 +225,7 @@ int fetch(const char *url, const char *dest) {
 
     handle = url_fopen(url, "r");
     if(!handle) {
-        printf("couldn't url_fopen() %s\n", url);
+        fprintf(stderr, "couldn't url_fopen() %s\n", url);
         return 2;
     }
 

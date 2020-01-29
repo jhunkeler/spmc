@@ -292,6 +292,15 @@ void free_global_config(void) {
     if (SPM_GLOBAL.config) {
         config_free(SPM_GLOBAL.config);
     }
+    if (SPM_GLOBAL.repo_target) {
+        free(SPM_GLOBAL.repo_target);
+    }
+    if (SPM_GLOBAL.mirror_config) {
+        free(SPM_GLOBAL.mirror_config);
+    }
+    if (SPM_GLOBAL.mirror_list) {
+        mirror_list_free(SPM_GLOBAL.mirror_list);
+    }
 }
 
 /**

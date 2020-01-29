@@ -304,6 +304,7 @@ Manifest *manifest_from(const char *package_dir);
 Manifest *manifest_read(char *file_or_url);
 int manifest_write(Manifest *info, const char *dest);
 void manifest_free(Manifest *info);
+void manifest_package_free(ManifestPackage *info);
 ManifestPackage *manifest_search(Manifest *info, const char *package);
 
 // checksum.c
@@ -344,6 +345,7 @@ void runtime_free(RuntimeEnv *env);
 // mirrors.c
 char **file_readlines(const char *filename);
 char **mirror_list(const char *filename);
+void mirror_list_free(char **m);
 void mirror_clone(Manifest *info, char *dest);
 
 #endif //SPM_SPM_H

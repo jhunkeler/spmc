@@ -277,7 +277,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 runtime_free(rt);
                 exit(errno);
             }
-            free(match);
+            manifest_free(manifest);
         }
         dep_free(&deps);
     }
@@ -347,10 +347,10 @@ int main(int argc, char *argv[], char *arge[]) {
             }
         }
 
-        runtime_free(rt);
-        exit(0);
+        manifest_free(info);
     }
 
+    runtime_free(rt);
     free_global_config();
     return 0;
 }

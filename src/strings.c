@@ -451,12 +451,12 @@ char *lstrip(char *sptr) {
  * @return truncated string
  */
 char *strip(char *sptr) {
-    size_t len = strlen(sptr);
+    size_t len = strlen(sptr) - 1;
     if (len < 1) {
         *sptr = '\0';
         return sptr;
     }
-    for (size_t i = len - 1; ; i--) {
+    for (size_t i = len; ; i--) {
         if (isspace(sptr[i]) || isblank(sptr[i])) {
             sptr[i] = '\0';
         }
