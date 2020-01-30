@@ -356,10 +356,7 @@ void runtime_set(RuntimeEnv *env, const char *_key, const char *_value) {
     char *key = strdup(_key);
     ssize_t key_offset = runtime_contains(env, key);
     char *value = runtime_expand_var(env, _value);
-    char *arr[] = {
-            key, value, NULL
-    };
-    char *now = join(arr, "=");
+    char *now = join((char *[]) {key, value, NULL}, "=");
 
     if (key_offset != -1) {
         free(env->env[key_offset]);
@@ -368,7 +365,6 @@ void runtime_set(RuntimeEnv *env, const char *_key, const char *_value) {
     else {
         env->num_alloc++;
         env->env = reallocarray(env->env, sizeof(char *), env->num_alloc);
-        //env->env[env->num_inuse] = (char *)calloc(strlen(now) + 1, sizeof(char));
         env->env[env->num_inuse] = now;
         env->num_inuse++;
     }

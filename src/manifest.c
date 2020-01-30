@@ -43,6 +43,13 @@ Manifest *manifest_from(const char *package_dir) {
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->records = fsdata->files_length;
     info->packages = (ManifestPackage **) calloc(info->records + 1, sizeof(ManifestPackage *));
+    if (info->packages == NULL) {
+        perror("Failed to allocate package array");
+        fprintf(SYSERROR);
+        free(info);
+        fstree_free(fsdata);
+        return NULL;
+    }
 
     printf("Initializing package manifest:\n");
     for (size_t i = 0; i < fsdata->files_length; i++) {
@@ -52,10 +59,19 @@ Manifest *manifest_from(const char *package_dir) {
         dep_init(&deps);
         if (dep_all(&deps, basename(fsdata->files[i])) < 0) {
             dep_free(&deps);
+            // TODO: Why is this freed *and* the program continues? I don't know why this is here.
         }
 
         // Initialize package record
         info->packages[i] = (ManifestPackage *) calloc(1, sizeof(ManifestPackage));
+        if (info->packages[i] == NULL) {
+            perror("Failed to allocate package record");
+            fprintf(SYSERROR);
+            dep_free(&deps);
+            fstree_free(fsdata);
+            free(info);
+            return NULL;
+        }
 
         // Copy dependencies
         if (deps->records) {
@@ -91,6 +107,7 @@ Manifest *manifest_from(const char *package_dir) {
         split_free(parts);
     }
 
+    fstree_free(fsdata);
     return info;
 }
 
@@ -102,7 +119,6 @@ void manifest_free(Manifest *info) {
     for (size_t i = 0; i < info->records; i++) {
         manifest_package_free(info->packages[i]);
     }
-    free(info->packages);
     free(info);
 }
 
@@ -199,6 +215,7 @@ int manifest_write(Manifest *info, const char *outfile) {
                       checksum_sha256 ? checksum_sha256 : SPM_MANIFEST_NODATA);
                 fprintf(fp, "%s\n", dptr);
         free(reqs);
+        free(archive);
         if (checksum_sha256 != NULL)
             free(checksum_sha256);
     }
@@ -364,10 +381,10 @@ Manifest *manifest_read(char *file_or_url) {
     // Record manifest's origin
     memset(info->origin, '\0', PACKAGE_MEMBER_ORIGIN_SIZE);
     if (remote_manifest != NULL) {
-        strncpy(info->origin, remote_manifest, PACKAGE_MEMBER_ORIGIN_SIZE);
+        strcpy(info->origin, remote_manifest);
     }
     else {
-        strncpy(info->origin, path, PACKAGE_MEMBER_ORIGIN_SIZE);
+        strcpy(info->origin, path);
     }
     free(remote_manifest);
 

@@ -135,10 +135,11 @@ ConfigItem **config_read(const char *filename) {
         // increment record count
         record++;
         // Expand config by another record
-        config = (ConfigItem **)reallocarray(config, record + record_initial + 1, sizeof(ConfigItem *));
+        config = (ConfigItem **)reallocarray(config, (record + record_initial), sizeof(ConfigItem *));
         if (!config) {
             perror("ConfigItem array");
             fprintf(SYSERROR);
+            free(line);
             return NULL;
         }
     }

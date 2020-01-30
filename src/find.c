@@ -25,31 +25,26 @@ char *find_file(const char *root, const char *filename) {
     glob_t results;
     int glob_flags = 0;
     int match = 0;
-    char *rootpath = NULL;
-    char *path = NULL;
+    char path[PATH_MAX];
+    memset(path, '\0', PATH_MAX);
 
     // GUARD
     if (!root || !filename || strstr(filename, "..") || strstr(filename, "./")) {
         return NULL;
     }
 
-    if (!(path = (char *)calloc(PATH_MAX + 1, sizeof(char)))) {
+    if (realpath(root, path) == NULL) {
+        perror("Cannot determine realpath()");
         fprintf(SYSERROR);
-        exit(errno);
-    }
-
-    if (!(rootpath = realpath(root, NULL))) {
-        free(path);
         return NULL;
     }
 
-    strcat(path, rootpath);
     strcat(path, "/");
     strcat(path, filename);
 
     // Save a little time if the file exists
     if (access(path, F_OK) != -1) {
-        return path;
+        return strdup(path);
     }
 
     // Inject wildcard
@@ -62,22 +57,15 @@ char *find_file(const char *root, const char *filename) {
         if (match == GLOB_NOSPACE || match == GLOB_ABORTED) {
             fprintf(SYSERROR);
         }
+        globfree(&results);
         return NULL;
     }
 
-    // Resize path to the length of the first match
-    char *want = results.gl_pathv[0];
-    if (!(path = (char *)realloc(path, sizeof(char) * (strlen(want) + 1)))) {
-        fprintf(SYSERROR);
-        exit(errno);
-    }
-
     // Replace path string with wanted path string
-    strncpy(path, want, strlen(want));
+    strcpy(path, results.gl_pathv[0]);
 
-    free(rootpath);
     globfree(&results);
-    return path;
+    return strdup(path);
 }
 
 /**

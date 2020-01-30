@@ -47,14 +47,17 @@ Mime *file_mimetype(const char *filename) {
     Process *proc = file_command(filename);
 
     if (proc->returncode != 0) {
+        shell_free(proc);
         return NULL;
     }
     output = split(proc->output, ":");
     if (!output || output[1] == NULL) {
+        shell_free(proc);
         return NULL;
     }
     parts = split(output[1], ";");
     if (!parts || !parts[0] || !parts[1]) {
+        shell_free(proc);
         return NULL;
     }
 
@@ -65,7 +68,7 @@ Mime *file_mimetype(const char *filename) {
     charset = lstrip(charset);
     charset[strlen(charset) - 1] = '\0';
 
-    char *origin = strdup(realpath(filename, NULL));
+    char *origin = realpath(filename, NULL);
 
     type = (Mime *)calloc(1, sizeof(Mime));
     type->origin = origin;
@@ -74,6 +77,7 @@ Mime *file_mimetype(const char *filename) {
 
     split_free(output);
     split_free(parts);
+    shell_free(proc);
     return type;
 }
 

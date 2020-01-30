@@ -210,7 +210,7 @@ char *rpath_autodetect(const char *filename) {
     // Change directory to the requested root
     chdir(start);
 
-    char *visit = calloc(PATH_MAX, sizeof(char));  // Current directory
+    char *visit = NULL;         // Current directory
     char tmp[PATH_MAX];         // Current directory with lib directory appended
     char relative[PATH_MAX];    // Generated relative path to lib directory
     char sep[2];                // Holds the platform's directory separator

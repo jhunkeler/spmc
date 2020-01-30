@@ -42,13 +42,8 @@ int dep_init(Dependencies **deps) {
  * @param deps
  */
 void dep_free(Dependencies **deps) {
-    if ((*deps) != NULL) {
-        return;
-    }
-    for (size_t i = 0; i < (*deps)->__size; i++) {
-        if ((*deps)->list[i] != NULL) {
-            free((*deps)->list[i]);
-        }
+    for (size_t i = 0; i < (*deps)->records; i++) {
+        free((*deps)->list[i]);
     }
     free((*deps));
 }
@@ -82,7 +77,7 @@ int dep_append(Dependencies **deps, char *_name) {
     }
 
     (*deps)->__size++;
-    (*deps)->list = (char **)realloc((*deps)->list, sizeof(char *) * (*deps)->__size);
+    (*deps)->list = (char **)realloc((*deps)->list, (sizeof(char *) * (*deps)->__size));
     if (!(*deps)->list) {
         free(name);
         return -1;

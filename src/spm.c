@@ -79,7 +79,9 @@ int main(int argc, char *argv[], char *arge[]) {
             else if (strcmp(arg, "--cmd") == 0) {
                 int c = argc - i;
                 char **a = &argv[i];
-                exit(internal_cmd(c, a));
+                int retval = internal_cmd(c, a);
+                free_global_config();
+                exit(retval);
             }
             else if (strcmp(arg, "-B") == 0 || strcmp(arg, "--build") == 0) {
                 int c = argc - i;
@@ -166,7 +168,8 @@ int main(int argc, char *argv[], char *arge[]) {
     runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
     runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
 
-    if (exists(join((char *[]) {spm_binpath, "gcc"}, DIRSEPS)) == 0) {
+    char *spm_ccpath = join((char *[]) {spm_binpath, "gcc"}, DIRSEPS);
+    if (exists(spm_ccpath) == 0) {
         runtime_set(rt, "CC", "$SPM_BIN/gcc");
     }
 
@@ -179,6 +182,7 @@ int main(int argc, char *argv[], char *arge[]) {
     free(spm_libpath);
     free(spm_datapath);
     free(spm_manpath);
+    free(spm_ccpath);
 
     if (RUNTIME_INSTALL) {
         Dependencies *deps = NULL;
@@ -277,8 +281,8 @@ int main(int argc, char *argv[], char *arge[]) {
                 runtime_free(rt);
                 exit(errno);
             }
-            manifest_free(manifest);
         }
+        manifest_free(manifest);
         dep_free(&deps);
     }
 

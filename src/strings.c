@@ -236,7 +236,7 @@ char *join(char **arr, const char *separator) {
         total_bytes += strlen(arr[i]);
         records++;
     }
-    total_bytes += records * (strlen(separator) + 1);
+    total_bytes += (records * strlen(separator)) + 1;
 
     result = (char *)calloc(total_bytes, sizeof(char));
     for (int i = 0; i < records; i++) {

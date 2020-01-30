@@ -101,6 +101,7 @@ int mkmanifest_interface(int argc, char **argv) {
         return -1;
     }
     Manifest *manifest = NULL;
+    int result = 0;
     char *pkgdir = NULL;
     char path[PATH_MAX];
     memset(path, '\0', PATH_MAX);
@@ -128,7 +129,14 @@ int mkmanifest_interface(int argc, char **argv) {
         return -2;
     }
 
-    return manifest_write(manifest, path);
+    result = manifest_write(manifest, path);
+    if (result != 0) {
+        manifest_free(manifest);
+        return -3;
+    }
+
+    manifest_free(manifest);
+    return result;
 }
 
 /**
@@ -219,7 +227,7 @@ int rpath_autoset_interface(int argc, char **argv) {
  */
 void internal_command_list(void) {
     printf("possible commands:\n");
-    for (int i = 0; internal_commands[i] != NULL; i++) {
+    for (size_t i = 0; internal_commands[i] != NULL; i++) { // TODO: fix double increment warning (i++ becomes i+2?)
         printf("  %-20s - %-20s\n", internal_commands[i], internal_commands[i + 1]);
         i++;
     }

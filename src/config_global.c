@@ -301,6 +301,12 @@ void free_global_config(void) {
     if (SPM_GLOBAL.mirror_list) {
         mirror_list_free(SPM_GLOBAL.mirror_list);
     }
+
+    free(SPM_GLOBAL.fs.binpath);
+    free(SPM_GLOBAL.fs.includepath);
+    free(SPM_GLOBAL.fs.libpath);
+    free(SPM_GLOBAL.fs.datapath);
+    free(SPM_GLOBAL.fs.manpath);
 }
 
 /**

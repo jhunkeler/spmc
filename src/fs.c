@@ -143,11 +143,13 @@ void fstree_free(FSTree *fsdata) {
             for (int i = 0; fsdata->files[i] != NULL; i++) {
                 free(fsdata->files[i]);
             }
+            free(fsdata->files);
         }
         if (fsdata->dirs != NULL) {
             for (int i = 0; fsdata->dirs[i] != NULL; i++) {
                 free(fsdata->dirs[i]);
             }
+            free(fsdata->dirs);
         }
         free(fsdata);
     }
@@ -341,13 +343,14 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
 
     returncode = proc->returncode;
     if (returncode != 0 && proc->output) {
-        fprintf(stderr, proc->output);
+        fprintf(stderr, "%s\n", proc->output);
     }
     shell_free(proc);
 
     if (args) {
         free(args);
     }
+    free(args_combined);
     free(source);
     free(destination);
     return returncode;
