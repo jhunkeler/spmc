@@ -223,7 +223,7 @@ void init_config_global(void) {
     // Initialize temp directory
     item = config_get(SPM_GLOBAL.config, "tmp_dir");
     if (item) {
-        SPM_GLOBAL.tmp_dir = item->value;
+        SPM_GLOBAL.tmp_dir = strdup(item->value);
         if (access(SPM_GLOBAL.tmp_dir, F_OK) != 0) {
             if (mkdirs(SPM_GLOBAL.tmp_dir, 0755) != 0) {
                 fprintf(stderr, "Unable to create global temporary directory: %s\n", SPM_GLOBAL.tmp_dir);
@@ -239,7 +239,7 @@ void init_config_global(void) {
     // Initialize package directory
     item = config_get(SPM_GLOBAL.config, "package_dir");
     if (item) {
-        SPM_GLOBAL.package_dir = item->value;
+        SPM_GLOBAL.package_dir = strdup(item->value);
         if (access(SPM_GLOBAL.package_dir, F_OK) != 0) {
             if (mkdirs(SPM_GLOBAL.package_dir, 0755) != 0) {
                 fprintf(stderr, "Unable to create global package directory: %s\n", SPM_GLOBAL.package_dir);
@@ -255,7 +255,7 @@ void init_config_global(void) {
     // Initialize package manifest
     item = config_get(SPM_GLOBAL.config, "package_manifest");
     if (item) {
-        SPM_GLOBAL.package_manifest = item->value;
+        SPM_GLOBAL.package_manifest = strdup(item->value);
         /*
         if (access(SPM_GLOBAL.package_manifest, F_OK) != 0) {
             fprintf(stderr, "Package manifest not found: %s\n", SPM_GLOBAL.package_manifest);
@@ -289,9 +289,6 @@ void free_global_config(void) {
     if (SPM_GLOBAL.user_config_file) {
         free(SPM_GLOBAL.user_config_file);
     }
-    if (SPM_GLOBAL.config) {
-        config_free(SPM_GLOBAL.config);
-    }
     if (SPM_GLOBAL.repo_target) {
         free(SPM_GLOBAL.repo_target);
     }
@@ -307,6 +304,9 @@ void free_global_config(void) {
     free(SPM_GLOBAL.fs.libpath);
     free(SPM_GLOBAL.fs.datapath);
     free(SPM_GLOBAL.fs.manpath);
+    if (SPM_GLOBAL.config) {
+        config_free(SPM_GLOBAL.config);
+    }
 }
 
 /**

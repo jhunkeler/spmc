@@ -135,7 +135,7 @@ ConfigItem **config_read(const char *filename) {
         // increment record count
         record++;
         // Expand config by another record
-        config = (ConfigItem **)reallocarray(config, (record + record_initial), sizeof(ConfigItem *));
+        config = (ConfigItem **)reallocarray(config, (record + record_initial) + 1, sizeof(ConfigItem *));
         if (!config) {
             perror("ConfigItem array");
             fprintf(SYSERROR);
@@ -152,7 +152,9 @@ ConfigItem **config_read(const char *filename) {
  * @param item `ConfigItem` array
  */
 void config_free(ConfigItem **item) {
-    for (int i = 0; item[i] != NULL; i++) {
+    for (size_t i = 0; item[i] != NULL; i++) {
+        free(item[i]->key);
+        free(item[i]->value);
         free(item[i]);
     }
     free(item);

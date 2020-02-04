@@ -88,8 +88,8 @@ void runtime_export(RuntimeEnv *env, char **keys) {
         }
     }
 
-    for (size_t i = 0; i < env->num_inuse; i++) {
-        char **pair = split(env->env[i], "=");
+    for (size_t i = 0; i < strlist_count(env); i++) {
+        char **pair = split(strlist_item(env, i), "=");
         if (keys != NULL) {
             for (size_t j = 0; keys[j] != NULL; j++) {
                 if (strcmp(keys[j], pair[0]) == 0) {
@@ -129,24 +129,13 @@ void runtime_export(RuntimeEnv *env, char **keys) {
  */
 RuntimeEnv *runtime_copy(char **env) {
     RuntimeEnv *rt = NULL;
-    char **envp = NULL;
     size_t env_count;
     for (env_count = 0; env[env_count] != NULL; env_count++);
 
-    rt = (RuntimeEnv *)calloc(1, sizeof(RuntimeEnv));
-    rt->num_alloc = env_count + 1;
-    rt->num_inuse = env_count;
-    if (rt->num_inuse > 1) {
-        rt->num_inuse--;
+    rt = strlist_init();
+    for (size_t i = 0; i < env_count; i++) {
+        strlist_append(rt, env[i]);
     }
-
-    envp = (char **)calloc(rt->num_alloc, sizeof(char *));
-    for (size_t i = 0; i < rt->num_inuse; i++) {
-        size_t len = strlen(env[i]);
-        envp[i] = (char *) calloc(len + 1, sizeof(char));
-        memcpy(envp[i], env[i], len);
-    }
-    rt->env = envp;
     return rt;
 }
 
@@ -175,9 +164,9 @@ RuntimeEnv *runtime_copy(char **env) {
  * @return  -1=no, positive_value=yes
  */
 ssize_t runtime_contains(RuntimeEnv *env, const char *key) {
-    int result = -1;
-    for (size_t i = 0; i < env->num_inuse; i++) {
-        char **pair = split(env->env[i], "=");
+    ssize_t result = -1;
+    for (size_t i = 0; i < strlist_count(env); i++) {
+        char **pair = split(strlist_item(env, i), "=");
         if (pair == NULL) {
             break;
         }
@@ -217,7 +206,7 @@ char *runtime_get(RuntimeEnv *env, const char *key) {
     char *result = NULL;
     ssize_t key_offset = runtime_contains(env, key);
     if (key_offset != -1) {
-        char **pair = split(env->env[key_offset], "=");
+        char **pair = split(strlist_item(env, key_offset), "=");
         result = join(&pair[1], "=");
         split_free(pair);
     }
@@ -252,6 +241,11 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
     const char *delim_literal = "$$";
     const char *escape = "\\";
     char *expanded = calloc(BUFSIZ, sizeof(char));
+    if (expanded == NULL) {
+        perror("could not allocate runtime_expand_var buffer");
+        fprintf(SYSERROR);
+        return NULL;
+    }
 
     // If there's no environment variables to process return a copy of the input string
     if (strchr(input, delim) == NULL) {
@@ -259,7 +253,8 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
     }
 
     // Parse the input string
-    for (size_t i = 0; i < strlen(input); i++) {
+    size_t i;
+    for (i = 0; i < strlen(input); i++) {
         char var[MAXNAMLEN];    // environment variable name
         memset(var, '\0', MAXNAMLEN);   // zero out name
 
@@ -358,16 +353,13 @@ void runtime_set(RuntimeEnv *env, const char *_key, const char *_value) {
     char *value = runtime_expand_var(env, _value);
     char *now = join((char *[]) {key, value, NULL}, "=");
 
-    if (key_offset != -1) {
-        free(env->env[key_offset]);
-        env->env[key_offset] = now;
+    if (key_offset < 0) {
+        strlist_set(env, key_offset, now);
     }
     else {
-        env->num_alloc++;
-        env->env = reallocarray(env->env, sizeof(char *), env->num_alloc);
-        env->env[env->num_inuse] = now;
-        env->num_inuse++;
+        strlist_append(env, now);
     }
+    free(now);
     free(key);
     free(value);
 }
@@ -377,8 +369,8 @@ void runtime_set(RuntimeEnv *env, const char *_key, const char *_value) {
  * @param env `RuntimeEnv` structure
  */
 void runtime_apply(RuntimeEnv *env) {
-    for (size_t i = 0; i < env->num_inuse; i++) {
-        char **pair = split(env->env[i], "=");
+    for (size_t i = 0; i < strlist_count(env); i++) {
+        char **pair = split(strlist_item(env, i), "=");
         setenv(pair[0], pair[1], 1);
         split_free(pair);
     }
@@ -392,11 +384,5 @@ void runtime_free(RuntimeEnv *env) {
     if (env == NULL) {
         return;
     }
-
-    env->num_alloc = 0;
-    env->num_inuse = 0;
-    for (size_t i = 0; i < env->num_inuse; i++) {
-        free(env->env[i]);
-    }
-    free(env);
+    strlist_free(env);
 }
