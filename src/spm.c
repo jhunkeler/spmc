@@ -40,12 +40,10 @@ int main(int argc, char *argv[], char *arge[]) {
     check_runtime_environment();
 
     char root[PATH_MAX];
-    memset(root, '\0', PATH_MAX);
-
-    char *packages[PACKAGE_MAX];
-    memset(packages, '\0', sizeof(char *));
-
+    StrList *packages = strlist_init();
     char package_search_str[PATH_MAX];
+
+    memset(root, '\0', PATH_MAX);
     memset(package_search_str, '\0', PATH_MAX);
 
     if (argc < 2) {
@@ -123,7 +121,7 @@ int main(int argc, char *argv[], char *arge[]) {
                         i--;
                         break;
                     }
-                    packages[p] = argv[i];
+                    strlist_append(packages, argv[i]);
                 }
             }
         }
@@ -200,29 +198,22 @@ int main(int argc, char *argv[], char *arge[]) {
         printf("Installation root: %s\n", root);
 
         printf("Requested packages:\n");
-        for (int i = 0; i < PACKAGE_MAX; i++) {
-            if (packages[i] == NULL) {
-                break;
-            }
-            printf("  -> %s\n", packages[i]);
+        for (size_t i = 0; i < strlist_count(packages); i++) {
+            printf("  -> %s\n", strlist_item(packages, i));
         }
 
         printf("Resolving package requirements...\n");
-        for (int i = 0; i < PACKAGE_MAX; i++) {
+        for (size_t i = 0; i < strlist_count(packages); i++) {
             ManifestPackage *package = NULL;
-            if (packages[i] == NULL) {
-                break;
-            }
-
-            package = manifest_search(manifest, packages[i]);
+            package = manifest_search(manifest, strlist_item(packages, i));
             if (!package) {
-                fprintf(stderr, "Package not found: %s\n", packages[i]);
+                fprintf(stderr, "Package not found: %s\n", strlist_item(packages, i));
                 continue;
             }
 
             // If the package has dependencies listed, append them to `deps` now
-            if (package->requirements) {
-                for (int p = 0; package->requirements[p] != NULL; p++) {
+            if (package->requirements_records) {
+                for (size_t p = 0; p < package->requirements_records; p++) {
                     dep_append(&deps, package->requirements[p]);
                 }
             }
@@ -245,42 +236,43 @@ int main(int argc, char *argv[], char *arge[]) {
             printf("Installing package requirements:\n");
             for (size_t i = 0; i < deps->records; i++) {
                 printf("  -> %s\n", deps->list[i]);
-                if (install(root, deps->list[i]) < 0) {
+                ManifestPackage *package = manifest_search(manifest, deps->list[i]);
+                char *package_path = join((char *[]) {SPM_GLOBAL.package_dir, package->archive, NULL}, DIRSEPS);
+                if (install(root, package_path) < 0) {
                     fprintf(SYSERROR);
                     runtime_free(rt);
                     exit(errno);
                 }
+                manifest_package_free(package);
+                free(package_path);
             }
         }
 
         printf("Installing package:\n");
-        for (int i = 0; i < PACKAGE_MAX; i++) {
+        for (size_t i = 0; i < strlist_count(packages); i++) {
             //char *match = NULL;
             ManifestPackage *match = NULL;
             char *package = NULL;
 
-            if (!packages[i]) {
-                break;
-            }
-
-            if ((match = manifest_search(manifest, packages[i])) == NULL) {
+            if ((match = manifest_search(manifest, strlist_item(packages, i))) == NULL) {
                 fprintf(SYSERROR);
                 runtime_free(rt);
                 exit(1);
             }
-            package = match->archive;
+            package = join((char *[]) {SPM_GLOBAL.package_dir, match->archive, NULL}, DIRSEPS);
 
             // If the package was installed as a requirement of another dependency, skip it
             if (dep_seen(&deps, package)) {
                 continue;
             }
 
-            printf("  -> %s\n", package);
-            if (install(root, packages[i]) < 0) {
+            printf("  -> %s\n", basename(package));
+            if (install(root, package) < 0) {
                 fprintf(SYSERROR);
                 runtime_free(rt);
                 exit(errno);
             }
+            free(package);
         }
         manifest_free(manifest);
         dep_free(&deps);
@@ -356,5 +348,6 @@ int main(int argc, char *argv[], char *arge[]) {
 
     runtime_free(rt);
     free_global_config();
+    strlist_free(packages);
     return 0;
 }
