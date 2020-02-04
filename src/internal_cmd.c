@@ -10,6 +10,7 @@ static char *internal_commands[] = {
         "mkprefixbin", "generate prefix manifest (binary)",
         "mkprefixtext", "generate prefix manifest (text)",
         "mkmanifest", "generate package repository manifest",
+        "mkruntime", "emit runtime environment (stdout)",
         "mirror_clone", "mirror a mirror",
         "rpath_set", "modify binary RPATH",
         "rpath_autoset", "determine nearest lib directory and set RPATH",
@@ -142,6 +143,64 @@ int mkmanifest_interface(int argc, char **argv) {
 /**
  *
  */
+void mkruntime_interface_usage(void) {
+    printf("usage: mkruntime {root_dir}");
+}
+
+/**
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
+int mkruntime_interface(int argc, char **argv) {
+    if (argc < 2) {
+        mkruntime_interface_usage();
+        return -1;
+    }
+
+    RuntimeEnv *rt = runtime_copy(__environ);
+    if (rt == NULL) {
+        return -1;
+    }
+
+    char *root = argv[1];
+    char *spm_binpath = join((char *[]) {root, "bin", NULL}, DIRSEPS);
+    char *spm_includepath = join((char *[]) {root, "include", NULL}, DIRSEPS);
+    char *spm_libpath = join((char *[]) {root, "lib", NULL}, DIRSEPS);
+    char *spm_datapath = join((char *[]) {root, "share", NULL}, DIRSEPS);
+    char *spm_manpath = join((char *[]) {spm_datapath, "man", NULL}, DIRSEPS);
+
+    runtime_set(rt, "SPM_BIN", spm_binpath);
+    runtime_set(rt, "SPM_INCLUDE", spm_includepath);
+    runtime_set(rt, "SPM_LIB", spm_libpath);
+    runtime_set(rt, "SPM_DATA", spm_datapath);
+    runtime_set(rt, "SPM_MAN", spm_manpath);
+    runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
+    runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
+
+    char *spm_ccpath = join((char *[]) {spm_binpath, "gcc"}, DIRSEPS);
+    if (exists(spm_ccpath) == 0) {
+        runtime_set(rt, "CC", "$SPM_BIN/gcc");
+    }
+
+    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath $SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
+    runtime_export(rt, NULL);
+    runtime_free(rt);
+
+    free(spm_binpath);
+    free(spm_includepath);
+    free(spm_libpath);
+    free(spm_datapath);
+    free(spm_manpath);
+    free(spm_ccpath);
+    return 0;
+}
+
+/**
+ *
+ */
 void mirror_clone_interface_usage(void) {
     printf("usage: mirror_clone {url} {output_dir}");
 }
@@ -269,6 +328,9 @@ int internal_cmd(int argc, char **argv) {
     }
     else if (strcmp(command, "mkmanifest") == 0) {
         return mkmanifest_interface(arg_count, arg_array);
+    }
+    else if (strcmp(command, "mkruntime") == 0) {
+        return mkruntime_interface(arg_count, arg_array);
     }
     else if (strcmp(command, "mirror_clone") == 0) {
         return mirror_clone_interface(arg_count, arg_array);
