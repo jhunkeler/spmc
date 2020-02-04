@@ -47,7 +47,7 @@ int metadata_remove(const char *_path) {
  * @return success=0, error=-1 (general), -2 (unable to create `destroot`)
  */
 int install(const char *destroot, const char *_package) {
-    char *package = find_package(_package);
+    char *package = strdup(_package);
     if (!package) {
         fprintf(SYSERROR);
         return -1;
