@@ -7,7 +7,7 @@ A basic userland package management system with a few humble goals:
 - To be simple and easy to use
 - To support Linux, MacOS (not yet), and Windows (not yet)
 - To avoid using `root` (or administrative accounts in general) to install software
-- To keep your Monday mornings and Fridays evenings pain free
+- To keep your Monday mornings and Friday evenings pain free
 
 ## Build requirements
 
