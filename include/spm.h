@@ -27,6 +27,7 @@
 #include <sys/utsname.h>
 #endif
 
+#include "strlist.h"
 #include "config.h"
 
 // spm.c
@@ -187,11 +188,8 @@ typedef struct {
     char *charset;
 } Mime;
 
-typedef struct {
-    size_t num_alloc;
-    size_t num_inuse;
-    char **env;
-} RuntimeEnv;
+typedef StrList RuntimeEnv;
+//typedef StrList Dependencies;
 
 // GLOBALS
 spm_vars SPM_GLOBAL;
@@ -306,6 +304,9 @@ int manifest_write(Manifest *info, const char *dest);
 void manifest_free(Manifest *info);
 void manifest_package_free(ManifestPackage *info);
 ManifestPackage *manifest_search(Manifest *info, const char *package);
+ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec);
+ManifestPackage *manifest_package_copy(ManifestPackage *manifest);
+
 
 // checksum.c
 char *md5sum(const char *filename);
