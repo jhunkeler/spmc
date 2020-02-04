@@ -457,16 +457,39 @@ Manifest *manifest_read(char *file_or_url) {
  * @return found=`ManifestPackage`, not found=NULL
  */
 ManifestPackage *manifest_search(Manifest *info, const char *_package) {
+    ManifestPackage *match = NULL;
     char package[PATH_MAX];
 
     memset(package, '\0', PATH_MAX);
     strncpy(package, _package, PATH_MAX);
-    strcat(package, "*");
+    //strcat(package, "*");
 
     for (size_t i = 0; i < info->records; i++) {
-        if (fnmatch(package, info->packages[i]->archive, FNM_PATHNAME) == 0) {
-            return info->packages[i];
+        if ((match = find_by_strspec(info, package)) != NULL) {
+            return match;
         }
+        //if (fnmatch(package, info->packages[i]->archive, FNM_PATHNAME) == 0) {
+        //    return info->packages[i];
+        //}
     }
     return NULL;
+}
+
+/**
+ * Duplicate a `ManifestPackage`
+ * @param manifest
+ * @return `ManifestPackage`
+ */
+ManifestPackage *manifest_package_copy(ManifestPackage *manifest) {
+    ManifestPackage *result = calloc(1, sizeof(ManifestPackage));
+    memcpy(result, manifest, sizeof(ManifestPackage));
+
+    if (manifest->requirements_records > 0) {
+        result->requirements = (char **)calloc(manifest->requirements_records, sizeof(char *));
+        for (size_t i = 0; i < manifest->requirements_records; i++) {
+            result->requirements[i] = strdup(manifest->requirements[i]);
+        }
+    }
+
+    return result;
 }
