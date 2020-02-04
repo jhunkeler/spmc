@@ -140,6 +140,30 @@ size_t strlist_count(StrList *pStrList) {
 }
 
 /**
+ * Set value at index
+ * @param pStrList
+ * @param value string
+ * @return
+ */
+void strlist_set(StrList *pStrList, size_t index, char *value) {
+    char *tmp = NULL;
+    char *item = NULL;
+    if (index > strlist_count(pStrList)) {
+        return;
+    }
+    if ((item = strlist_item(pStrList, index)) == NULL) {
+        return;
+    }
+    if ((tmp = realloc(pStrList->data[index], strlen(value) + 1)) == NULL) {
+        perror("realloc strlist_set replacement value");
+        return;
+    }
+    pStrList->data[index] = tmp;
+    memset(pStrList->data[index], '\0', strlen(value) + 1);
+    strncpy(pStrList->data[index], value, strlen(value));
+}
+
+/**
  * Retrieve data from a `StrList`
  * @param pStrList
  * @param index
