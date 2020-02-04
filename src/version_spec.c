@@ -147,6 +147,9 @@ int version_suffix_alpha_calc(char *str) {
 int64_t version_from(const char *version_str) {
     const char *delim = ".";
     int64_t result = 0;
+    if (version_str == NULL) {
+        return 0;
+    }
 
     int seen_alpha = 0;     // Does the tail contain a single character, but not a modifier?
     int seen_modifier = 0;  // Does the tail contain "rc", "dev", "pre", and so forth?
@@ -315,20 +318,12 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
                 res = version_a == version_b;
             }
 
-            if (res > 0 || res < 0) {
-                list[record] = (ManifestPackage *)calloc(1, sizeof(ManifestPackage));
+            if (res != 0) {
+                list[record] = manifest_package_copy(manifest->packages[i]);
                 if (!list[record]) {
                     perror("Unable to allocate memory for manifest record");
                     fprintf(SYSERROR);
                     return NULL;
-                }
-
-                memcpy(list[record], manifest->packages[i], sizeof(ManifestPackage));
-                list[record]->requirements = (char **) calloc(manifest->packages[i]->requirements_records, sizeof(char *));
-
-                for (size_t j = 0; j < manifest->packages[i]->requirements_records; j++) {
-                    list[record]->requirements[j] = (char *) calloc(strlen(manifest->packages[i]->requirements[j]) + 1, sizeof(char));
-                    strncpy(list[record]->requirements[j], manifest->packages[i]->requirements[j], strlen(manifest->packages[i]->requirements[j]));
                 }
                 record++;
             }
@@ -339,8 +334,8 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
     return list;
 }
 
-ManifestPackage **find_by_strspec(const char *_strspec) {
-    const char *operators = VERSION_OPERATORS;  // note: whitespace is synonymous with "==" if no other operators are present
+ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
+    const char *operators = VERSION_OPERATORS;  // note: whitespace is synonymous with ">=" if no operators are present
     char *pos = NULL;
     char op[NAME_MAX];
     char name[NAME_MAX];
@@ -351,14 +346,37 @@ ManifestPackage **find_by_strspec(const char *_strspec) {
     memset(version, '\0', NAME_MAX);
 
     // Parse name
-    for (int i = 0; isalnum(_strspec[i]) || _strspec[i] == '_'; i++) {
+    for (size_t i = 0; isalnum(_strspec[i]) || _strspec[i] == '_'; i++) {
         name[i] = _strspec[i];
     }
 
     // Parse operators
     pos = strpbrk(_strspec, operators);
-    for (int i = 0; !isalnum(*pos++); i++) {
-
+    if (pos != NULL) {
+        for (size_t i = 0; !isalnum(*pos) || *pos == '.'; i++) {
+            op[i] = *pos++;
+        }
     }
-    // hmmmmmm
+
+    ManifestPackage **m = NULL;
+    if (pos == NULL) {
+        m = find_by_spec(manifest, name, ">=", NULL);
+    }
+
+    if (m == NULL) {
+        for (size_t i = 0; *(pos + i) != '\0'; i++) {
+            version[i] = *(pos + i);
+        }
+        m = find_by_spec(manifest, name, op, version);
+    }
+
+    if (m != NULL) {
+        ManifestPackage *result = manifest_package_copy(m[0]);
+        for (size_t i = 0; m[i] != NULL; i++) {
+            manifest_package_free(m[i]);
+        }
+        free(m);
+        return result;
+    }
+    return NULL;
 }
