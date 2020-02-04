@@ -164,8 +164,7 @@ int rpath_set(const char *filename, const char *rpath) {
 
     char args[PATH_MAX];
     memset(args, '\0', PATH_MAX);
-    sprintf(args, "--set-rpath \"%s\"", rpath);
-
+    sprintf(args, "--set-rpath '%s'", rpath);   // note: rpath requires single-quotes
     Process *pe = patchelf(filename, args);
     if (pe != NULL) {
         returncode = pe->returncode;
