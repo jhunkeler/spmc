@@ -90,18 +90,28 @@ void runtime_export(RuntimeEnv *env, char **keys) {
 
     for (size_t i = 0; i < strlist_count(env); i++) {
         char **pair = split(strlist_item(env, i), "=");
+        char *key = pair[0];
+        char *value = NULL;
+
+        // We split a potentially large string by "=" so:
+        // Recombine elements pair[1..N] into a single string by "="
+        if (pair[1] != NULL) {
+            value = join(&pair[1], "=");
+        }
+
         if (keys != NULL) {
             for (size_t j = 0; keys[j] != NULL; j++) {
-                if (strcmp(keys[j], pair[0]) == 0) {
-                    sprintf(output, "%s %s=\"%s\"", export_command, pair[0], pair[1] ? pair[1] : "");
+                if (strcmp(keys[j], key) == 0) {
+                    sprintf(output, "%s %s=\"%s\"", export_command, key, value ? value : "");
                     puts(output);
                 }
             }
         }
         else {
-            sprintf(output, "%s %s=\"%s\"", export_command, pair[0], pair[1] ? pair[1] : "");
+            sprintf(output, "%s %s=\"%s\"", export_command, key, value ? value : "");
             puts(output);
         }
+        free(value);
         split_free(pair);
     }
 }
@@ -354,10 +364,10 @@ void runtime_set(RuntimeEnv *env, const char *_key, const char *_value) {
     char *now = join((char *[]) {key, value, NULL}, "=");
 
     if (key_offset < 0) {
-        strlist_set(env, key_offset, now);
+        strlist_append(env, now);
     }
     else {
-        strlist_append(env, now);
+        strlist_set(env, key_offset, now);
     }
     free(now);
     free(key);
