@@ -536,3 +536,56 @@ void print_banner(const char *s, int len) {
     }
     putchar('\n');
 }
+
+/**
+ * Collapse whitespace in `s`. The string is modified in place.
+ * @param s
+ * @return pointer to `s`
+ */
+char *normalize_space(char *s) {
+    size_t len;
+    size_t trim_pos;
+    int add_whitespace = 0;
+    char *result = s;
+    char *tmp;
+    if ((tmp = calloc(strlen(s) + 1, sizeof(char))) == NULL) {
+        perror("could not allocate memory for temporary string");
+        return NULL;
+    }
+    char *tmp_orig = tmp;
+
+    // count whitespace, if any
+    for (trim_pos = 0; isblank(s[trim_pos]); trim_pos++);
+    // trim whitespace from the left, if any
+    memmove(s, &s[trim_pos], strlen(&s[trim_pos]));
+    // cull bytes not part of the string after moving
+    len = strlen(s);
+    s[len - trim_pos] = '\0';
+
+    // Generate a new string with extra whitespace stripped out
+    while (*s != '\0') {
+        // Skip over any whitespace, but record that we encountered it
+        if (isblank(*s)) {
+            s++;
+            add_whitespace = 1;
+            continue;
+        }
+        // This gate avoids filling tmp with whitespace; we want to make our own
+        if (add_whitespace) {
+            *tmp = ' ';
+            tmp++;
+            add_whitespace = 0;
+        }
+        // Write character in s to tmp
+        *tmp = *s;
+        // Increment string pointers
+        s++;
+        tmp++;
+    }
+
+    // Rewrite the input string
+    strcpy(result, tmp_orig);
+    free(tmp_orig);
+    return result;
+}
+

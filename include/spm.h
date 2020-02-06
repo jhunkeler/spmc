@@ -232,6 +232,7 @@ char *lstrip(char *sptr);
 char *strip(char *sptr);
 int isempty(char *sptr);
 int isquoted(char *sptr);
+char *normalize_space(char *s);
 
 // find.c
 char *find_executable(const char *program);
