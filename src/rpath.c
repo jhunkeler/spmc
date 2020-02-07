@@ -210,30 +210,45 @@ char *rpath_autodetect(const char *filename) {
     chdir(start);
 
     char *visit = NULL;         // Current directory
-    char tmp[PATH_MAX];         // Current directory with lib directory appended
     char relative[PATH_MAX];    // Generated relative path to lib directory
     char sep[2];                // Holds the platform's directory separator
 
     // Initialize character arrays;
-    tmp[0] = '\0';
     relative[0] = '\0';
     sprintf(sep, "%c", DIRSEP);
 
     while(1) {
+        StrList *libs = NULL;
+
         // Where are we in the file system?
         if((visit = getcwd(NULL, PATH_MAX)) == NULL) {
             exit(errno);
         }
+
         // Using the current visit path, check if it contains a lib directory
-        snprintf(tmp, PATH_MAX, "%s%c%s", visit, DIRSEP, "lib");
+        char *tmp = join((char *[]) {visit, "lib", NULL}, DIRSEPS);
+
         if (access(tmp, F_OK) == 0) {
             strcat(relative, "lib");
-            has_real_libdir = 1;        // gate for memory allocation below
+            libs = shlib_deps(filename);
+            for (size_t i = 0; i < strlist_count(libs); i++) {
+                char *checkpath = join((char *[]) {tmp, strlist_item(libs, i), NULL}, DIRSEPS);
+                if (exists(checkpath) == 0) {
+                    if (SPM_GLOBAL.verbose) {
+                        printf("found lib: %s\n", checkpath);
+                    }
+                    has_real_libdir = 1;        // gate for memory allocation below
+                }
+                free(checkpath);
+            }
+            strlist_free(libs);
+            free(tmp);
             free(visit);
             break;
         }
-            // Reaching the top of the file system indicates our search for a lib directory failed
+        // Reaching the top of the file system indicates our search for a lib directory failed
         else if (strcmp(visit, "/") == 0) {
+            free(tmp);
             free(visit);
             break;
         }
@@ -244,6 +259,7 @@ char *rpath_autodetect(const char *filename) {
 
         // Step one directory level back
         chdir("..");
+        free(tmp);
         free(visit);
     }
 
