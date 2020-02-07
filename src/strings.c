@@ -175,7 +175,7 @@ char** split(char *_sptr, const char* delim)
     int i = 0;
     char *token = NULL;
     while((token = strsep(&sptr, delim)) != NULL) {
-        result[i] = (char *)calloc(1, sizeof(char) * strlen(token) + 1);
+        result[i] = (char *)calloc(strlen(token) + 1, sizeof(char));
         if (!result[i]) {
             free(sptr);
             return NULL;
