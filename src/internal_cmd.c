@@ -185,7 +185,7 @@ int mkruntime_interface(int argc, char **argv) {
     }
 
     runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
-    runtime_set(rt, "LDFLAGS", "-Wl,-rpath $SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
     runtime_export(rt, NULL);
     runtime_free(rt);
 
