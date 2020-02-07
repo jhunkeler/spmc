@@ -28,6 +28,7 @@
 #endif
 
 #include "strlist.h"
+#include "shlib.h"
 #include "config.h"
 
 // spm.c
