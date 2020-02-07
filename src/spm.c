@@ -21,6 +21,7 @@ void usage(const char *program_name) {
            "  -r,  --root     installation prefix (requires --install)\n"
            "  -L,  --list     list available packages\n"
            "  -S,  --search   search for a package\n"
+           "       --cmd      execute an internal spm command\n"
            , program_name);
 }
 
@@ -114,12 +115,13 @@ int main(int argc, char *argv[], char *arge[]) {
                 for (int p = 0; i < argc; p++) {
                     i++;
                     if (startswith(argv[i], "-") == 0 || startswith(argv[i], "--") == 0) {
-                        if (!p) {
-                            fprintf(stderr, "-I|--install requires at least one package (got: '%s')\n", argv[i]);
-                            exit(1);
-                        }
                         i--;
                         break;
+                    }
+                    if ((argc - i) == 0) {
+                        fprintf(stderr, "-I|--install requires at least one package\n");
+                        usage(program_name);
+                        exit(1);
                     }
                     strlist_append(packages, argv[i]);
                 }
