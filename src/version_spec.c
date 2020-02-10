@@ -359,10 +359,12 @@ ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
     }
 
     ManifestPackage **m = NULL;
+    // No operators found
     if (pos == NULL) {
         m = find_by_spec(manifest, name, ">=", NULL);
     }
 
+    // When `m` is still NULL after applying the default operator
     if (m == NULL) {
         for (size_t i = 0; *(pos + i) != '\0'; i++) {
             version[i] = *(pos + i);
@@ -370,6 +372,7 @@ ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
         m = find_by_spec(manifest, name, op, version);
     }
 
+    // When `m` has been populated by either test above, return a COPY of the manifest
     if (m != NULL) {
         ManifestPackage *result = manifest_package_copy(m[0]);
         for (size_t i = 0; m[i] != NULL; i++) {
@@ -378,5 +381,7 @@ ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
         free(m);
         return result;
     }
+
+    // Obviously it didn't work out
     return NULL;
 }
