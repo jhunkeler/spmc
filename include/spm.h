@@ -205,6 +205,7 @@ int tar_extract_file(const char *archive, const char* filename, const char *dest
 
 // relocation.c
 int relocate(const char *filename, const char *_oldstr, const char *_newstr);
+void relocate_root(const char *destroot, const char *baseroot);
 int replace_text(char *data, const char *_spattern, const char *_sreplacement);
 int file_replace_text(char *filename, const char *spattern, const char *sreplacement);
 RelocationEntry **prefixes_read(const char *filename);
