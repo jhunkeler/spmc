@@ -134,7 +134,7 @@ int file_is_binexec(const char *filename) {
     Mime *type = file_mimetype(path);
     // file-5.38: changed mime name associated with executables
     // TODO: implement compatibility function to return the correct search pattern
-    if (fnmatch("application/x-[sh|ex]*", type->type, FNM_PATHNAME) != FNM_NOMATCH && strcmp(type->charset, "binary") == 0) {
+    if (fnmatch("application/x-[pic|pie|ex|sh]*", type->type, FNM_PATHNAME) != FNM_NOMATCH && strcmp(type->charset, "binary") == 0) {
         result = 1;
     }
     free(path);
