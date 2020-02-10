@@ -121,23 +121,26 @@ char *rpath_get(const char *_filename) {
  * @return
  */
 char *rpath_generate(const char *_filename) {
-    const char *origin = "$ORIGIN/";
+    char *origin = "$ORIGIN/";
     char *filename = realpath(_filename, NULL);
+
     if (!filename) {
         return NULL;
     }
+
     char *nearest_lib = rpath_autodetect(filename);
     if (!nearest_lib) {
         free(filename);
         return NULL;
     }
-    char *result = (char *)calloc(strlen(origin) + strlen(nearest_lib) + 1, sizeof(char));
+
+    char *result = join((char *[]) {origin, nearest_lib, NULL}, "");
     if (!result) {
         free(filename);
         free(nearest_lib);
         return NULL;
     }
-    sprintf(result, "%s%s", origin, nearest_lib);
+
     free(filename);
     free(nearest_lib);
     return result;
@@ -151,6 +154,7 @@ char *rpath_generate(const char *_filename) {
  */
 int rpath_set(const char *filename, const char *rpath) {
     int returncode = 0;
+    /*
     char *rpath_orig = rpath_get(filename);
     if (!rpath_orig) {
         return -1;
@@ -161,6 +165,7 @@ int rpath_set(const char *filename, const char *rpath) {
         free(rpath_orig);
         return 0;
     }
+     */
 
     char args[PATH_MAX];
     memset(args, '\0', PATH_MAX);
@@ -170,7 +175,6 @@ int rpath_set(const char *filename, const char *rpath) {
         returncode = pe->returncode;
     }
     shell_free(pe);
-    free(rpath_orig);
     return returncode;
 }
 
@@ -211,11 +215,9 @@ char *rpath_autodetect(const char *filename) {
 
     char *visit = NULL;         // Current directory
     char relative[PATH_MAX];    // Generated relative path to lib directory
-    char sep[2];                // Holds the platform's directory separator
 
     // Initialize character arrays;
     relative[0] = '\0';
-    sprintf(sep, "%c", DIRSEP);
 
     while(1) {
         StrList *libs = NULL;
@@ -226,52 +228,56 @@ char *rpath_autodetect(const char *filename) {
         }
 
         // Using the current visit path, check if it contains a lib directory
-        char *tmp = join((char *[]) {visit, "lib", NULL}, DIRSEPS);
+        char *path = join((char *[]) {visit, "lib", NULL}, DIRSEPS);
 
-        if (access(tmp, F_OK) == 0) {
-            strcat(relative, "lib");
+        if (access(path, F_OK) == 0) {
+            // Check whether the lib directory contains one of `filename`'s libraries
             libs = shlib_deps(filename);
-            for (size_t i = 0; i < strlist_count(libs); i++) {
-                char *checkpath = join((char *[]) {tmp, strlist_item(libs, i), NULL}, DIRSEPS);
-                if (exists(checkpath) == 0) {
-                    if (SPM_GLOBAL.verbose) {
-                        printf("found lib: %s\n", checkpath);
+            if (libs != NULL) {
+                for (size_t i = 0; i < strlist_count(libs); i++) {
+                    char *check_path = join((char *[]) {path, strlist_item(libs, i), NULL}, DIRSEPS);
+                    if (exists(check_path) == 0) {
+                        // The library exists so mark it for processing
+                        has_real_libdir = 1;  // gate for memory allocation below
                     }
-                    has_real_libdir = 1;        // gate for memory allocation below
+                    free(check_path);
                 }
-                free(checkpath);
+                strlist_free(libs);
             }
-            strlist_free(libs);
-            free(tmp);
-            free(visit);
-            break;
+
+            // Stop processing when a good lib directory is found
+            if (has_real_libdir != 0) {
+                strcat(relative, "lib");
+                free(path);
+                free(visit);
+                break;
+            }
         }
         // Reaching the top of the file system indicates our search for a lib directory failed
         else if (strcmp(visit, "/") == 0) {
-            free(tmp);
+            free(path);
             free(visit);
             break;
         }
 
-        // Assemble relative path step for this location
+        // Nothing found
+        // Append another relative path step
         strcat(relative, "..");
-        strcat(relative, sep);
+        strcat(relative, DIRSEPS);
 
-        // Step one directory level back
+        // Step one directory up
         chdir("..");
-        free(tmp);
+        free(path);
         free(visit);
     }
 
     // If we found a viable lib directory, allocate memory for it
     if (has_real_libdir) {
-        result = (char *)calloc(strlen(relative) + 1, sizeof(char));
+        result = strdup(relative);
         if (!result) {
             chdir(cwd);     // return to calling directory
             return NULL;
         }
-        // Copy character array data to the result
-        strncpy(result, relative, strlen(relative));
     }
 
     chdir(cwd);     // return to calling directory
