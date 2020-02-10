@@ -165,16 +165,6 @@ int main(int argc, char *argv[], char *arge[]) {
     runtime_set(rt, "SPM_LIB", spm_libpath);
     runtime_set(rt, "SPM_DATA", spm_datapath);
     runtime_set(rt, "SPM_MAN", spm_manpath);
-    runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
-    runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
-
-    char *spm_ccpath = join((char *[]) {spm_binpath, "gcc"}, DIRSEPS);
-    if (exists(spm_ccpath) == 0) {
-        runtime_set(rt, "CC", "$SPM_BIN/gcc");
-    }
-
-    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
-    runtime_set(rt, "LDFLAGS", "-Wl,-rpath $SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
     runtime_apply(rt);
 
     free(spm_binpath);
@@ -182,7 +172,6 @@ int main(int argc, char *argv[], char *arge[]) {
     free(spm_libpath);
     free(spm_datapath);
     free(spm_manpath);
-    free(spm_ccpath);
 
     if (RUNTIME_INSTALL) {
         Dependencies *deps = NULL;
@@ -207,8 +196,7 @@ int main(int argc, char *argv[], char *arge[]) {
         printf("Resolving package requirements...\n");
         for (size_t i = 0; i < strlist_count(packages); i++) {
             ManifestPackage *package = NULL;
-            package = manifest_search(manifest, strlist_item(packages, i));
-            if (!package) {
+            if ((package = manifest_search(manifest, strlist_item(packages, i))) == NULL) {
                 fprintf(stderr, "Package not found: %s\n", strlist_item(packages, i));
                 continue;
             }
@@ -240,6 +228,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 printf("  -> %s\n", deps->list[i]);
                 ManifestPackage *package = manifest_search(manifest, deps->list[i]);
                 char *package_path = join((char *[]) {SPM_GLOBAL.package_dir, package->archive, NULL}, DIRSEPS);
+
                 if (install(root, package_path) < 0) {
                     fprintf(SYSERROR);
                     runtime_free(rt);
