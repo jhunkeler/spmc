@@ -83,13 +83,11 @@ int dep_append(Dependencies **deps, char *_name) {
         return -1;
     }
 
-    (*deps)->list[(*deps)->records] = (char *)calloc(strlen(bname) + 1, sizeof(char));
+    (*deps)->list[(*deps)->records] = strdup(bname);
     if (!(*deps)->list[(*deps)->records]) {
         free(name);
         return -1;
     }
-
-    strcpy((*deps)->list[(*deps)->records], bname);
     (*deps)->records++;
 
     free(name);
