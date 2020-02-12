@@ -14,6 +14,8 @@ static char *internal_commands[] = {
         "mirror_clone", "mirror a mirror",
         "rpath_set", "modify binary RPATH",
         "rpath_autoset", "determine nearest lib directory and set RPATH",
+        "get_package_ext", "show the default archive extension",
+        "check_rt_env", "check the integrity of the calling runtime environment",
         NULL, NULL,
 };
 
@@ -185,7 +187,7 @@ int mkruntime_interface(int argc, char **argv) {
     }
 
     runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
-    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$${ORIGIN}/lib -L$SPM_LIB $LDFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$${ORIGIN}/../lib -L$SPM_LIB $LDFLAGS");
     runtime_export(rt, NULL);
     runtime_free(rt);
 
@@ -282,6 +284,27 @@ int rpath_autoset_interface(int argc, char **argv) {
 }
 
 /**
+ * Dump the default package extension for SPM archives to `stdout`
+ * @return
+ */
+int get_package_ext_interface(void) {
+    puts(SPM_PACKAGE_EXTENSION);
+    return 0;
+}
+
+/**
+ * Execute builtin runtime check.
+ *
+ * On failure this function will EXIT the program with a non-zero value
+ *
+ * @return
+ */
+int check_runtime_environment_interface(void) {
+    check_runtime_environment();
+    return 0;
+}
+
+/**
  * Show a listing of valid internal commands
  */
 void internal_command_list(void) {
@@ -340,6 +363,12 @@ int internal_cmd(int argc, char **argv) {
     }
     else if (strcmp(command, "rpath_autoset") == 0) {
         return rpath_autoset_interface(arg_count, arg_array);
+    }
+    else if (strcmp(command, "get_package_ext") == 0) {
+        return get_package_ext_interface();
+    }
+    else if (strcmp(command, "check_rt_env") == 0) {
+        return check_runtime_environment_interface();
     }
     return 0;
 }
