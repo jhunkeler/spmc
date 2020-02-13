@@ -84,6 +84,10 @@
 #define SPM_META_PREFIX_BIN ".SPM_PREFIX_BIN"
 #define SPM_META_PREFIX_TEXT ".SPM_PREFIX_TEXT"
 #define SPM_META_MANIFEST ".SPM_MANIFEST" // TODO: Implement
+#define SPM_META_PREFIX_PLACEHOLDER \
+"_0________________________________________________\
+_1________________________________________________"
+
 
 // GLOBALS
 spm_vars SPM_GLOBAL;

@@ -59,7 +59,9 @@ Manifest *manifest_from(const char *package_dir) {
         dep_init(&deps);
         if (dep_all(&deps, basename(fsdata->files[i])) < 0) {
             dep_free(&deps);
-            // TODO: Why is this freed *and* the program continues? I don't know why this is here.
+            fprintf(stderr, "%s: dependency not found\n", fsdata->files[i]);
+            fprintf(SYSERROR);
+            return NULL;
         }
 
         // Initialize package record
@@ -194,7 +196,7 @@ int manifest_write(Manifest *info, const char *outfile) {
             printf("[%3.0f%%] %s\n", percent, info->packages[i]->archive);
         }
         reqs = join(info->packages[i]->requirements, ",");
-        char *archive = join((char *[]) {SPM_GLOBAL.package_dir, info->packages[i]->archive, NULL}, DIRSEPS);
+        char *archive = join((char *[]) {SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, info->packages[i]->archive, NULL}, DIRSEPS);
         char *checksum_sha256 = sha256sum(archive);
 
         sprintf(dptr, "%s|" // archive
@@ -492,4 +494,8 @@ ManifestPackage *manifest_package_copy(ManifestPackage *manifest) {
     }
 
     return result;
+}
+
+int manifest_merge(Manifest *a, Manifest *b) {
+
 }

@@ -74,7 +74,10 @@ char *find_file(const char *root, const char *filename) {
  * @return success=path to file, failure=NULL
  */
 char *find_package(const char *filename) {
-    return find_file(PKG_DIR, filename);
+    char *repo = join((char *[]) {SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, NULL}, DIRSEPS);
+    char *match = find_file(repo, filename);
+    free(repo);
+    return match;
 }
 
 /**

@@ -15,6 +15,7 @@ static char *internal_commands[] = {
         "rpath_set", "modify binary RPATH",
         "rpath_autoset", "determine nearest lib directory and set RPATH",
         "get_package_ext", "show the default archive extension",
+        "get_sys_target", "show this system's arch/platform",
         "check_rt_env", "check the integrity of the calling runtime environment",
         NULL, NULL,
 };
@@ -76,7 +77,7 @@ int mkprefix_interface(int argc, char **argv) {
         printf("Generating prefix manifest: %s\n", outfile);
     }
 
-    int result;
+    int result = 0;
     if (strcmp(command, "mkprefixbin") == 0) {
         result = prefixes_write(outfile, PREFIX_WRITE_BIN, prefix, tree);
     } else if (strcmp(command, "mkprefixtext") == 0) {
@@ -99,7 +100,7 @@ void mkmanifest_interface_usage(void) {
  * @return value of `manifest_write`
  */
 int mkmanifest_interface(int argc, char **argv) {
-    if (argc < 1) {
+    if (argc < 1 || argc > 3) {
         mkmanifest_interface_usage();
         return -1;
     }
@@ -109,18 +110,13 @@ int mkmanifest_interface(int argc, char **argv) {
     char path[PATH_MAX];
     memset(path, '\0', PATH_MAX);
 
-    if (argc == 2) {
-        pkgdir = argv[1];
-    }
-    else {
+    if (argc < 3) {
         pkgdir = SPM_GLOBAL.package_dir;
-    }
-
-    if (argc > 2) {
-        strcpy(path, argv[2]);
+        strcpy(path, SPM_MANIFEST_FILENAME);
     }
     else {
-        strcpy(path, SPM_MANIFEST_FILENAME);
+        pkgdir = argv[1];
+        strcpy(path, argv[2]);
     }
 
     if (exists(pkgdir) != 0) {
@@ -178,6 +174,12 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "SPM_LIB", spm_libpath);
     runtime_set(rt, "SPM_DATA", spm_datapath);
     runtime_set(rt, "SPM_MAN", spm_manpath);
+    runtime_set(rt, "SPM_META_DEPENDS", SPM_META_DEPENDS);
+    runtime_set(rt, "SPM_META_PREFIX_BIN", SPM_META_PREFIX_BIN);
+    runtime_set(rt, "SPM_META_PREFIX_TEXT", SPM_META_PREFIX_TEXT);
+    runtime_set(rt, "SPM_META_MANIFEST", SPM_META_MANIFEST);
+    runtime_set(rt, "SPM_META_PREFIX_PLACEHOLDER", SPM_META_PREFIX_PLACEHOLDER);
+
     runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
     runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
 
@@ -187,7 +189,7 @@ int mkruntime_interface(int argc, char **argv) {
     }
 
     runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
-    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$${ORIGIN}/../lib -L$SPM_LIB $LDFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_BIN/../lib -L$SPM_LIB $LDFLAGS");
     runtime_export(rt, NULL);
     runtime_free(rt);
 
@@ -293,6 +295,14 @@ int get_package_ext_interface(void) {
 }
 
 /**
+ * Dump the system arch/platform (i.e. Linux/x86_64)
+ * @return
+ */
+int get_sys_target_interface(void) {
+    puts(SPM_GLOBAL.repo_target);
+    return 0;
+}
+/**
  * Execute builtin runtime check.
  *
  * On failure this function will EXIT the program with a non-zero value
@@ -366,6 +376,9 @@ int internal_cmd(int argc, char **argv) {
     }
     else if (strcmp(command, "get_package_ext") == 0) {
         return get_package_ext_interface();
+    }
+    else if (strcmp(command, "get_sys_target") == 0) {
+        return get_sys_target_interface();
     }
     else if (strcmp(command, "check_rt_env") == 0) {
         return check_runtime_environment_interface();

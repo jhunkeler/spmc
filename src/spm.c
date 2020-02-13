@@ -9,7 +9,8 @@ int RUNTIME_INSTALL = 0;
 int RUNTIME_ROOTDIR = 0;
 int RUNTIME_LIST = 0;
 int RUNTIME_SEARCH = 0;
-const int PACKAGE_MAX = 0xff;
+const int MANIFESTS_MAX = 25;
+int manifests_count = 0;
 
 void usage(const char *program_name) {
     printf("usage: %s [-hVvBIrLS]\n"
@@ -29,6 +30,9 @@ int main(int argc, char *argv[], char *arge[]) {
     char program_name[strlen(argv[0]) + 1];
     memset(program_name, '\0', sizeof(program_name) + 1);
     strcpy(program_name, basename(argv[0]));
+
+    Manifest *manifests[MANIFESTS_MAX];
+    memset(manifests, '\0', MANIFESTS_MAX * sizeof(Manifest *));
 
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
@@ -52,6 +56,9 @@ int main(int argc, char *argv[], char *arge[]) {
         exit(1);
     }
 
+    // Populate at least one manifest record
+    manifests[manifests_count] = manifest_read(SPM_GLOBAL.package_dir);
+
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
         char *arg_next = argv[i + 1] ? argv[i + 1] : NULL;
@@ -68,6 +75,18 @@ int main(int argc, char *argv[], char *arge[]) {
             }
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
                 SPM_GLOBAL.verbose = 1;
+            }
+            else if (strcmp(arg, "-m") == 0 || strcmp(arg, "--manifest") == 0) {
+                if (arg_next == NULL) {
+                    fprintf(stderr, "-m|--manifest requires a directory path\n");
+                    usage(program_name);
+                    exit(1);
+                }
+                char *repo = join((char *[]) {arg_next, SPM_GLOBAL.repo_target, NULL}, DIRSEPS);
+                manifests[manifests_count] = manifest_from(repo);
+                manifests_count++;
+                i++;
+                free(repo);
             }
             else if (strcmp(arg, "--reindex") == 0) {
                 Manifest *info = manifest_from(SPM_GLOBAL.package_dir);
@@ -178,7 +197,7 @@ int main(int argc, char *argv[], char *arge[]) {
         dep_init(&deps);
 
         printf("Reading package manifest... ");
-        Manifest *manifest = manifest_read(NULL);
+        Manifest *manifest = manifest_read(manifests[manifests_count]->origin); //manifest_read(NULL);
         if (!manifest) {
             fprintf(stderr, "Package manifest is missing or corrupt\n");
             runtime_free(rt);
