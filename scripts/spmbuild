@@ -1,0 +1,343 @@
+#!/usr/bin/env bash
+trap spm_build_cleanup EXIT
+
+function pushd() {
+    command pushd "$@" >/dev/null
+}
+
+function popd() {
+    command popd "$@" >/dev/null
+}
+
+function _msg() {
+    marker="$1"
+    shift
+    args="$@"
+    printf '%s %s\n' "${marker}" "${args}"
+}
+
+function msg() {
+    _msg "=>" "$@"
+}
+
+function msg2() {
+    _msg " *" "$@"
+}
+
+function msg3() {
+    _msg "  >" "$@"
+}
+
+function msg_fail() {
+    _msg "FAILED:" "$@"
+}
+
+function msg_error() {
+    _msg "ERROR:" "$@"
+}
+
+function msg_warn() {
+    _msg "WARNING:" "$@"
+}
+
+function spm_build_initialize_stage1() {
+    export SPMDEV=$(readlink -f $(dirname ${BASH_SOURCE[0]})/../cmake-build-debug/src/spm)
+    export SPM=$(which spm 2>/dev/null || echo ${SPMDEV})
+
+    spm_build_check_rt_env
+    if [[ $? != 0 ]]; then
+        msg_error "spm self-test failed"
+        exit 1
+    fi
+
+    if [[ ! -f ${SPM} ]]; then
+        msg_error "Could not locate 'spm'"
+        exit 1
+    fi
+
+    export SPM_BUILD_SYS_TARGET=$(spm_build_get_sys_target)
+
+    export SPM_BUILD_STORE="${HOME}/.spm/build"
+    if [[ ! -d ${SPM_BUILD_STORE} ]]; then
+        mkdir -p "${SPM_BUILD_STORE}"
+        if [[ $? != 0 ]]; then
+            msg_error "SPM_BUILD_STORE creation failed: ${SPM_BUILD_STORE}"
+            exit 1
+        fi
+    fi
+
+    export SPM_BUILD_STORE_SOURCES="${SPM_BUILD_STORE}/sources"
+    if [[ ! -d ${SPM_BUILD_STORE_SOURCES} ]]; then
+        mkdir -p "${SPM_BUILD_STORE_SOURCES}"
+        if [[ $? != 0 ]]; then
+            msg_error "SPM_BUILD_STORE_SOURCES creation failed: ${SPM_BUILD_STORE_SOURCES}"
+            exit 1
+        fi
+    fi
+
+    export SPM_BUILD_STORE_PACKAGES="${SPM_BUILD_STORE}/pkgs/${SPM_BUILD_SYS_TARGET}"
+    if [[ ! -d ${SPM_BUILD_STORE_PACKAGES} ]]; then
+        mkdir -p "${SPM_BUILD_STORE_PACKAGES}"
+        if [[ $? != 0 ]]; then
+            msg_error "SPM_BUILD_STORE_PACKAGES creation failed: ${SPM_BUILD_STORE_PACKAGES}"
+            exit 1
+        fi
+    fi
+
+    # Set global TMPDIR to *help* prevent cluttering the system's temporary storage directory
+    export TMPDIR="${SPM_BUILD_STORE}/tmp"
+    if [[ ! -d ${TMPDIR} ]]; then
+        mkdir -p "${TMPDIR}"
+        if [[ $? != 0 ]]; then
+            msg_error "TMPDIR creation failed: ${TMPDIR}"
+            exit 1
+        fi
+    fi
+}
+
+function spm_build_initialize_stage2() {
+    # In order to get the SPM_* variables out spm, we need to give a path...
+    # this is ugly but safe-ish
+    source <(spm_build_mkruntime "/usr")
+    unset CFLAGS
+    unset CPPFLAGS
+    unset LDFLAGS
+    unset FCFLAGS
+
+    export _SPM_BUILD_ROOT_TEMPLATE="spmbuild_root_XXXXXX"
+    export _SPM_BUILD_RUNTIME_TEMPLATE="spmbuild_runtime_XXXXXX"
+    export _SPM_BUILD_PKGDIR_TEMPLATE="spmbuild_pkgdir_XXXXXX"
+
+    export SPM_BUILD_ROOT_BASE=$(mktemp -d -t "${_SPM_BUILD_ROOT_TEMPLATE}")
+    export SPM_BUILD_ROOT="${SPM_BUILD_ROOT_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
+    export _srcdir="${SPM_BUILD_ROOT}"
+    mkdir -p "${SPM_BUILD_ROOT}"
+    if [[ ! -d ${SPM_BUILD_ROOT} ]]; then
+        msg_error "SPM_BUILD_ROOT creation failed: ${SPM_BUILD_ROOT}"
+        exit 1
+    fi
+
+    export SPM_BUILD_RUNTIME_BASE=$(mktemp -d -t "${_SPM_BUILD_RUNTIME_TEMPLATE}")
+    export SPM_BUILD_RUNTIME="${SPM_BUILD_RUNTIME_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
+    export _runtime="${SPM_BUILD_RUNTIME}"
+
+    mkdir -p "${SPM_BUILD_RUNTIME}"
+    if [[ ! -d ${SPM_BUILD_RUNTIME} ]]; then
+        msg_error "SPM_BUILD_RUNTIME creation failed: ${SPM_BUILD_RUNTIME}"
+        exit 1
+    fi
+
+    # _pkgdir does not need a placeholder prefix
+    export SPM_BUILD_PKGDIR_BASE=$(mktemp -d -t "${_SPM_BUILD_PKGDIR_TEMPLATE}")
+    export SPM_BUILD_PKGDIR="${SPM_BUILD_PKGDIR_BASE}"
+    export _pkgdir="${SPM_BUILD_PKGDIR}"
+    if [[ ! -d ${SPM_BUILD_PKGDIR} ]]; then
+        msg_error "SPM_BUILD_PKGDIR creation failed: ${SPM_BUILD_PKGDIR}"
+        exit 1
+    fi
+
+    # _prefix is a not a real path. do not create it!
+    export SPM_BUILD_PREFIX="/${SPM_META_PREFIX_PLACEHOLDER}"
+    export _prefix="${SPM_BUILD_PREFIX}"
+
+    export SPM_BUILD_CRUMBS="${SPM_BUILD_PREFIX} ${SPM_BUILD_ROOT} ${SPM_BUILD_RUNTIME} ${SPM_BUILD_PKGDIR}"
+
+    export _maxjobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null)"
+    if (( ${_maxjobs} > 1 )); then
+        _maxjobs=$((_maxjobs - 1))
+    elif [[ -z ${_maxjobs} ]]; then
+        _maxjobs=1
+    fi
+
+    source <(spm_build_mkruntime "${SPM_BUILD_RUNTIME}")
+}
+
+function spm_build_cleanup() {
+    [[ -d ${SPM_BUILD_ROOT_BASE} ]] && rm -rf ${SPM_BUILD_ROOT_BASE}
+    [[ -d ${SPM_BUILD_RUNTIME_BASE} ]] && rm -rf ${SPM_BUILD_RUNTIME_BASE}
+    [[ -d ${SPM_BUILD_PKGDIR_BASE} ]] && rm -rf ${SPM_BUILD_PKGDIR_BASE}
+}
+
+function spm_build_install() {
+    ${SPM} --manifest "${SPM_BUILD_STORE_PACKAGES}/manifest.dat" --install $@ --root "${SPM_BUILD_RUNTIME}"
+}
+
+function spm_build_mkprefixbin() {
+    ${SPM} --cmd mkprefixbin $@
+}
+
+function spm_build_mkprefixtext() {
+    ${SPM} --cmd mkprefixtext $@
+}
+
+function spm_build_mkmanifest() {
+    ${SPM} --cmd mkmanifest "$1" "$2"
+}
+
+function spm_build_mkruntime() {
+    ${SPM} --cmd mkruntime "${1}"
+}
+
+function spm_build_rpath_set() {
+    ${SPM} --cmd rpath_set $@
+}
+
+function spm_build_rpath_autoset() {
+    ${SPM} --cmd rpath_autoset $@
+}
+
+function spm_build_get_package_ext() {
+    ${SPM} --cmd get_package_ext
+}
+
+function spm_build_get_sys_target() {
+    ${SPM} --cmd get_sys_target
+}
+
+function spm_build_check_rt_env() {
+    ${SPM} --cmd check_rt_env
+}
+
+function spm_build_fetch() {
+    local filename
+    local tmpdir
+
+    if [[ $# < 2 ]]; then
+        msg_error "spm_build_fetch: {url} {destination}"
+        spm_build_cleanup
+        exit 1
+    fi
+
+    tmpdir=$(mktemp -d)
+    if [[ ! -d ${tmpdir} ]]; then
+        msg_error "could not create temporary directory"
+        spm_build_cleanup
+        exit 1
+    fi
+
+    pushd ${tmpdir}
+        # file already exists?
+        if [[ -f ${2}/$(basename ${1}) ]]; then
+            return
+        fi
+
+        # download file
+        curl -LO "${1}"
+        filename="$(find . -type f)"
+        mkdir -p "${2}"
+        mv "${filename}" "${2}"
+    popd
+    rm -rf "${tmpdir}"
+}
+
+function spm_build_do_sources() {
+    local name="${1}"
+    local remote
+    for remote in "${sources[@]}"; do
+        spm_build_fetch "${remote}" ${SPM_BUILD_STORE_SOURCES}/${name}
+    done
+}
+
+function spm_build_mkdepends() {
+    local filename="${1}"
+    local deps=($@)
+
+    touch "${filename}"
+    for dep in "${deps[@]}"; do
+        echo "${dep}" >> "${filename}"
+    done
+}
+
+function prepare() {
+    # stub
+    :
+}
+
+function build() {
+    # stub
+    :
+}
+
+function package() {
+    msg_error "package() function missing"
+    exit 1
+}
+
+function spm_build_do_stage_prepare() {
+    prepare
+}
+
+function spm_build_do_stage_build() {
+    build
+}
+
+function spm_build_do_stage_package() {
+    package
+}
+
+# -- main --
+export SPM_BUILD_SCRIPT="build.sh"
+export SPM_BUILD_SCRIPT_ROOT="$1"
+
+if [[ ! -d ${SPM_BUILD_SCRIPT_ROOT} ]] || [[ ! -f ${SPM_BUILD_SCRIPT_ROOT}/${SPM_BUILD_SCRIPT} ]]; then
+    msg_error "Need a directory containing a build script (${SPM_BUILD_SCRIPT})"
+    exit 1
+fi
+
+msg "Initializing..."
+spm_build_initialize_stage1
+spm_build_initialize_stage2  # post-runtime activation
+
+#msg2 "Installing build toolchain..."
+#spm_build_install binutils gcc
+
+msg2 "Sourcing build script..."
+source "${SPM_BUILD_SCRIPT_ROOT}/${SPM_BUILD_SCRIPT}"
+
+msg2 "Downloading source files..."
+spm_build_do_sources "${package_name}"
+
+msg3 "Copying source files..."
+rsync -avi "${SPM_BUILD_STORE_SOURCES}/${package_name}/" "${SPM_BUILD_ROOT}"
+rsync -avi --exclude "${SPM_BUILD_SCRIPT}" "${SPM_BUILD_SCRIPT_ROOT}/" "${SPM_BUILD_ROOT}"
+
+package_name="${name}-${version}-${revision}"
+package_archive="${package_name}$(spm_build_get_package_ext)"
+
+msg "Building ${package_name}"
+
+if [[ ${#build_depends[@]} != 0 ]]; then
+    spm_build_install "${build_depends[@]}"
+fi
+
+if [[ ${#deps[@]} != 0 ]]; then
+    spm_build_install "${deps[@]}"
+fi
+
+set -e
+pushd "${SPM_BUILD_ROOT}"
+    msg2 "prepare()"
+    spm_build_do_stage_prepare
+    msg2 "build()"
+    spm_build_do_stage_build
+    msg2 "package()"
+    spm_build_do_stage_package
+popd
+
+package_final="${SPM_BUILD_STORE_PACKAGES}/${package_archive}"
+msg "Generating package: ${package_final}"
+pushd "${SPM_BUILD_PKGDIR}"
+    pushd "${SPM_META_PREFIX_PLACEHOLDER}"
+        spm_build_mkprefixbin "${SPM_META_PREFIX_BIN}" . ${SPM_BUILD_CRUMBS}
+        spm_build_mkprefixtext "${SPM_META_PREFIX_TEXT}" . ${SPM_BUILD_CRUMBS}
+        spm_build_mkdepends "${SPM_META_DEPENDS}" "${depends[@]}"
+        tar cfz "${package_final}" .
+    popd
+popd
+set +e
+
+msg2 "Updating build manifest:"
+spm_build_mkmanifest "${SPM_BUILD_STORE_PACKAGES}" "${SPM_BUILD_STORE_PACKAGES}"
+
+msg "Cleaning up..."
+spm_build_cleanup
