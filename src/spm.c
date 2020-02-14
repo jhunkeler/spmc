@@ -57,7 +57,8 @@ int main(int argc, char *argv[], char *arge[]) {
     }
 
     // Populate at least one manifest record
-    manifests[manifests_count] = manifest_read(SPM_GLOBAL.package_dir);
+    //manifests[manifests_count] = manifest_read(SPM_GLOBAL.package_dir);
+    ManifestList *mf = manifestlist_init();
 
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
@@ -82,11 +83,8 @@ int main(int argc, char *argv[], char *arge[]) {
                     usage(program_name);
                     exit(1);
                 }
-                char *repo = join((char *[]) {arg_next, SPM_GLOBAL.repo_target, NULL}, DIRSEPS);
-                manifests[manifests_count] = manifest_from(repo);
-                manifests_count++;
+                manifestlist_append(mf, arg_next);
                 i++;
-                free(repo);
             }
             else if (strcmp(arg, "--reindex") == 0) {
                 Manifest *info = manifest_from(SPM_GLOBAL.package_dir);
@@ -215,7 +213,7 @@ int main(int argc, char *argv[], char *arge[]) {
         printf("Resolving package requirements...\n");
         for (size_t i = 0; i < strlist_count(packages); i++) {
             ManifestPackage *package = NULL;
-            if ((package = manifest_search(manifest, strlist_item(packages, i))) == NULL) {
+            if ((package = manifestlist_search(mf, strlist_item(packages, i))) == NULL) {
                 fprintf(stderr, "Package not found: %s\n", strlist_item(packages, i));
                 continue;
             }
@@ -245,7 +243,7 @@ int main(int argc, char *argv[], char *arge[]) {
             printf("Installing package requirements:\n");
             for (size_t i = 0; i < deps->records; i++) {
                 printf("  -> %s\n", deps->list[i]);
-                ManifestPackage *package = manifest_search(manifest, deps->list[i]);
+                ManifestPackage *package = manifestlist_search(mf, deps->list[i]);
                 char *package_path = join((char *[]) {SPM_GLOBAL.package_dir, package->archive, NULL}, DIRSEPS);
 
                 if (install(root, package_path) < 0) {
@@ -264,11 +262,12 @@ int main(int argc, char *argv[], char *arge[]) {
             ManifestPackage *match = NULL;
             char *package = NULL;
 
-            if ((match = manifest_search(manifest, strlist_item(packages, i))) == NULL) {
+            if ((match = manifestlist_search(mf, strlist_item(packages, i))) == NULL) {
                 fprintf(SYSERROR);
                 runtime_free(rt);
                 exit(1);
             }
+
             package = join((char *[]) {SPM_GLOBAL.package_dir, match->archive, NULL}, DIRSEPS);
 
             // If the package was installed as a requirement of another dependency, skip it
@@ -289,7 +288,6 @@ int main(int argc, char *argv[], char *arge[]) {
     }
 
     if (RUNTIME_SEARCH || RUNTIME_LIST) {
-        Manifest *info = manifest_read(NULL);
         char name[255];
         char op[25];
         char ver[255];
@@ -337,27 +335,30 @@ int main(int argc, char *argv[], char *arge[]) {
         putchar('#');
         print_banner("-", banner_size);
 
-        if (RUNTIME_SEARCH) {
-            ManifestPackage **package = find_by_spec(info, name, op, ver);
-            for (int p = 0; package[p] != NULL; p++) {
-                char *package_hsize = human_readable_size(package[p]->size);
-                printf("  %-20s %-20s %-20s %-20s\n", package[p]->name, package[p]->version, package[p]->revision, package_hsize);
-                free(package_hsize);
+        for (size_t m = 0; m < manifestlist_count(mf); m++) {
+            Manifest *info = manifestlist_item(mf, m);
+            if (RUNTIME_SEARCH) {
+                ManifestPackage **package = find_by_spec(info, name, op, ver);
+                for (int p = 0; package[p] != NULL; p++) {
+                    char *package_hsize = human_readable_size(package[p]->size);
+                    printf("  %-20s %-20s %-20s %-20s\n", package[p]->name, package[p]->version, package[p]->revision,
+                           package_hsize);
+                    free(package_hsize);
+                }
+            } else if (RUNTIME_LIST) {
+                for (size_t p = 0; p < info->records; p++) {
+                    char *package_hsize = human_readable_size(info->packages[p]->size);
+                    printf("  %-20s %-20s %-20s %-20s\n", info->packages[p]->name, info->packages[p]->version,
+                           info->packages[p]->revision, package_hsize);
+                    free(package_hsize);
+                }
             }
         }
-        else if(RUNTIME_LIST) {
-            for (size_t p = 0; p < info->records; p++) {
-                char *package_hsize = human_readable_size(info->packages[p]->size);
-                printf("  %-20s %-20s %-20s %-20s\n", info->packages[p]->name, info->packages[p]->version, info->packages[p]->revision, package_hsize);
-                free(package_hsize);
-            }
-        }
-
-        manifest_free(info);
     }
 
     runtime_free(rt);
     free_global_config();
     strlist_free(packages);
+    manifestlist_free(mf);
     return 0;
 }

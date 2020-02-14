@@ -310,6 +310,7 @@ int manifest_validate(void) {
     }
     return problems;
 }
+
 /**
  * Read the package manifest stored in the configuration directory
  * @return `Manifest` structure
@@ -496,6 +497,97 @@ ManifestPackage *manifest_package_copy(ManifestPackage *manifest) {
     return result;
 }
 
-int manifest_merge(Manifest *a, Manifest *b) {
-
+/**
+ *
+ * @param ManifestList `pManifestList`
+ */
+void manifestlist_free(ManifestList *pManifestList) {
+    for (size_t i = 0; i < pManifestList->num_inuse; i++) {
+        manifest_free(pManifestList->data[i]);
+    }
+    free(pManifestList->data);
+    free(pManifestList);
 }
+
+/**
+ * Append a value to the list
+ * @param ManifestList `pManifestList`
+ * @param str
+ */
+void manifestlist_append(ManifestList *pManifestList, char *path) {
+    Manifest **tmp = realloc(pManifestList->data, (pManifestList->num_alloc + 1) * sizeof(Manifest *));
+    if (tmp == NULL) {
+        manifestlist_free(pManifestList);
+        perror("failed to append to array");
+        exit(1);
+    }
+    pManifestList->data = tmp;
+    pManifestList->data[pManifestList->num_inuse] = manifest_read(path);
+    pManifestList->num_inuse++;
+    pManifestList->num_alloc++;
+}
+
+ManifestPackage *manifestlist_search(ManifestList *pManifestList, const char *_package) {
+    ManifestPackage *result = NULL;
+    for (size_t i = 0; i < manifestlist_count(pManifestList); i++) {
+        result = manifest_search(manifestlist_item(pManifestList, i), _package);
+    }
+    return result;
+}
+
+/**
+ * Get the count of values stored in a `pManifestList`
+ * @param ManifestList
+ * @return
+ */
+size_t manifestlist_count(ManifestList *pManifestList) {
+    return pManifestList->num_inuse;
+}
+
+/**
+ * Set value at index
+ * @param ManifestList
+ * @param value string
+ * @return
+ */
+void manifestlist_set(ManifestList *pManifestList, size_t index, Manifest *value) {
+    Manifest *item = NULL;
+    if (index > manifestlist_count(pManifestList)) {
+        return;
+    }
+    if ((item = manifestlist_item(pManifestList, index)) == NULL) {
+        return;
+    }
+    memcpy(pManifestList->data[index], value, sizeof(Manifest));
+}
+
+/**
+ * Retrieve data from a `pManifestList`
+ * @param ManifestList
+ * @param index
+ * @return string
+ */
+Manifest *manifestlist_item(ManifestList *pManifestList, size_t index) {
+    if (index > manifestlist_count(pManifestList)) {
+        return NULL;
+    }
+    return pManifestList->data[index];
+}
+
+/**
+ * Initialize an empty `pManifestList`
+ * @return `pManifestList`
+ */
+ManifestList *manifestlist_init() {
+    ManifestList *pManifestList = calloc(1, sizeof(ManifestList));
+    if (pManifestList == NULL) {
+        perror("failed to allocate array");
+        exit(errno);
+    }
+    pManifestList->num_inuse = 0;
+    pManifestList->num_alloc = 1;
+    pManifestList->data = calloc(pManifestList->num_alloc, sizeof(char *));
+    return pManifestList;
+}
+
+

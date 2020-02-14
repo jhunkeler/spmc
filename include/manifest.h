@@ -33,6 +33,12 @@ typedef struct {
     char origin[PACKAGE_MEMBER_ORIGIN_SIZE];
 } Manifest;
 
+typedef struct {
+    size_t num_inuse;
+    size_t num_alloc;
+    Manifest **data;
+} ManifestList;
+
 int fetch(const char *url, const char *dest);
 void manifest_package_separator_swap(char **name);
 void manifest_package_separator_restore(char **name);
@@ -45,4 +51,11 @@ ManifestPackage *manifest_search(Manifest *info, const char *package);
 ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec);
 ManifestPackage *manifest_package_copy(ManifestPackage *manifest);
 
+ManifestList *manifestlist_init();
+Manifest *manifestlist_item(ManifestList *pManifestList, size_t index);
+void manifestlist_set(ManifestList *pManifestList, size_t index, Manifest *manifest);
+ManifestPackage *manifestlist_search(ManifestList *pManifestList, const char *_package);
+size_t manifestlist_count(ManifestList *pManifestList);
+void manifestlist_append(ManifestList *pManifestList, char* path);
+void manifestlist_free(ManifestList *pManifestList);
 #endif //SPM_MANIFEST_H
