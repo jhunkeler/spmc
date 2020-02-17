@@ -3,6 +3,8 @@
  */
 #include "spm.h"
 
+extern const char *METADATA_FILES[];
+
 /**
  * SPM packages contain metadata files that are not useful post-install and would amount to a lot of clutter.
  * This function removes these data files from a directory tree
@@ -10,23 +12,15 @@
  * @return success=0, error=-1
  */
 int metadata_remove(const char *_path) {
-    char *metadata[] = {
-            SPM_META_DEPENDS,
-            SPM_META_PREFIX_BIN,
-            SPM_META_PREFIX_TEXT,
-            SPM_META_MANIFEST,
-            NULL,
-    };
-
     if (exists(_path) != 0) {
         perror(_path);
         fprintf(SYSERROR);
         return -1;
     }
 
-    for (int i = 0; metadata[i] != NULL; i++) {
+    for (int i = 0; METADATA_FILES[i] != NULL; i++) {
         char path[PATH_MAX];
-        sprintf(path, "%s%c%s", _path, DIRSEP, metadata[i]);
+        sprintf(path, "%s%c%s", _path, DIRSEP, METADATA_FILES[i]);
         if (exists(path) != 0) {
             continue;
         }
@@ -71,6 +65,7 @@ int install(const char *destroot, const char *_package) {
     if (!suffix) {
         perror("suffix");
         fprintf(SYSERROR);
+        return -1;
     }
     strcpy(suffix, "spm_destroot_XXXXXX");
     snprintf(template, PATH_MAX, "%s%c%s", TMP_DIR, DIRSEP, suffix);
@@ -87,7 +82,10 @@ int install(const char *destroot, const char *_package) {
     if (SPM_GLOBAL.verbose) {
         printf("Extracting archive: %s\n", package);
     }
-    tar_extract_archive(package, tmpdir);
+    if (tar_extract_archive(package, tmpdir) != 0) {
+        fprintf(stderr, "%s: %s\n", package, strerror(errno));
+        return -1;
+    }
 
     // Relocate temporary directory
     relocate_root(destroot, tmpdir);

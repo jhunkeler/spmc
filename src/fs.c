@@ -13,7 +13,14 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
     FTSENT *node = NULL;
     FSTree *fsdata = NULL;
     int no_filter = 0;
-    char *path = realpath(_path, NULL);
+    char *path = NULL;
+
+    if (filter_mode & SPM_FSTREE_FLT_RELATIVE) {
+        path = strdup(_path);
+    } else {
+        path = realpath(_path, NULL);
+    }
+
     if (path == NULL) {
         perror(_path);
         fprintf(SYSERROR);
@@ -326,9 +333,9 @@ int rsync(const char *_args, const char *_source, const char *_destination) {
         strcat(args_combined, _args);
     }
 
-    strchrdel(args_combined, "&;|");
-    strchrdel(source, "&;|");
-    strchrdel(destination, "&;|");
+    strchrdel(args_combined, SHELL_INVALID);
+    strchrdel(source, SHELL_INVALID);
+    strchrdel(destination, SHELL_INVALID);
 
     snprintf(cmd, PATH_MAX, "rsync %s \"%s\" \"%s\" 2>&1", args_combined, source, destination);
     shell(&proc, SHELL_OUTPUT, cmd);

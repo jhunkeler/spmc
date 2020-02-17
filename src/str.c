@@ -53,9 +53,11 @@ int endswith(const char *sptr, const char *pattern) {
     size_t pattern_size = strlen(pattern);
     for (size_t s = sptr_size - pattern_size, p = 0 ; s < sptr_size; s++, p++) {
         if (sptr[s] != pattern[p]) {
+            // sptr does not end with pattern
             return 1;
         }
     }
+    // sptr ends with pattern
     return 0;
 }
 
@@ -452,7 +454,7 @@ char *lstrip(char *sptr) {
  */
 char *strip(char *sptr) {
     size_t len = strlen(sptr) - 1;
-    if (len < 1) {
+    if (len < 1 && isblank(*sptr)) {
         *sptr = '\0';
         return sptr;
     }

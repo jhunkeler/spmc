@@ -20,7 +20,7 @@ Process *file_command(const char *_filename) {
     const char *fmt_cmd = "file -E -i \"%s\" 2>&1";
 #endif
 
-    strchrdel(filename, "&;|");
+    strchrdel(filename, SHELL_INVALID);
     sprintf(sh_cmd, fmt_cmd, filename);
     shell(&proc_info, SHELL_OUTPUT, sh_cmd);
 

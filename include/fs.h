@@ -5,6 +5,7 @@
 #define SPM_FSTREE_FLT_CONTAINS 1 << 1
 #define SPM_FSTREE_FLT_ENDSWITH 1 << 2
 #define SPM_FSTREE_FLT_STARTSWITH 1 << 3
+#define SPM_FSTREE_FLT_RELATIVE 1 << 4
 
 typedef struct {
     char *root;

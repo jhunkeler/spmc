@@ -16,8 +16,8 @@ Process *patchelf(const char *_filename, const char *_args) {
     char sh_cmd[PATH_MAX];
     sh_cmd[0] = '\0';
 
-    strchrdel(args, "&;|");
-    strchrdel(filename, "&;|");
+    strchrdel(args, SHELL_INVALID);
+    strchrdel(filename, SHELL_INVALID);
     sprintf(sh_cmd, "patchelf %s %s 2>&1", args, filename);
 
     shell(&proc_info, SHELL_OUTPUT, sh_cmd);
@@ -44,7 +44,7 @@ int has_rpath(const char *_filename) {
     }
 
     // sanitize input path
-    strchrdel(filename, "&;|");
+    strchrdel(filename, SHELL_INVALID);
 
     Process *pe = patchelf(filename, "--print-rpath");
     strip(pe->output);
@@ -87,7 +87,7 @@ char *rpath_get(const char *_filename) {
     char *rpath = NULL;
 
     // sanitize input path
-    strchrdel(path, "&;|");
+    strchrdel(path, SHELL_INVALID);
 
     Process *pe = patchelf(filename, "--print-rpath");
     if (pe->returncode != 0) {

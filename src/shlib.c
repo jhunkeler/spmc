@@ -14,7 +14,7 @@ char *shlib_deps_objdump(const char *_filename) {
         return NULL;
     }
 
-    strchrdel(filename, "&;|");
+    strchrdel(filename, SHELL_INVALID);
     snprintf(cmd, sizeof(cmd), "%s %s '%s'", "objdump", "-p", filename);
     shell(&proc, SHELL_OUTPUT, cmd);
 

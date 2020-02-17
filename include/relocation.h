@@ -16,6 +16,6 @@ int file_replace_text(char *filename, const char *spattern, const char *sreplace
 RelocationEntry **prefixes_read(const char *filename);
 void prefixes_free(RelocationEntry **entry);
 int prefixes_write(const char *output_file, int mode, char **prefix, const char *tree);
-
+int file_is_metadata(const char *path);
 
 #endif //SPM_RELOCATION_H

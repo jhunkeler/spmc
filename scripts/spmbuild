@@ -75,7 +75,7 @@ function spm_build_initialize_stage1() {
         fi
     fi
 
-    export SPM_BUILD_STORE_PACKAGES="${SPM_BUILD_STORE}/pkgs/${SPM_BUILD_SYS_TARGET}"
+    export SPM_BUILD_STORE_PACKAGES="${SPM_BUILD_STORE}/pkgs"
     if [[ ! -d ${SPM_BUILD_STORE_PACKAGES} ]]; then
         mkdir -p "${SPM_BUILD_STORE_PACKAGES}"
         if [[ $? != 0 ]]; then
@@ -104,9 +104,10 @@ function spm_build_initialize_stage2() {
     unset LDFLAGS
     unset FCFLAGS
 
-    export _SPM_BUILD_ROOT_TEMPLATE="spmbuild_root_XXXXXX"
+    # All templates strings MUST be the same length to allow for proper relocation
+    export _SPM_BUILD_ROOT_TEMPLATE="spmbuild_root_XXXXXXXXX"
     export _SPM_BUILD_RUNTIME_TEMPLATE="spmbuild_runtime_XXXXXX"
-    export _SPM_BUILD_PKGDIR_TEMPLATE="spmbuild_pkgdir_XXXXXX"
+    export _SPM_BUILD_PKGDIR_TEMPLATE="spmbuild_pkgdir_XXXXXXX"
 
     export SPM_BUILD_ROOT_BASE=$(mktemp -d -t "${_SPM_BUILD_ROOT_TEMPLATE}")
     export SPM_BUILD_ROOT="${SPM_BUILD_ROOT_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
@@ -127,17 +128,19 @@ function spm_build_initialize_stage2() {
         exit 1
     fi
 
-    # _pkgdir does not need a placeholder prefix
     export SPM_BUILD_PKGDIR_BASE=$(mktemp -d -t "${_SPM_BUILD_PKGDIR_TEMPLATE}")
-    export SPM_BUILD_PKGDIR="${SPM_BUILD_PKGDIR_BASE}"
+    export SPM_BUILD_PKGDIR="${SPM_BUILD_PKGDIR_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
     export _pkgdir="${SPM_BUILD_PKGDIR}"
+
+    mkdir -p "${SPM_BUILD_PKGDIR}"
     if [[ ! -d ${SPM_BUILD_PKGDIR} ]]; then
         msg_error "SPM_BUILD_PKGDIR creation failed: ${SPM_BUILD_PKGDIR}"
         exit 1
     fi
 
     # _prefix is a not a real path. do not create it!
-    export SPM_BUILD_PREFIX="/${SPM_META_PREFIX_PLACEHOLDER}"
+    # _prefix is double-wide
+    export SPM_BUILD_PREFIX="/${SPM_META_PREFIX_PLACEHOLDER}${SPM_META_PREFIX_PLACEHOLDER}"
     export _prefix="${SPM_BUILD_PREFIX}"
 
     export SPM_BUILD_CRUMBS="${SPM_BUILD_PREFIX} ${SPM_BUILD_ROOT} ${SPM_BUILD_RUNTIME} ${SPM_BUILD_PKGDIR}"
@@ -153,13 +156,14 @@ function spm_build_initialize_stage2() {
 }
 
 function spm_build_cleanup() {
+    #:
     [[ -d ${SPM_BUILD_ROOT_BASE} ]] && rm -rf ${SPM_BUILD_ROOT_BASE}
     [[ -d ${SPM_BUILD_RUNTIME_BASE} ]] && rm -rf ${SPM_BUILD_RUNTIME_BASE}
     [[ -d ${SPM_BUILD_PKGDIR_BASE} ]] && rm -rf ${SPM_BUILD_PKGDIR_BASE}
 }
 
 function spm_build_install() {
-    ${SPM} --manifest "${SPM_BUILD_STORE_PACKAGES}/manifest.dat" --install $@ --root "${SPM_BUILD_RUNTIME}"
+    ${SPM} --verbose --manifest "${SPM_BUILD_STORE_PACKAGES}" --install $@ --root "${SPM_BUILD_RUNTIME}"
 }
 
 function spm_build_mkprefixbin() {
@@ -217,7 +221,7 @@ function spm_build_fetch() {
 
     pushd ${tmpdir}
         # file already exists?
-        if [[ -f ${2}/$(basename ${1}) ]]; then
+        if [[ -f "${2}/$(basename ${1})" ]]; then
             return
         fi
 
@@ -240,12 +244,17 @@ function spm_build_do_sources() {
 
 function spm_build_mkdepends() {
     local filename="${1}"
-    local deps=($@)
+    shift
+    local deps=("$@")
 
     touch "${filename}"
     for dep in "${deps[@]}"; do
         echo "${dep}" >> "${filename}"
     done
+}
+
+function spm_build_filelist() {
+    :
 }
 
 function prepare() {
@@ -265,14 +274,35 @@ function package() {
 
 function spm_build_do_stage_prepare() {
     prepare
+    set +x
 }
 
 function spm_build_do_stage_build() {
     build
+    set +x
 }
 
 function spm_build_do_stage_package() {
     package
+    set +x
+}
+
+function spm_build_do_stage_archive() {
+    local archive="${1}"
+
+    pushd "${SPM_BUILD_PKGDIR}"
+        # Enter the "prefix" (i.e. strip off the leading slash)
+        pushd "${SPM_BUILD_PREFIX#\/}"
+            msg2 "Recording binary prefixes..."
+            spm_build_mkprefixbin "${SPM_META_PREFIX_BIN}" . ${SPM_BUILD_CRUMBS}
+            msg2 "Recording text prefixes..."
+            spm_build_mkprefixtext "${SPM_META_PREFIX_TEXT}" . ${SPM_BUILD_CRUMBS}
+            msg2 "Recording dependencies..."
+            spm_build_mkdepends "${SPM_META_DEPENDS}" "${depends[@]}"
+            msg2 "Archiving files..."
+            tar cfz "${archive}" .
+        popd
+    popd
 }
 
 # -- main --
@@ -294,6 +324,11 @@ spm_build_initialize_stage2  # post-runtime activation
 msg2 "Sourcing build script..."
 source "${SPM_BUILD_SCRIPT_ROOT}/${SPM_BUILD_SCRIPT}"
 
+# Declare package metadata we need at this level
+package_name="${name}-${version}-${revision}"
+package_archive="${package_name}$(spm_build_get_package_ext)"
+package_final="${SPM_BUILD_STORE_PACKAGES}/${SPM_BUILD_SYS_TARGET}/${package_archive}"
+
 msg2 "Downloading source files..."
 spm_build_do_sources "${package_name}"
 
@@ -301,20 +336,24 @@ msg3 "Copying source files..."
 rsync -avi "${SPM_BUILD_STORE_SOURCES}/${package_name}/" "${SPM_BUILD_ROOT}"
 rsync -avi --exclude "${SPM_BUILD_SCRIPT}" "${SPM_BUILD_SCRIPT_ROOT}/" "${SPM_BUILD_ROOT}"
 
-package_name="${name}-${version}-${revision}"
-package_archive="${package_name}$(spm_build_get_package_ext)"
+ls -l "${SPM_BUILD_ROOT}"
 
-msg "Building ${package_name}"
+msg "Environment data"
+printenv | grep -E '^SPM_' | sort
 
+msg "Processing ${package_name}"
+
+set -e
 if [[ ${#build_depends[@]} != 0 ]]; then
+    msg2 "Installing build dependencies"
     spm_build_install "${build_depends[@]}"
 fi
 
-if [[ ${#deps[@]} != 0 ]]; then
-    spm_build_install "${deps[@]}"
+if [[ ${#depends[@]} != 0 ]]; then
+    msg2 "Installing runtime dependencies"
+    spm_build_install "${depends[@]}"
 fi
 
-set -e
 pushd "${SPM_BUILD_ROOT}"
     msg2 "prepare()"
     spm_build_do_stage_prepare
@@ -324,20 +363,12 @@ pushd "${SPM_BUILD_ROOT}"
     spm_build_do_stage_package
 popd
 
-package_final="${SPM_BUILD_STORE_PACKAGES}/${package_archive}"
-msg "Generating package: ${package_final}"
-pushd "${SPM_BUILD_PKGDIR}"
-    pushd "${SPM_META_PREFIX_PLACEHOLDER}"
-        spm_build_mkprefixbin "${SPM_META_PREFIX_BIN}" . ${SPM_BUILD_CRUMBS}
-        spm_build_mkprefixtext "${SPM_META_PREFIX_TEXT}" . ${SPM_BUILD_CRUMBS}
-        spm_build_mkdepends "${SPM_META_DEPENDS}" "${depends[@]}"
-        tar cfz "${package_final}" .
-    popd
-popd
-set +e
 
-msg2 "Updating build manifest:"
+msg "Create package: ${package_final}"
+spm_build_do_stage_archive "${package_final}"
+
+msg "Update manifest:"
 spm_build_mkmanifest "${SPM_BUILD_STORE_PACKAGES}" "${SPM_BUILD_STORE_PACKAGES}"
 
-msg "Cleaning up..."
+msg "Clean"
 spm_build_cleanup

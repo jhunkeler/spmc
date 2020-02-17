@@ -31,9 +31,9 @@ int tar_extract_file(const char *_archive, const char* _filename, const char *_d
         return -1;
     }
 
-    strchrdel(archive, "&;|");
-    strchrdel(destination, "&;|");
-    strchrdel(filename, "&;|");
+    strchrdel(archive, SHELL_INVALID);
+    strchrdel(destination, SHELL_INVALID);
+    strchrdel(filename, SHELL_INVALID);
 
     sprintf(cmd, "tar xf \"%s\" -C \"%s\" \"%s\" 2>&1", archive, destination, filename);
     if (exists(archive) != 0) {
@@ -69,7 +69,7 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     char cmd[PATH_MAX];
 
     if (exists(_archive) != 0) {
-        fprintf(SYSERROR);
+        //fprintf(SYSERROR);
         return -1;
     }
 
@@ -85,9 +85,9 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     }
 
     // sanitize archive
-    strchrdel(archive, "&;|");
+    strchrdel(archive, SHELL_INVALID);
     // sanitize destination
-    strchrdel(destination, "&;|");
+    strchrdel(destination, SHELL_INVALID);
 
     sprintf(cmd, "tar xf %s -C %s 2>&1", archive, destination);
     shell(&proc, SHELL_OUTPUT, cmd);

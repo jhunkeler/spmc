@@ -3,6 +3,14 @@
  */
 #include "spm.h"
 
+const char *METADATA_FILES[] = {
+        SPM_META_DEPENDS,
+        SPM_META_PREFIX_BIN,
+        SPM_META_PREFIX_TEXT,
+        SPM_META_MANIFEST,
+        NULL,
+};
+
 /**
  * Replace all occurrences of `spattern` with `sreplacement` in `data`
  *
@@ -26,7 +34,7 @@ int replace_text(char *data, const char *spattern, const char *sreplacement) {
     size_t sreplacement_len = strlen(sreplacement);
 
     if (sreplacement_len > spattern_len) {
-        fprintf(stderr, "replacement string too long\n");
+        fprintf(stderr, "replacement string too long: %zu > %zu\n  '%s'\n  '%s'\n", sreplacement_len, spattern_len, sreplacement, spattern);
         return -1;
     }
 
@@ -134,10 +142,11 @@ RelocationEntry **prefixes_read(const char *filename) {
     }
     RelocationEntry **entry = NULL;
     char line[BUFSIZ];
-    memset(line, '\0', BUFSIZ);
+    char *lptr = line;
+    memset(lptr, '\0', BUFSIZ);
 
-    while (fgets(line, BUFSIZ, fp) != NULL) {
-        if (isempty(line)) {
+    while (fgets(lptr, BUFSIZ, fp) != NULL) {
+        if (isempty(lptr)) {
             continue;
         }
         record_count++;
@@ -170,11 +179,11 @@ RelocationEntry **prefixes_read(const char *filename) {
     int do_prefix = 0;
     int do_path = 0;
     size_t i = 0;
-    while (fgets(line, BUFSIZ, fp) != NULL) {
-        if (isempty(line)) {
+    while (fgets(lptr, BUFSIZ, fp) != NULL) {
+        if (isempty(lptr)) {
             continue;
         }
-        if (startswith(line, "#") == 0) {
+        if (startswith(lptr, "#") == 0) {
             do_prefix = 1;
         }
         else {
@@ -190,12 +199,12 @@ RelocationEntry **prefixes_read(const char *filename) {
 
         if (do_prefix) {
             // Populate prefix data (a prefix starts with a #)
-            entry[i]->prefix = (char *) calloc(strlen(line) + 1, sizeof(char));
+            entry[i]->prefix = (char *) calloc(strlen(lptr) + 1, sizeof(char));
             if (!entry[i]->prefix) {
                 fclose(fp);
                 return NULL;
             }
-            strncpy(entry[i]->prefix, line, strlen(line));
+            strncpy(entry[i]->prefix, lptr, strlen(lptr));
             // Remove prefix delimiter and whitespace
             strchrdel(entry[i]->prefix, "#");
             entry[i]->prefix = strip(entry[i]->prefix);
@@ -205,12 +214,12 @@ RelocationEntry **prefixes_read(const char *filename) {
 
         else if (do_path) {
             // Populate path data
-            entry[i]->path = (char *) calloc(strlen(line) + 1, sizeof(char));
+            entry[i]->path = (char *) calloc(strlen(lptr) + 1, sizeof(char));
             if (!entry[i]->path) {
                 fclose(fp);
                 return NULL;
             }
-            strncpy(entry[i]->path, line, strlen(line));
+            strncpy(entry[i]->path, lptr, strlen(lptr));
             entry[i]->path = strip(entry[i]->path);
             do_path = 0;
         }
@@ -218,6 +227,35 @@ RelocationEntry **prefixes_read(const char *filename) {
     }
     fclose(fp);
     return entry;
+}
+
+/**
+ * Determine if `filename` is a SPM metadata file
+ *
+ * Example:
+ *
+ * ~~~{.c}
+ * #include "spm.h"
+ *
+ * int main() {
+ *     if (file_is_metadata("./.SPM_DEPENDS")) {
+ *         // file is metadata
+ *     } else {
+ *         // file is not metadata
+ *     }
+ * }
+ * ~~~
+ *
+ * @param filename
+ * @return 0=no, 1=yes
+ */
+int file_is_metadata(const char *filename) {
+    for (size_t i = 0; METADATA_FILES[i] != NULL; i++) {
+        if (strstr(filename, METADATA_FILES[i]) != NULL) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /**
@@ -253,30 +291,39 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
         return -1;
     }
 
-    FSTree *fsdata = fstree(tree, NULL, SPM_FSTREE_FLT_NONE);
-    if (!fsdata) {
-        fclose(fp);
-        fprintf(SYSERROR);
-        return -1;
-    }
-    for (size_t i = 0; i < fsdata->files_length; i++) {
-        for (int p = 0; prefix[p] != NULL; p++) {
-            if (find_in_file(fsdata->files[i], prefix[p]) == 0) {
-                int proceed = 0;
-                if (mode == PREFIX_WRITE_BIN) {
-                    proceed = file_is_binary(fsdata->files[i]);
-                } else if (mode == PREFIX_WRITE_TEXT) {
-                    proceed = file_is_text(fsdata->files[i]);
-                }
+    char *cwd = getcwd(NULL, PATH_MAX);
+    chdir(tree);
+    {
+        FSTree *fsdata = fstree(".", NULL, SPM_FSTREE_FLT_RELATIVE);
+        if (!fsdata) {
+            fclose(fp);
+            fprintf(SYSERROR);
+            return -1;
+        }
+        for (size_t i = 0; i < fsdata->files_length; i++) {
+            if (file_is_metadata(fsdata->files[i])) {
+                continue;
+            }
+            for (int p = 0; prefix[p] != NULL; p++) {
+                if (find_in_file(fsdata->files[i], prefix[p]) == 0) {
+                    int proceed = 0;
+                    if (mode == PREFIX_WRITE_BIN) {
+                        proceed = file_is_binary(fsdata->files[i]);
+                    } else if (mode == PREFIX_WRITE_TEXT) {
+                        proceed = file_is_text(fsdata->files[i]);
+                    }
 
-                if (!proceed) {
-                    continue;
+                    // file_is_* functions return NULL when they encounter anything but a regular file
+                    if (!proceed) {
+                        continue;
+                    }
+                    // Record in file
+                    fprintf(fp, "#%s\n%s\n", prefix[p], fsdata->files[i]);
                 }
-
-                fprintf(fp, "#%s\n%s\n", prefix[p], fsdata->files[i]);
             }
         }
-    }
+    } chdir(cwd);
+    free(cwd);
     fclose(fp);
     return 0;
 }
@@ -297,9 +344,9 @@ int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     char cmd[PATH_MAX];
 
     // sanitize command
-    strchrdel(oldstr, "&;|");
-    strchrdel(newstr, "&;|");
-    strchrdel(filename, "&;|");
+    strchrdel(oldstr, SHELL_INVALID);
+    strchrdel(newstr, SHELL_INVALID);
+    strchrdel(filename, SHELL_INVALID);
 
     memset(cmd, '\0', sizeof(cmd));
     sprintf(cmd, "reloc \"%s\" \"%s\" \"%s\" \"%s\" 2>&1", oldstr, newstr, filename, filename);

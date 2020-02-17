@@ -100,24 +100,15 @@ void mkmanifest_interface_usage(void) {
  * @return value of `manifest_write`
  */
 int mkmanifest_interface(int argc, char **argv) {
-    if (argc < 1 || argc > 3) {
+    if (argc < 2) {
         mkmanifest_interface_usage();
         return -1;
     }
     Manifest *manifest = NULL;
     int result = 0;
     char *pkgdir = NULL;
-    char path[PATH_MAX];
-    memset(path, '\0', PATH_MAX);
 
-    if (argc < 3) {
-        pkgdir = SPM_GLOBAL.package_dir;
-        strcpy(path, SPM_MANIFEST_FILENAME);
-    }
-    else {
-        pkgdir = argv[1];
-        strcpy(path, argv[2]);
-    }
+    pkgdir = argv[1];
 
     if (exists(pkgdir) != 0) {
         return -1;
@@ -128,7 +119,7 @@ int mkmanifest_interface(int argc, char **argv) {
         return -2;
     }
 
-    result = manifest_write(manifest, path);
+    result = manifest_write(manifest, pkgdir);
     if (result != 0) {
         manifest_free(manifest);
         return -3;

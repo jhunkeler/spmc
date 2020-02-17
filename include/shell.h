@@ -1,6 +1,7 @@
 #ifndef SPM_SHELL_H
 #define SPM_SHELL_H
 
+#define SHELL_INVALID "&;|"
 #define SHELL_DEFAULT 1 << 0
 #define SHELL_OUTPUT 1 << 1
 #define SHELL_BENCHMARK 1 << 2

@@ -52,6 +52,8 @@ Manifest *manifest_from(const char *package_dir) {
     }
 
     printf("Initializing package manifest:\n");
+    strncpy(info->origin, package_dir, PACKAGE_MEMBER_ORIGIN_SIZE);
+
     for (size_t i = 0; i < fsdata->files_length; i++) {
         float percent = (((float)i + 1) / fsdata->files_length) * 100;
         printf("[%3.0f%%] %s\n", percent, basename(fsdata->files[i]));
@@ -101,6 +103,7 @@ Manifest *manifest_from(const char *package_dir) {
 
         // Populate `ManifestPackage` record
         info->packages[i]->size = (size_t) get_file_size(fsdata->files[i]);
+        strncpy(info->packages[i]->origin, info->origin, PACKAGE_MEMBER_ORIGIN_SIZE);
         strncpy(info->packages[i]->archive, basename(fsdata->files[i]), PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->name, basename(parts[0]), PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->version, parts[1], PACKAGE_MEMBER_SIZE);
@@ -139,27 +142,33 @@ void manifest_package_free(ManifestPackage *info) {
 /**
  * Write a `Manifest` to the configuration directory
  * @param info
- * @param outfile
+ * @param pkgdir
  * @return
  */
-int manifest_write(Manifest *info, const char *outfile) {
+int manifest_write(Manifest *info, const char *pkgdir) {
     char *reqs = NULL;
     char path[PATH_MAX];
+    char path_manifest[PATH_MAX];
+
     memset(path, '\0', sizeof(path));
+    memset(path_manifest, '\0', sizeof(path));
 
-    if (outfile == NULL) {
-        strcpy(path, SPM_GLOBAL.package_manifest);
-    }
-    else {
-        strcpy(path, outfile);
-    }
+    strcpy(path, pkgdir);
 
-    if (endswith(path, SPM_MANIFEST_FILENAME) != 0) {
+    // Append the repo target if its missing
+    if (strstr(path, SPM_GLOBAL.repo_target) == NULL) {
         strcat(path, DIRSEPS);
-        strcat(path, SPM_MANIFEST_FILENAME);
+        strcat(path, SPM_GLOBAL.repo_target);
+    }
+    strcpy(path_manifest, path);
+
+    // Append the manifest filename if its missing
+    if (endswith(path_manifest, SPM_MANIFEST_FILENAME) != 0) {
+        strcat(path_manifest, DIRSEPS);
+        strcat(path_manifest, SPM_MANIFEST_FILENAME);
     }
 
-    FILE *fp = fopen(path, "w+");
+    FILE *fp = fopen(path_manifest, "w+");
 #ifdef _DEBUG
     if (SPM_GLOBAL.verbose) {
         for (size_t i = 0; i < info->records; i++) {
@@ -184,7 +193,7 @@ int manifest_write(Manifest *info, const char *outfile) {
     }
 #endif
 
-    printf("Generating manifest file: %s\n", path);
+    printf("Generating manifest file: %s\n", path_manifest);
     fprintf(fp, "%s\n", SPM_MANIFEST_HEADER);
     char data[BUFSIZ];
     for (size_t i = 0; i < info->records; i++) {
@@ -196,7 +205,7 @@ int manifest_write(Manifest *info, const char *outfile) {
             printf("[%3.0f%%] %s\n", percent, info->packages[i]->archive);
         }
         reqs = join(info->packages[i]->requirements, ",");
-        char *archive = join((char *[]) {SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, info->packages[i]->archive, NULL}, DIRSEPS);
+        char *archive = join((char *[]) {path, info->packages[i]->archive, NULL}, DIRSEPS);
         char *checksum_sha256 = sha256sum(archive);
 
         sprintf(dptr, "%s|" // archive
@@ -447,6 +456,7 @@ Manifest *manifest_read(char *file_or_url) {
     }
 
     if (tmpdir != NULL) {
+        rmdirs(tmpdir);
         free(tmpdir);
     }
     fclose(fp);
@@ -484,6 +494,10 @@ ManifestPackage *manifest_search(Manifest *info, const char *_package) {
  * @return `ManifestPackage`
  */
 ManifestPackage *manifest_package_copy(ManifestPackage *manifest) {
+    if (manifest == NULL) {
+        return NULL;
+    }
+
     ManifestPackage *result = calloc(1, sizeof(ManifestPackage));
     memcpy(result, manifest, sizeof(ManifestPackage));
 
