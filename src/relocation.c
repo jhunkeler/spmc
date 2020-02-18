@@ -361,7 +361,7 @@ int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
 
     returncode = proc->returncode;
     if (returncode != 0 && proc->output) {
-        fprintf(stderr, proc->output);
+        fprintf(stderr, "%s\n", proc->output);
     }
 
     shell_free(proc);

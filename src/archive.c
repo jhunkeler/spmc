@@ -50,7 +50,7 @@ int tar_extract_file(const char *_archive, const char* _filename, const char *_d
 
     status = proc->returncode;
     if (status != 0) {
-        fprintf(stderr, proc->output);
+        fprintf(stderr, "%s\n", proc->output);
     }
 
     shell_free(proc);
