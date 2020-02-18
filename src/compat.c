@@ -14,3 +14,10 @@ char *strsep(char **sp, char *sep)
     return(s);
 }
 #endif
+
+#ifndef HAVE_REALLOCARRAY
+#include <stdlib.h>
+void *reallocarray (void *__ptr, size_t __nmemb, size_t __size) {
+    return realloc(__ptr, __nmemb * __size);
+}
+#endif

@@ -92,4 +92,9 @@ _1________________________________________________"
 // GLOBALS
 spm_vars SPM_GLOBAL;
 
+#ifdef __APPLE__
+extern char **environ;
+#define __environ environ
+#endif
+
 #endif //SPM_SPM_H
