@@ -37,8 +37,16 @@ void manifest_package_separator_restore(char **name) {
  */
 Manifest *manifest_from(const char *package_dir) {
     char *package_filter[] = {SPM_PACKAGE_EXTENSION, NULL}; // We only want packages
+    char *template = NULL;
     FSTree *fsdata = NULL;
     fsdata = fstree(package_dir, package_filter, SPM_FSTREE_FLT_ENDSWITH);
+
+    template = join((char *[]) {TMP_DIR, "spm_manifest_from_XXXXXX", NULL}, DIRSEPS);
+    if (!template) {
+        perror("Failed to allocate template string");
+        fprintf(SYSERROR);
+        return NULL;
+    }
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->records = fsdata->files_length;
@@ -54,40 +62,29 @@ Manifest *manifest_from(const char *package_dir) {
     printf("Initializing package manifest:\n");
     strncpy(info->origin, package_dir, PACKAGE_MEMBER_ORIGIN_SIZE);
 
+
+    char *tmpdir = mkdtemp(template);
+    if (exists(tmpdir) != 0) {
+        perror("temporary directory creation failed");
+        fprintf(SYSERROR);
+        free(info);
+        fstree_free(fsdata);
+        return NULL;
+    }
+
     for (size_t i = 0; i < fsdata->files_length; i++) {
         float percent = (((float)i + 1) / fsdata->files_length) * 100;
         printf("[%3.0f%%] %s\n", percent, basename(fsdata->files[i]));
-        Dependencies *deps = NULL;
-        dep_init(&deps);
-        if (dep_all(&deps, basename(fsdata->files[i])) < 0) {
-            dep_free(&deps);
-            fprintf(stderr, "%s: dependency not found\n", fsdata->files[i]);
-            fprintf(SYSERROR);
-            return NULL;
-        }
 
         // Initialize package record
         info->packages[i] = (ManifestPackage *) calloc(1, sizeof(ManifestPackage));
         if (info->packages[i] == NULL) {
             perror("Failed to allocate package record");
             fprintf(SYSERROR);
-            dep_free(&deps);
             fstree_free(fsdata);
             free(info);
             return NULL;
         }
-
-        // Copy dependencies
-        if (deps->records) {
-            info->packages[i]->requirements = (char **) calloc(deps->__size, sizeof(char *));
-            info->packages[i]->requirements_records = deps->records;
-            size_t j;
-            for (j = 0; j < deps->records; j++) {
-                info->packages[i]->requirements[j] = (char *) calloc(strlen(deps->list[j]) + 1, sizeof(char));
-                strncpy(info->packages[i]->requirements[j], deps->list[j], strlen(deps->list[j]));
-            }
-        }
-        dep_free(&deps);
 
         // Swap extra package separators with a bogus character
         manifest_package_separator_swap(&fsdata->files[i]);
@@ -109,10 +106,36 @@ Manifest *manifest_from(const char *package_dir) {
         strncpy(info->packages[i]->version, parts[1], PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->revision, parts[2], PACKAGE_MEMBER_SIZE);
         strdelsuffix(info->packages[i]->revision, SPM_PACKAGE_EXTENSION);
+
+        // Read package requirement specs
+        char *archive = join((char *[]) {info->origin, SPM_GLOBAL.repo_target, info->packages[i]->archive, NULL}, DIRSEPS);
+        char *in_archive = join((char *[]) {".", SPM_META_DEPENDS, NULL}, DIRSEPS);
+        if (tar_extract_file(archive, in_archive, tmpdir) != 0) {
+            // TODO: at this point is the package is invalid? .SPM_DEPENDS should be there...
+            fprintf(stderr, "extraction failure: %s\n", archive);
+            rmdirs(tmpdir);
+            exit(1);
+        }
+        char *depfile = join((char *[]) {tmpdir, SPM_META_DEPENDS, NULL}, DIRSEPS);
+        info->packages[i]->requirements = file_readlines(depfile);
+
+        // Record count of requirement specs
+        if (info->packages[i]->requirements != NULL) {
+            for (size_t rec = 0; info->packages[i]->requirements[rec] != NULL; rec++) {
+                strip(info->packages[i]->requirements[rec]);
+                info->packages[i]->requirements_records++;
+            }
+        }
+
+        unlink(depfile);
+        free(depfile);
+        free(archive);
+        free(in_archive);
         split_free(parts);
     }
 
     fstree_free(fsdata);
+    rmdirs(tmpdir);
     return info;
 }
 
@@ -385,6 +408,7 @@ Manifest *manifest_read(char *file_or_url) {
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         total_records++;
     }
+    total_records--; // header does not count
     rewind(fp);
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
@@ -415,6 +439,7 @@ Manifest *manifest_read(char *file_or_url) {
         return NULL;
     }
 
+    info->records = total_records;
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         dptr = strip(dptr);
         char *garbage;
@@ -451,7 +476,6 @@ Manifest *manifest_read(char *file_or_url) {
         }
 
         split_free(parts);
-        info->records = i;
         i++;
     }
 
@@ -475,15 +499,9 @@ ManifestPackage *manifest_search(Manifest *info, const char *_package) {
 
     memset(package, '\0', PATH_MAX);
     strncpy(package, _package, PATH_MAX);
-    //strcat(package, "*");
 
-    for (size_t i = 0; i < info->records; i++) {
-        if ((match = find_by_strspec(info, package)) != NULL) {
-            return match;
-        }
-        //if (fnmatch(package, info->packages[i]->archive, FNM_PATHNAME) == 0) {
-        //    return info->packages[i];
-        //}
+    if ((match = find_by_strspec(info, package)) != NULL) {
+        return match;
     }
     return NULL;
 }

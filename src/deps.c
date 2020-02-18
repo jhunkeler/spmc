@@ -13,7 +13,7 @@ int dep_seen(Dependencies **deps, const char *name) {
     if (!deps) {
         return -1;
     }
-    for (size_t i = 0; i != (*deps)->records; i++) {
+    for (size_t i = 0; i < (*deps)->records; i++) {
         if (strstr((*deps)->list[i], name) != NULL) {
             return 1;
         }
@@ -148,10 +148,10 @@ int dep_solve(Dependencies **deps, const char *filename) {
 /**
  *
  * @param deps
- * @param _package
+ * @param _package absolute path to package
  * @return
  */
-int dep_all(Dependencies **deps, const char *_package) {
+int dep_all(Dependencies **deps, const char *root, const char *_package) {
     static int next = 0;
     char *package = NULL;
     char depfile[PATH_MAX];
@@ -163,7 +163,7 @@ int dep_all(Dependencies **deps, const char *_package) {
     strcpy(suffix, "spm_depends_all_XXXXXX");
 
     // Verify the requested package pattern exists
-    package = find_package(_package);
+    package = find_file(root, _package);
     if (!package) {
         perror(_package);
         fprintf(SYSERROR);
@@ -181,7 +181,7 @@ int dep_all(Dependencies **deps, const char *_package) {
         free(suffix);
         return -1;
     }
-    if (tar_extract_file(package, ".SPM_DEPENDS", tmpdir) < 0) {
+    if (tar_extract_file(package, "./"SPM_META_DEPENDS, tmpdir) < 0) {
         perror(package);
         fprintf(SYSERROR);
         free(package);
@@ -199,7 +199,7 @@ int dep_all(Dependencies **deps, const char *_package) {
     for (int i = next; i < resolved; i++) {
         next++;
         if (dep_seen(deps, (*deps)->list[i])) {
-            dep_all(deps, (*deps)->list[i]);
+            dep_all(deps, root, (*deps)->list[i]);
         }
     }
 

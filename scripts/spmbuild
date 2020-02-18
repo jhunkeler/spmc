@@ -163,7 +163,7 @@ function spm_build_cleanup() {
 }
 
 function spm_build_install() {
-    ${SPM} --verbose --manifest "${SPM_BUILD_STORE_PACKAGES}" --install $@ --root "${SPM_BUILD_RUNTIME}"
+    ${SPM} --override-manifests --manifest "${SPM_BUILD_STORE_PACKAGES}" --install $@ --root "${SPM_BUILD_RUNTIME}"
 }
 
 function spm_build_mkprefixbin() {

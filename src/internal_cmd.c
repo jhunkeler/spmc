@@ -100,31 +100,39 @@ void mkmanifest_interface_usage(void) {
  * @return value of `manifest_write`
  */
 int mkmanifest_interface(int argc, char **argv) {
-    if (argc < 2) {
-        mkmanifest_interface_usage();
-        return -1;
-    }
     Manifest *manifest = NULL;
     int result = 0;
     char *pkgdir = NULL;
 
-    pkgdir = argv[1];
+    if (argc < 2) {
+        mkmanifest_interface_usage();
+        return -1;
+    }
+
+    if ((pkgdir = expandpath(argv[1])) == NULL) {
+        fprintf(stderr, "bad path\n");
+        return -2;
+    }
 
     if (exists(pkgdir) != 0) {
-        return -1;
+        fprintf(stderr, "'%s': does not exist\n", pkgdir);
+        return -3;
     }
 
     manifest = manifest_from(pkgdir);
     if (manifest == NULL) {
-        return -2;
+        fprintf(stderr, "no packages\n");
+        return -4;
     }
 
     result = manifest_write(manifest, pkgdir);
     if (result != 0) {
+        fprintf(stderr, "an error occurred while writing manifest data\n");
         manifest_free(manifest);
-        return -3;
+        return -5;
     }
 
+    free(pkgdir);
     manifest_free(manifest);
     return result;
 }

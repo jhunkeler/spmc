@@ -182,6 +182,9 @@ void fstree_free(FSTree *fsdata) {
  * @return success=expanded path or original path, failure=NULL
  */
 char *expandpath(const char *_path) {
+    if (_path == NULL) {
+        return NULL;
+    }
     const char *homes[] = {
             "HOME",
             "USERPROFILE",
@@ -196,7 +199,7 @@ char *expandpath(const char *_path) {
     memset(ptmp, '\0', sizeof(tmp));
     memset(result, '\0', sizeof(result));
 
-    strncpy(ptmp, _path, strlen(_path));
+    strncpy(ptmp, _path, PATH_MAX - 1);
 
     // Check whether there's a reason to continue processing the string
     if (*ptmp != '~') {
@@ -210,7 +213,7 @@ char *expandpath(const char *_path) {
     for (size_t i = 0; i < sizeof(homes); i++) {
         char *tmphome;
         if ((tmphome = getenv(homes[i])) != NULL) {
-            strncpy(home, tmphome, strlen(tmphome));
+            strncpy(home, tmphome, PATH_MAX - 1);
             break;
         }
     }
@@ -227,9 +230,10 @@ char *expandpath(const char *_path) {
     }
 
     // Construct the new path
-    strncat(result, home, strlen(home));
+    strncat(result, home, PATH_MAX - 1);
     if (sep) {
-        sprintf(result, "%c%s", DIRSEP, ptmp);
+        strncat(result, DIRSEPS, PATH_MAX - 1);
+        strncat(result, ptmp, PATH_MAX - 1);
     }
 
     return strdup(result);

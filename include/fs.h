@@ -25,6 +25,6 @@ char *dirname(const char *_path);
 char *basename(char *path);
 int rsync(const char *_args, const char *_source, const char *_destination);
 char *human_readable_size(uint64_t n);
-
+char *expandpath(const char *_path);
 
 #endif //SPM_FSTREE_H

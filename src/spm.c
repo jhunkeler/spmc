@@ -41,7 +41,9 @@ int main(int argc, char *argv[], char *arge[]) {
 
     char root[PATH_MAX];
     StrList *packages = strlist_init();
+    ManifestList *mf = NULL;
     char package_search_str[PATH_MAX];
+    int override_manifests = 0;
 
     memset(root, '\0', PATH_MAX);
     memset(package_search_str, '\0', PATH_MAX);
@@ -51,9 +53,7 @@ int main(int argc, char *argv[], char *arge[]) {
         exit(1);
     }
 
-    // Populate at least one manifest record
-    //manifests[manifests_count] = manifest_read(SPM_GLOBAL.package_dir);
-    ManifestList *mf = manifestlist_init();
+    mf = manifestlist_init();
 
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
@@ -71,6 +71,9 @@ int main(int argc, char *argv[], char *arge[]) {
             }
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
                 SPM_GLOBAL.verbose = 1;
+            }
+            else if (strcmp(arg, "-M") == 0 || strcmp(arg, "--override-manifests") == 0) {
+                override_manifests = 1;
             }
             else if (strcmp(arg, "-m") == 0 || strcmp(arg, "--manifest") == 0) {
                 if (arg_next == NULL) {
@@ -145,8 +148,11 @@ int main(int argc, char *argv[], char *arge[]) {
             exit(1);
         }
     }
-    // Place the default package location at the bottom of the list
-    manifestlist_append(mf, SPM_GLOBAL.package_dir);
+
+    if (override_manifests == 0) {
+        // Place the default package location at the bottom of the list
+        manifestlist_append(mf, SPM_GLOBAL.package_dir);
+    }
 
     // Dump configuration
     if (SPM_GLOBAL.verbose) {
@@ -202,7 +208,10 @@ int main(int argc, char *argv[], char *arge[]) {
             ManifestPackage *package = NULL;
             if ((package = manifestlist_search(mf, strlist_item(packages, i))) == NULL) {
                 fprintf(stderr, "Package not found: %s\n", strlist_item(packages, i));
-                continue;
+                dep_free(&deps);
+                free_global_config();
+                runtime_free(rt);
+                exit(1);
             }
 
             // If the package has dependencies listed, append them to `deps` now
@@ -213,7 +222,13 @@ int main(int argc, char *argv[], char *arge[]) {
             }
 
             // Process any additional dependencies the package requires
-            if (dep_all(&deps, package->archive) < 0) {
+            char root[PATH_MAX];
+            memset(root, '\0', PATH_MAX);
+            strncat(root, package->origin, PATH_MAX - 1);
+            strncat(root, DIRSEPS, PATH_MAX - 1);
+            strncat(root, SPM_GLOBAL.repo_target, PATH_MAX - 1);
+
+            if (dep_all(&deps, root, package->archive) < 0) {
                 dep_free(&deps);
                 free_global_config();
                 runtime_free(rt);
