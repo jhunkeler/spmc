@@ -54,7 +54,7 @@ void dep_free(Dependencies **deps) {
  * @param _name
  * @return
  */
-int dep_append(Dependencies **deps, char *_name) {
+int dep_append(Dependencies **deps, const char *root, char *_name) {
     char *name = NULL;
     char *bname = NULL;
 
@@ -62,10 +62,8 @@ int dep_append(Dependencies **deps, char *_name) {
         return -1;
     }
 
-    name = find_package(_name);
+    name = find_file(root, _name);
     if (!name) {
-        perror(_name);
-        fprintf(SYSERROR);
         return -1;
     }
 
@@ -100,7 +98,7 @@ int dep_append(Dependencies **deps, char *_name) {
  * @param filename
  * @return
  */
-int dep_solve(Dependencies **deps, const char *filename) {
+int dep_solve(Dependencies **deps, const char *root, const char *filename) {
     if (!(*deps)) {
         return -1;
     }
@@ -136,8 +134,8 @@ int dep_solve(Dependencies **deps, const char *filename) {
         }
         else {
             // Have not seen this dependency before
-            if (dep_append(deps, line) == 0) {
-                dep_solve(deps, line);
+            if (dep_append(deps, root, line) == 0) {
+                dep_solve(deps, root, line);
             }
         }
     }
@@ -191,7 +189,7 @@ int dep_all(Dependencies **deps, const char *root, const char *_package) {
 
     // Scan depencency tree
     sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, ".SPM_DEPENDS");
-    int resolved = dep_solve(deps, depfile);
+    int resolved = dep_solve(deps, root, depfile);
 
     // NOTE:
     //  1. `resolved` is the number of dependencies for the package we're scanning

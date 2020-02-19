@@ -219,19 +219,19 @@ int main(int argc, char *argv[], char *arge[]) {
                 exit(1);
             }
 
-            // If the package has dependencies listed, append them to `deps` now
-            if (package->requirements_records) {
-                for (size_t p = 0; p < package->requirements_records; p++) {
-                    dep_append(&deps, package->requirements[p]);
-                }
-            }
-
             // Process any additional dependencies the package requires
             char root[PATH_MAX];
             memset(root, '\0', PATH_MAX);
             strncat(root, package->origin, PATH_MAX - 1);
             strncat(root, DIRSEPS, PATH_MAX - 1);
             strncat(root, SPM_GLOBAL.repo_target, PATH_MAX - 1);
+
+            // If the package has dependencies listed, append them to `deps` now
+            if (package->requirements_records) {
+                for (size_t p = 0; p < package->requirements_records; p++) {
+                    dep_append(&deps, root, package->requirements[p]);
+                }
+            }
 
             if (dep_all(&deps, root, package->archive) < 0) {
                 dep_free(&deps);
