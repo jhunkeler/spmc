@@ -20,9 +20,3 @@ install(
 	TARGETS spm
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
-install(
-	FILES
-		${CMAKE_BINARY_DIR}/include/config.h
-		${CMAKE_SOURCE_DIR}/include/spm.h
-	DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}"
-)

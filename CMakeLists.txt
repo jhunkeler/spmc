@@ -8,3 +8,5 @@ check_symbol_exists(reallocarray stdlib.h HAVE_REALLOCARRAY)
 configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/include/config.h)
 
 add_subdirectory(src)
+add_subdirectory(include)
+add_subdirectory(scripts)
