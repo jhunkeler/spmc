@@ -197,10 +197,15 @@ int main(int argc, char *argv[], char *arge[]) {
         Dependencies *deps = NULL;
         dep_init(&deps);
 
-        printf("Installation root: %s\n", root);
-        printf("Requested packages:\n");
-        for (size_t i = 0; i < strlist_count(packages); i++) {
-            printf("  -> %s\n", strlist_item(packages, i));
+        if (SPM_GLOBAL.verbose) {
+            printf("Installation root: %s\n", root);
+        }
+
+        if (SPM_GLOBAL.verbose) {
+            printf("Requested packages:\n");
+            for (size_t i = 0; i < strlist_count(packages); i++) {
+                printf("  -> %s\n", strlist_item(packages, i));
+            }
         }
 
         printf("Resolving package requirements...\n");
@@ -234,18 +239,21 @@ int main(int argc, char *argv[], char *arge[]) {
                 runtime_free(rt);
                 exit(1);
             }
+
+            // List requirements before installation
+            if (SPM_GLOBAL.verbose) {
+                for (size_t i = 0; i < deps->records; i++) {
+                    printf("  -> %s\n", deps->list[i]);
+                }
+            }
+
         }
 
         if (deps->records) {
-            // List requirements before installation
-            for (size_t i = 0; i < deps->records; i++) {
-                printf("  -> %s\n", deps->list[i]);
-            }
-
             printf("Installing package requirements:\n");
             for (size_t i = 0; i < deps->records; i++) {
                 ManifestPackage *package = manifestlist_search(mf, deps->list[i]);
-                printf("  -> %-30s %s\n", deps->list[i], package->origin);
+                printf("  -> %-10s %-10s (origin: %s)\n", package->name, package->version, package->origin);
                 char *package_path = join((char *[]) {package->origin, SPM_GLOBAL.repo_target, package->archive, NULL}, DIRSEPS);
 
                 if (install(root, package_path) < 0) {
@@ -276,7 +284,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 continue;
             }
 
-            printf("  -> %-30s %s\n", basename(package), match->origin);
+            printf("  -> %-10s %-10s (origin: %s)\n", match->name, match->version, match->origin);
             if (install(root, package) < 0) {
                 fprintf(SYSERROR);
                 runtime_free(rt);
