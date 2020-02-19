@@ -318,9 +318,8 @@ int check_runtime_environment_interface(void) {
  */
 void internal_command_list(void) {
     printf("possible commands:\n");
-    for (size_t i = 0; internal_commands[i] != NULL; i++) { // TODO: fix double increment warning (i++ becomes i+2?)
+    for (size_t i = 0; internal_commands[i] != NULL; i += 2) {
         printf("  %-20s - %-20s\n", internal_commands[i], internal_commands[i + 1]);
-        i++;
     }
 }
 
