@@ -179,7 +179,7 @@ int dep_all(Dependencies **deps, const char *root, const char *_package) {
         free(suffix);
         return -1;
     }
-    if (tar_extract_file(package, "./"SPM_META_DEPENDS, tmpdir) < 0) {
+    if (tar_extract_file(package, SPM_META_DEPENDS, tmpdir) < 0) {
         perror(package);
         fprintf(SYSERROR);
         free(package);
@@ -188,7 +188,7 @@ int dep_all(Dependencies **deps, const char *root, const char *_package) {
     }
 
     // Scan depencency tree
-    sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, ".SPM_DEPENDS");
+    sprintf(depfile, "%s%c%s", tmpdir, DIRSEP, SPM_META_DEPENDS);
     int resolved = dep_solve(deps, root, depfile);
 
     // NOTE:

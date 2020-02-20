@@ -247,10 +247,39 @@ function spm_build_mkdepends() {
     shift
     local deps=("$@")
 
-    touch "${filename}"
+    > "${filename}"
     for dep in "${deps[@]}"; do
         echo "${dep}" >> "${filename}"
     done
+}
+
+function spm_build_mkdesc() {
+    local filename="${1}"
+    if [[ -z ${filename} ]]; then
+        msg_error "spm_build_mkdesc requires a path"
+        exit 1
+    fi
+    echo "# SPM PACKAGE DESCRIPTOR
+name=${name:-*}
+version=${version:-*}
+revision=${revision:-*}
+license=${license:-*}
+homepage=${homepage:-*}
+summary=${summary:-*}
+" > "${filename}"
+}
+
+function spm_build_mkfilelist() {
+    local filename="${1}"
+    if [[ -z ${filename} ]]; then
+        msg_error "spmbuild_mkfilelist requires an output filename"
+        exit 1
+    fi
+
+    pushd "${pathname}"
+        echo "# SPM PACKAGE FILE LIST" > "${filename}"
+        find . -type f -not -name ".SPM_*" >> "${filename}"
+    popd
 }
 
 function spm_build_filelist() {
@@ -299,8 +328,12 @@ function spm_build_do_stage_archive() {
             spm_build_mkprefixtext "${SPM_META_PREFIX_TEXT}" . ${SPM_BUILD_CRUMBS}
             msg2 "Recording dependencies..."
             spm_build_mkdepends "${SPM_META_DEPENDS}" "${depends[@]}"
+            msg2 "Recording package data..."
+            spm_build_mkdesc "${SPM_META_DESCRIPTOR}"
+            msg2 "Recording paths..."
+            spm_build_mkfilelist "${SPM_META_FILELIST}"
             msg2 "Archiving files..."
-            tar cfz "${archive}" .
+            tar --create --gzip --file "${archive}" --exclude '..' --exclude '.' .* *
         popd
     popd
 }

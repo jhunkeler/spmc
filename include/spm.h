@@ -83,7 +83,8 @@
 #define SPM_META_DEPENDS ".SPM_DEPENDS"
 #define SPM_META_PREFIX_BIN ".SPM_PREFIX_BIN"
 #define SPM_META_PREFIX_TEXT ".SPM_PREFIX_TEXT"
-#define SPM_META_MANIFEST ".SPM_MANIFEST" // TODO: Implement
+#define SPM_META_DESCRIPTOR ".SPM_DESCRIPTOR"
+#define SPM_META_FILELIST ".SPM_FILELIST"
 #define SPM_META_PREFIX_PLACEHOLDER \
 "_0________________________________________________\
 _1________________________________________________"

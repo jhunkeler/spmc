@@ -176,7 +176,8 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "SPM_META_DEPENDS", SPM_META_DEPENDS);
     runtime_set(rt, "SPM_META_PREFIX_BIN", SPM_META_PREFIX_BIN);
     runtime_set(rt, "SPM_META_PREFIX_TEXT", SPM_META_PREFIX_TEXT);
-    runtime_set(rt, "SPM_META_MANIFEST", SPM_META_MANIFEST);
+    runtime_set(rt, "SPM_META_DESCRIPTOR", SPM_META_DESCRIPTOR);
+    runtime_set(rt, "SPM_META_FILELIST", SPM_META_FILELIST);
     runtime_set(rt, "SPM_META_PREFIX_PLACEHOLDER", SPM_META_PREFIX_PLACEHOLDER);
 
     runtime_set(rt, "PATH", "$SPM_BIN:$PATH");

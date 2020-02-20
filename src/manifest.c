@@ -109,8 +109,7 @@ Manifest *manifest_from(const char *package_dir) {
 
         // Read package requirement specs
         char *archive = join((char *[]) {info->origin, SPM_GLOBAL.repo_target, info->packages[i]->archive, NULL}, DIRSEPS);
-        char *in_archive = join((char *[]) {".", SPM_META_DEPENDS, NULL}, DIRSEPS);
-        if (tar_extract_file(archive, in_archive, tmpdir) != 0) {
+        if (tar_extract_file(archive, SPM_META_DEPENDS, tmpdir) != 0) {
             // TODO: at this point is the package is invalid? .SPM_DEPENDS should be there...
             fprintf(stderr, "extraction failure: %s\n", archive);
             rmdirs(tmpdir);
@@ -130,7 +129,6 @@ Manifest *manifest_from(const char *package_dir) {
         unlink(depfile);
         free(depfile);
         free(archive);
-        free(in_archive);
         split_free(parts);
     }
 

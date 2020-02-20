@@ -7,7 +7,8 @@ const char *METADATA_FILES[] = {
         SPM_META_DEPENDS,
         SPM_META_PREFIX_BIN,
         SPM_META_PREFIX_TEXT,
-        SPM_META_MANIFEST,
+        SPM_META_DESCRIPTOR,
+        SPM_META_FILELIST,
         NULL,
 };
 
@@ -238,7 +239,7 @@ RelocationEntry **prefixes_read(const char *filename) {
  * #include "spm.h"
  *
  * int main() {
- *     if (file_is_metadata("./.SPM_DEPENDS")) {
+ *     if (file_is_metadata(".SPM_DEPENDS")) {
  *         // file is metadata
  *     } else {
  *         // file is not metadata
