@@ -27,6 +27,7 @@
 #include <sys/utsname.h>
 #endif
 
+#include "package.h"
 #include "str.h"
 #include "strlist.h"
 #include "shlib.h"
@@ -37,6 +38,7 @@
 #include "fs.h"
 #include "version_spec.h"
 #include "checksum.h"
+#include "resolve.h"
 #include "deps.h"
 #include "shell.h"
 #include "relocation.h"
@@ -88,7 +90,6 @@
 #define SPM_META_PREFIX_PLACEHOLDER \
 "_0________________________________________________\
 _1________________________________________________"
-
 
 // GLOBALS
 spm_vars SPM_GLOBAL;
