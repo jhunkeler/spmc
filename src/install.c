@@ -33,6 +33,14 @@ int metadata_remove(const char *_path) {
     return 0;
 }
 
+void install_show_package(ManifestPackage *package) {
+    if (package == NULL) {
+        fprintf(stderr, "ERROR: package was NULL\n");
+        return;
+    }
+    printf("  -> %-10s %-10s (origin: %s)\n", package->name, package->version, package->origin);
+}
+
 /**
  * Install a package and its dependencies into a destination root.
  * The destination is created if it does not exist.
@@ -103,6 +111,7 @@ int install(const char *destroot, const char *_package) {
     if (SPM_GLOBAL.verbose) {
         printf("Installing tree: '%s' => '%s'\n", source, destroot);
     }
+
     if (rsync(NULL, source, destroot) != 0) {
         exit(1);
     }
