@@ -18,6 +18,7 @@ typedef struct {
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
 void fstree_free(FSTree *fsdata);
 FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode);
+int exists(const char *filename);
 int rmdirs(const char *_path);
 long int get_file_size(const char *filename);
 int mkdirs(const char *_path, mode_t mode);
