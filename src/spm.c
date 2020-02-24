@@ -39,13 +39,13 @@ int main(int argc, char *argv[], char *arge[]) {
     // Ensure external programs are available for use.
     check_runtime_environment();
 
-    char root[PATH_MAX];
+    char rootdir[PATH_MAX];
     StrList *packages = strlist_init();
     ManifestList *mf = NULL;
     char package_search_str[PATH_MAX];
     int override_manifests = 0;
 
-    memset(root, '\0', PATH_MAX);
+    memset(rootdir, '\0', PATH_MAX);
     memset(package_search_str, '\0', PATH_MAX);
 
     if (argc < 2) {
@@ -122,7 +122,7 @@ int main(int argc, char *argv[], char *arge[]) {
                     usage(program_name);
                     exit(1);
                 }
-                strcpy(root, arg_next);
+                strcpy(rootdir, arg_next);
                 i++;
             }
             else if (strcmp(arg, "-I") == 0 || strcmp(arg, "--install") == 0) {
@@ -165,8 +165,8 @@ int main(int argc, char *argv[], char *arge[]) {
         exit(1);
     }
 
-    if (isempty(root)) {
-        sprintf(root, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
+    if (isempty(rootdir)) {
+        sprintf(rootdir, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
     }
 
     // Construct installation runtime environment
@@ -174,10 +174,10 @@ int main(int argc, char *argv[], char *arge[]) {
     // TODO: Move environment allocation out of (above) this loop if possible
     // TODO: replace variables below with SPM_Hierarchy, and write some control functions
 
-    char *spm_binpath = join((char *[]) {root, "bin", NULL}, DIRSEPS);
-    char *spm_includepath = join((char *[]) {root, "include", NULL}, DIRSEPS);
-    char *spm_libpath = join((char *[]) {root, "lib", NULL}, DIRSEPS);
-    char *spm_datapath = join((char *[]) {root, "share", NULL}, DIRSEPS);
+    char *spm_binpath = join((char *[]) {rootdir, "bin", NULL}, DIRSEPS);
+    char *spm_includepath = join((char *[]) {rootdir, "include", NULL}, DIRSEPS);
+    char *spm_libpath = join((char *[]) {rootdir, "lib", NULL}, DIRSEPS);
+    char *spm_datapath = join((char *[]) {rootdir, "share", NULL}, DIRSEPS);
     char *spm_manpath = join((char *[]) {spm_datapath, "man", NULL}, DIRSEPS);
 
     runtime_set(rt, "SPM_BIN", spm_binpath);
@@ -194,106 +194,42 @@ int main(int argc, char *argv[], char *arge[]) {
     free(spm_manpath);
 
     if (RUNTIME_INSTALL) {
-        Dependencies *deps = NULL;
-        dep_init(&deps);
+        size_t num_requirements = 0;
+        ManifestPackage **requirements = NULL;
 
         if (SPM_GLOBAL.verbose) {
-            printf("Installation root: %s\n", root);
+            printf("Installation root: %s\n", rootdir);
         }
 
-        if (SPM_GLOBAL.verbose) {
-            printf("Requested packages:\n");
-            for (size_t i = 0; i < strlist_count(packages); i++) {
-                printf("  -> %s\n", strlist_item(packages, i));
-            }
-        }
-
-        printf("Resolving package requirements...\n");
+        // Scan package dependency tree
         for (size_t i = 0; i < strlist_count(packages); i++) {
-            ManifestPackage *package = NULL;
-            if ((package = manifestlist_search(mf, strlist_item(packages, i))) == NULL) {
-                fprintf(stderr, "Package not found: %s\n", strlist_item(packages, i));
-                dep_free(&deps);
-                free_global_config();
-                runtime_free(rt);
-                exit(1);
-            }
-
-            // Process any additional dependencies the package requires
-            char root[PATH_MAX];
-            memset(root, '\0', PATH_MAX);
-            strncat(root, package->origin, PATH_MAX - 1);
-            strncat(root, DIRSEPS, PATH_MAX - 1);
-            strncat(root, SPM_GLOBAL.repo_target, PATH_MAX - 1);
-
-            // If the package has dependencies listed, append them to `deps` now
-            if (package->requirements_records) {
-                for (size_t p = 0; p < package->requirements_records; p++) {
-                    dep_append(&deps, root, package->requirements[p]);
-                }
-            }
-
-            if (dep_all(&deps, root, package->archive) < 0) {
-                dep_free(&deps);
-                free_global_config();
-                runtime_free(rt);
-                exit(1);
-            }
-
-            // List requirements before installation
-            if (SPM_GLOBAL.verbose) {
-                for (size_t i = 0; i < deps->records; i++) {
-                    printf("  -> %s\n", deps->list[i]);
-                }
-            }
-
+            requirements = resolve_dependencies(mf, strlist_item(packages, i));
         }
 
-        if (deps->records) {
-            printf("Installing package requirements:\n");
-            for (size_t i = 0; i < deps->records; i++) {
-                ManifestPackage *package = manifestlist_search(mf, deps->list[i]);
-                printf("  -> %-10s %-10s (origin: %s)\n", package->name, package->version, package->origin);
-                char *package_path = join((char *[]) {package->origin, SPM_GLOBAL.repo_target, package->archive, NULL}, DIRSEPS);
-
-                if (install(root, package_path) < 0) {
-                    fprintf(stderr, "Installation failed: %s\n", package_path);
-                    runtime_free(rt);
-                    exit(errno);
-                }
-                manifest_package_free(package);
-                free(package_path);
-            }
+        // Install packages
+        printf("To install:\n");
+        for (size_t i = 0; requirements !=NULL && requirements[i] != NULL; i++) {
+            printf("%zu: %s %s\n", i, requirements[i]->name, requirements[i]->version);
+            num_requirements++;
         }
 
-        printf("Installing package:\n");
+        printf("Installing:\n");
+        for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
+            char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
+            install_show_package(requirements[i]);
+            install(rootdir, package_path);
+            free(package_path);
+        }
+
         for (size_t i = 0; i < strlist_count(packages); i++) {
-            //char *match = NULL;
-            ManifestPackage *match = NULL;
-            char *package = NULL;
+            char *name = strlist_item(packages, i);
+            ManifestPackage *package = manifestlist_search(mf, name);
+            char *package_path = join((char *[]) {package->origin, SPM_GLOBAL.repo_target, package->archive, NULL}, DIRSEPS);
 
-            if ((match = manifestlist_search(mf, strlist_item(packages, i))) == NULL) {
-                runtime_free(rt);
-                exit(1);
-            }
-
-            package = join((char *[]) {match->origin, SPM_GLOBAL.repo_target, match->archive, NULL}, DIRSEPS);
-
-            // If the package was installed as a requirement of another dependency, skip it
-            if (dep_seen(&deps, package)) {
-                continue;
-            }
-
-            printf("  -> %-10s %-10s (origin: %s)\n", match->name, match->version, match->origin);
-            if (install(root, package) < 0) {
-                fprintf(SYSERROR);
-                runtime_free(rt);
-                exit(errno);
-            }
-            free(package);
+            install_show_package(package);
+            install(rootdir, package_path);
+            free(package_path);
         }
-        //manifest_free(manifest);
-        dep_free(&deps);
     }
 
     if (RUNTIME_SEARCH || RUNTIME_LIST) {
