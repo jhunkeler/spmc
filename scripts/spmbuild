@@ -387,6 +387,10 @@ if [[ ${#depends[@]} != 0 ]]; then
     spm_build_install "${depends[@]}"
 fi
 
+if [[ ${name} != "filesystem" ]]; then
+    depends=(filesystem "${depends[@]}")
+fi
+
 pushd "${SPM_BUILD_ROOT}"
     msg2 "prepare()"
     spm_build_do_stage_prepare
@@ -395,7 +399,6 @@ pushd "${SPM_BUILD_ROOT}"
     msg2 "package()"
     spm_build_do_stage_package
 popd
-
 
 msg "Create package: ${package_final}"
 spm_build_do_stage_archive "${package_final}"
