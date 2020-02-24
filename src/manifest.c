@@ -6,15 +6,32 @@
 #include "url.h"
 #define PACKAGE_MIN_DELIM 2
 
+/**
+ * Compare `ManifestPackage` packages (lazily)
+ * @param a
+ * @param b
+ * @return 0 = same, !0 = different
+ */
+int manifest_package_cmp(ManifestPackage *a, ManifestPackage *b) {
+    int result = 0;
+    if (a == NULL || b == NULL) {
+        return -1;
+    }
+    result += strcmp(a->origin, b->origin);
+    result += strcmp(a->archive, b->archive);
+    result += strcmp(a->checksum_sha256, b->checksum_sha256);
+    return result;
+}
+
 void manifest_package_separator_swap(char **name) {
     // Replace unwanted separators in the package name with placeholder to prevent splitting on the wrong one
-    int delim_count = num_chars((*name), PACKAGE_MEMBER_SEPARATOR);
+    int delim_count = num_chars((*name), SPM_PACKAGE_MEMBER_SEPARATOR);
     if (delim_count > PACKAGE_MIN_DELIM) {
         for (size_t t = strlen((*name)); t != 0; t--) {
-            if ((*name)[t] == PACKAGE_MEMBER_SEPARATOR) {
+            if ((*name)[t] == SPM_PACKAGE_MEMBER_SEPARATOR) {
                 delim_count--;
                 if (delim_count == 0) {
-                    (*name)[t] = PACKAGE_MEMBER_SEPARATOR_PLACEHOLD;
+                    (*name)[t] = SPM_PACKAGE_MEMBER_SEPARATOR_PLACEHOLD;
                 }
             }
         }
@@ -24,8 +41,8 @@ void manifest_package_separator_swap(char **name) {
 void manifest_package_separator_restore(char **name) {
     char separator[2];
     char placeholder[2];
-    snprintf(separator, sizeof(separator), "%c", PACKAGE_MEMBER_SEPARATOR);
-    snprintf(placeholder, sizeof(placeholder), "%c", PACKAGE_MEMBER_SEPARATOR_PLACEHOLD);
+    snprintf(separator, sizeof(separator), "%c", SPM_PACKAGE_MEMBER_SEPARATOR);
+    snprintf(placeholder, sizeof(placeholder), "%c", SPM_PACKAGE_MEMBER_SEPARATOR_PLACEHOLD);
 
     replace_text((*name), placeholder, separator);
 }
@@ -60,7 +77,7 @@ Manifest *manifest_from(const char *package_dir) {
     }
 
     printf("Initializing package manifest:\n");
-    strncpy(info->origin, package_dir, PACKAGE_MEMBER_ORIGIN_SIZE);
+    strncpy(info->origin, package_dir, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
 
 
     char *tmpdir = mkdtemp(template);
@@ -91,7 +108,7 @@ Manifest *manifest_from(const char *package_dir) {
 
         // Split the package name into parts
         char psep[2];
-        snprintf(psep, sizeof(psep), "%c", PACKAGE_MEMBER_SEPARATOR);
+        snprintf(psep, sizeof(psep), "%c", SPM_PACKAGE_MEMBER_SEPARATOR);
         char **parts = split(fsdata->files[i], psep);
 
         // Restore package separator
@@ -100,11 +117,11 @@ Manifest *manifest_from(const char *package_dir) {
 
         // Populate `ManifestPackage` record
         info->packages[i]->size = (size_t) get_file_size(fsdata->files[i]);
-        strncpy(info->packages[i]->origin, info->origin, PACKAGE_MEMBER_ORIGIN_SIZE);
-        strncpy(info->packages[i]->archive, basename(fsdata->files[i]), PACKAGE_MEMBER_SIZE);
-        strncpy(info->packages[i]->name, basename(parts[0]), PACKAGE_MEMBER_SIZE);
-        strncpy(info->packages[i]->version, parts[1], PACKAGE_MEMBER_SIZE);
-        strncpy(info->packages[i]->revision, parts[2], PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->origin, info->origin, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
+        strncpy(info->packages[i]->archive, basename(fsdata->files[i]), SPM_PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->name, basename(parts[0]), SPM_PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->version, parts[1], SPM_PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->revision, parts[2], SPM_PACKAGE_MEMBER_SIZE);
         strdelsuffix(info->packages[i]->revision, SPM_PACKAGE_EXTENSION);
 
         // Read package requirement specs
@@ -413,7 +430,7 @@ Manifest *manifest_read(char *file_or_url) {
     info->packages = (ManifestPackage **)calloc(total_records + 1, sizeof(ManifestPackage *));
 
     // Record manifest's origin
-    memset(info->origin, '\0', PACKAGE_MEMBER_ORIGIN_SIZE);
+    memset(info->origin, '\0', SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
     if (remote_manifest != NULL) {
         strcpy(info->origin, remote_manifest);
     }
@@ -452,14 +469,14 @@ Manifest *manifest_read(char *file_or_url) {
 
         info->packages[i] = (ManifestPackage *)calloc(1, sizeof(ManifestPackage));
 
-        strncpy(info->packages[i]->origin, _origin, PACKAGE_MEMBER_ORIGIN_SIZE);
+        strncpy(info->packages[i]->origin, _origin, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
         free(_origin);
 
-        strncpy(info->packages[i]->archive, parts[0], PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->archive, parts[0], SPM_PACKAGE_MEMBER_SIZE);
         info->packages[i]->size = strtoul(parts[1], &garbage, 10);
-        strncpy(info->packages[i]->name, parts[2], PACKAGE_MEMBER_SIZE);
-        strncpy(info->packages[i]->version, parts[3], PACKAGE_MEMBER_SIZE);
-        strncpy(info->packages[i]->revision, parts[4], PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->name, parts[2], SPM_PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->version, parts[3], SPM_PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->revision, parts[4], SPM_PACKAGE_MEMBER_SIZE);
         info->packages[i]->requirements_records = (size_t) atoi(parts[5]);
 
         info->packages[i]->requirements = NULL;
