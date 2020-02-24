@@ -167,12 +167,14 @@ int mkruntime_interface(int argc, char **argv) {
     char *spm_libpath = join((char *[]) {root, "lib", NULL}, DIRSEPS);
     char *spm_datapath = join((char *[]) {root, "share", NULL}, DIRSEPS);
     char *spm_manpath = join((char *[]) {spm_datapath, "man", NULL}, DIRSEPS);
+    char *spm_pkgconfigpath = join((char *[]) {spm_libpath, "pkgconfig", NULL}, DIRSEPS);
 
     runtime_set(rt, "SPM_BIN", spm_binpath);
     runtime_set(rt, "SPM_INCLUDE", spm_includepath);
     runtime_set(rt, "SPM_LIB", spm_libpath);
     runtime_set(rt, "SPM_DATA", spm_datapath);
     runtime_set(rt, "SPM_MAN", spm_manpath);
+    runtime_set(rt, "SPM_PKGCONFIG", spm_pkgconfigpath);
     runtime_set(rt, "SPM_META_DEPENDS", SPM_META_DEPENDS);
     runtime_set(rt, "SPM_META_PREFIX_BIN", SPM_META_PREFIX_BIN);
     runtime_set(rt, "SPM_META_PREFIX_TEXT", SPM_META_PREFIX_TEXT);
@@ -182,6 +184,7 @@ int mkruntime_interface(int argc, char **argv) {
 
     runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
     runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
+    runtime_set(rt, "PKG_CONFIG_PATH", "$SPM_PKGCONFIG:$PKG_CONFIG_PATH");
 
     char *spm_ccpath = join((char *[]) {spm_binpath, "gcc"}, DIRSEPS);
     if (exists(spm_ccpath) == 0) {
@@ -198,6 +201,7 @@ int mkruntime_interface(int argc, char **argv) {
     free(spm_libpath);
     free(spm_datapath);
     free(spm_manpath);
+    free(spm_pkgconfigpath);
     free(spm_ccpath);
     return 0;
 }
