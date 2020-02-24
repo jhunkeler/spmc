@@ -39,7 +39,6 @@
 #include "version_spec.h"
 #include "checksum.h"
 #include "resolve.h"
-#include "deps.h"
 #include "shell.h"
 #include "relocation.h"
 #include "conf.h"
