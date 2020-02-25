@@ -11,16 +11,19 @@ int RUNTIME_LIST = 0;
 int RUNTIME_SEARCH = 0;
 
 void usage(const char *program_name) {
-    printf("usage: %s [-hVvBIrLS]\n"
-           "  -h,  --help     show this help message\n"
-           "  -V,  --version  show version\n"
-           "  -v,  --verbose  show more information\n"
-           "  -B,  --build    build package(s)\n"
-           "  -I,  --install  install package(s)\n"
-           "  -r,  --root     installation prefix (requires --install)\n"
-           "  -L,  --list     list available packages\n"
-           "  -S,  --search   search for a package\n"
-           "       --cmd      execute an internal spm command\n"
+    printf("usage: %s [-hVvBIrmMLS]\n"
+           "  -h,  --help                show this help message\n"
+           "  -V,  --version             show version\n"
+           "  -v,  --verbose             show more information\n"
+           "  -y   --yes                 do not prompt\n"
+           "  -B,  --build               build package(s)\n"
+           "  -I,  --install             install package(s)\n"
+           "  -r,  --root                installation prefix (requires --install)\n"
+           "  -m   --manifest            specify a package manifest to use\n"
+           "  -M   --override-manifests  disable default package manifest location\n"
+           "  -L,  --list                list available packages\n"
+           "  -S,  --search              search for a package\n"
+           "       --cmd                 execute an internal spm command\n"
            , program_name);
 }
 
@@ -71,6 +74,9 @@ int main(int argc, char *argv[], char *arge[]) {
             }
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
                 SPM_GLOBAL.verbose = 1;
+            }
+            else if (strcmp(arg, "-y") == 0 || strcmp(arg, "--yes") == 0) {
+                SPM_GLOBAL.prompt_user = 0;
             }
             else if (strcmp(arg, "-M") == 0 || strcmp(arg, "--override-manifests") == 0) {
                 override_manifests = 1;
@@ -174,61 +180,37 @@ int main(int argc, char *argv[], char *arge[]) {
     // TODO: Move environment allocation out of (above) this loop if possible
     // TODO: replace variables below with SPM_Hierarchy, and write some control functions
 
-    char *spm_binpath = join((char *[]) {rootdir, "bin", NULL}, DIRSEPS);
-    char *spm_includepath = join((char *[]) {rootdir, "include", NULL}, DIRSEPS);
-    char *spm_libpath = join((char *[]) {rootdir, "lib", NULL}, DIRSEPS);
-    char *spm_datapath = join((char *[]) {rootdir, "share", NULL}, DIRSEPS);
-    char *spm_manpath = join((char *[]) {spm_datapath, "man", NULL}, DIRSEPS);
+    char *spm_bindir = join((char *[]) {rootdir, "bin", NULL}, DIRSEPS);
+    char *spm_includedir = join((char *[]) {rootdir, "include", NULL}, DIRSEPS);
+    char *spm_libdir = join((char *[]) {rootdir, "lib", NULL}, DIRSEPS);
+    char *spm_datadir = join((char *[]) {rootdir, "share", NULL}, DIRSEPS);
+    char *spm_mandir = join((char *[]) {spm_datadir, "man", NULL}, DIRSEPS);
+    char *spm_localstatedir = join((char *[]) {rootdir, "var", NULL}, DIRSEPS);
 
-    runtime_set(rt, "SPM_BIN", spm_binpath);
-    runtime_set(rt, "SPM_INCLUDE", spm_includepath);
-    runtime_set(rt, "SPM_LIB", spm_libpath);
-    runtime_set(rt, "SPM_DATA", spm_datapath);
-    runtime_set(rt, "SPM_MAN", spm_manpath);
+    runtime_set(rt, "SPM_BIN", spm_bindir);
+    runtime_set(rt, "SPM_INCLUDE", spm_includedir);
+    runtime_set(rt, "SPM_LIB", spm_libdir);
+    runtime_set(rt, "SPM_DATA", spm_datadir);
+    runtime_set(rt, "SPM_MAN", spm_mandir);
+    runtime_set(rt, "SPM_LOCALSTATE", spm_localstatedir);
     runtime_apply(rt);
 
-    free(spm_binpath);
-    free(spm_includepath);
-    free(spm_libpath);
-    free(spm_datapath);
-    free(spm_manpath);
+    free(spm_bindir);
+    free(spm_includedir);
+    free(spm_libdir);
+    free(spm_datadir);
+    free(spm_mandir);
+    free(spm_localstatedir);
 
     if (RUNTIME_INSTALL) {
-        size_t num_requirements = 0;
-        ManifestPackage **requirements = NULL;
-
-        if (SPM_GLOBAL.verbose) {
-            printf("Installation root: %s\n", rootdir);
+        int status_install = 0;
+        if ((status_install = do_install(mf, rootdir, packages)) == -1) {
+            // failed to create temporary destination root
+            exit(1);
         }
-
-        // Scan package dependency tree
-        for (size_t i = 0; i < strlist_count(packages); i++) {
-            requirements = resolve_dependencies(mf, strlist_item(packages, i));
-        }
-
-        // Install packages
-        printf("To install:\n");
-        for (size_t i = 0; requirements !=NULL && requirements[i] != NULL; i++) {
-            printf("%zu: %s %s\n", i, requirements[i]->name, requirements[i]->version);
-            num_requirements++;
-        }
-
-        printf("Installing:\n");
-        for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
-            char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
-            install_show_package(requirements[i]);
-            install(rootdir, package_path);
-            free(package_path);
-        }
-
-        for (size_t i = 0; i < strlist_count(packages); i++) {
-            char *name = strlist_item(packages, i);
-            ManifestPackage *package = manifestlist_search(mf, name);
-            char *package_path = join((char *[]) {package->origin, SPM_GLOBAL.repo_target, package->archive, NULL}, DIRSEPS);
-
-            install_show_package(package);
-            install(rootdir, package_path);
-            free(package_path);
+        else if (status_install == -2) {
+            // user said no when asked to proceed
+            exit(2);
         }
     }
 
