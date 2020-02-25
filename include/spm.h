@@ -47,6 +47,7 @@
 #include "rpath.h"
 #include "mime.h"
 #include "mirrors.h"
+#include "user_input.h"
 #include "install.h"
 
 #define SYSERROR stderr, "%s:%s:%d: %s\n", basename(__FILE__), __FUNCTION__, __LINE__, strerror(errno)
