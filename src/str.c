@@ -453,12 +453,18 @@ char *lstrip(char *sptr) {
  * @return truncated string
  */
 char *strip(char *sptr) {
-    size_t len = strlen(sptr) - 1;
-    if (len < 1 && isblank(*sptr)) {
+    size_t len = strlen(sptr);
+    if (len == 0) {
+        return sptr;
+    }
+    else if (len == 1) {
         *sptr = '\0';
         return sptr;
     }
-    for (size_t i = len; ; i--) {
+    for (size_t i = len; i != 0; --i) {
+        if (sptr[i] == '\0') {
+            continue;
+        }
         if (isspace(sptr[i]) || isblank(sptr[i])) {
             sptr[i] = '\0';
         }
