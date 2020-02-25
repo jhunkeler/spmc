@@ -469,3 +469,19 @@ char *human_readable_size(uint64_t n) {
 
     return strdup(r);
 }
+
+/**
+ * Create a named temporary directory
+ * @param name
+ * @return success=path, failure=NULL
+ */
+char *spm_mkdtemp(const char *name) {
+    const char *template_unique = "XXXXXX";
+    char *tmpdir = NULL;
+    char *template = calloc(PATH_MAX, sizeof(char));
+
+    sprintf(template, "%s%s%s_%s", TMP_DIR, DIRSEPS, name, template_unique);
+    tmpdir = mkdtemp(template);
+    return tmpdir;
+}
+

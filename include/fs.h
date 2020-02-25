@@ -27,5 +27,7 @@ char *basename(char *path);
 int rsync(const char *_args, const char *_source, const char *_destination);
 char *human_readable_size(uint64_t n);
 char *expandpath(const char *_path);
+char *spm_mkdtemp(const char *name);
+
 
 #endif //SPM_FSTREE_H
