@@ -283,10 +283,6 @@ function spm_build_mkfilelist() {
     popd
 }
 
-function spm_build_filelist() {
-    :
-}
-
 function prepare() {
     # stub
     :
