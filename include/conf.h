@@ -30,6 +30,7 @@ typedef struct {
     char *user_config_basedir;
     char *user_config_file;
     int verbose;
+    int prompt_user;
     ConfigItem **config;
     struct utsname sysinfo;
     SPM_Hierarchy fs;

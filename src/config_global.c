@@ -167,6 +167,7 @@ void init_config_global(void) {
     SPM_GLOBAL.verbose = 0;
     SPM_GLOBAL.repo_target = NULL;
     SPM_GLOBAL.mirror_list = NULL;
+    SPM_GLOBAL.prompt_user = 1;
 
     if (uname(&SPM_GLOBAL.sysinfo) != 0) {
         fprintf(SYSERROR);
