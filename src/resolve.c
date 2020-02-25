@@ -28,20 +28,23 @@ int resolve_has_dependency(const char *archive) {
  */
 ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec) {
     ManifestPackage *package = manifestlist_search(manifests, spec);
+    ManifestPackage *requirement = NULL;
     if (package == NULL) {
         return NULL;
     }
 
     for (size_t i = 0; i < package->requirements_records && i < SPM_REQUIREMENT_MAX; i++) {
-        ManifestPackage *requirement = manifestlist_search(manifests, package->requirements[i]);
+        requirement = manifestlist_search(manifests, package->requirements[i]);
         if (requirement == NULL) {
             break;
         }
         if (resolve_has_dependency(requirement->archive)) {
+            free(requirement);
             continue;
         }
         resolve_dependencies(manifests, requirement->archive);
         requirements[i] = requirement;
     }
+    free(package);
     return requirements;
 }
