@@ -121,7 +121,7 @@ char *rpath_get(const char *_filename) {
  * @return
  */
 char *rpath_generate(const char *_filename) {
-    char *origin = "$ORIGIN/";
+    char *origin = "$ORIGIN/../lib:$ORIGIN/";
     char *filename = realpath(_filename, NULL);
 
     if (!filename) {
@@ -239,6 +239,7 @@ char *rpath_autodetect(const char *filename) {
                     if (exists(check_path) == 0) {
                         // The library exists so mark it for processing
                         has_real_libdir = 1;  // gate for memory allocation below
+                        break;
                     }
                     free(check_path);
                 }
