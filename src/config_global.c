@@ -155,6 +155,41 @@ void check_runtime_environment(void) {
 }
 
 /**
+ *
+ * @param basepath
+ * @return
+ */
+SPM_Hierarchy *spm_hierarchy_init(char *basepath) {
+    SPM_Hierarchy *fs = calloc(1, sizeof(SPM_Hierarchy));
+    fs->rootdir = strdup(basepath);
+    fs->bindir = join((char *[]) {fs->rootdir, "bin", NULL}, DIRSEPS);
+    fs->includedir = join((char *[]) {fs->rootdir, "include", NULL}, DIRSEPS);
+    fs->libdir = join((char *[]) {fs->rootdir, "lib", NULL}, DIRSEPS);
+    fs->datadir = join((char *[]) {fs->rootdir, "share", NULL}, DIRSEPS);
+    fs->localstatedir = join((char *[]) {fs->rootdir, "var", NULL}, DIRSEPS);
+    fs->sysconfdir = join((char *[]) {fs->rootdir, "etc", NULL}, DIRSEPS);
+    fs->mandir = join((char *[]) {fs->datadir, "man", NULL}, DIRSEPS);
+
+    return fs;
+}
+
+/**
+ *
+ * @param fs
+ */
+void spm_hierarchy_free(SPM_Hierarchy *fs) {
+    free(fs->rootdir);
+    free(fs->bindir);
+    free(fs->includedir);
+    free(fs->libdir);
+    free(fs->datadir);
+    free(fs->localstatedir);
+    free(fs->sysconfdir);
+    free(fs->mandir);
+    free(fs);
+}
+
+/**
  * Populate global configuration structure
  */
 void init_config_global(void) {
@@ -175,23 +210,23 @@ void init_config_global(void) {
     }
 
     // Initialize filesystem paths structure
-    SPM_GLOBAL.fs.binpath = calloc(strlen(SPM_PROGRAM_BIN) + 1, sizeof(char));
-    SPM_GLOBAL.fs.includepath = calloc(strlen(SPM_PROGRAM_INCLUDE) + 1, sizeof(char));
-    SPM_GLOBAL.fs.libpath = calloc(strlen(SPM_PROGRAM_LIB) + 1, sizeof(char));
-    SPM_GLOBAL.fs.datapath = calloc(strlen(SPM_PROGRAM_DATA) + 1, sizeof(char));
+    SPM_GLOBAL.fs.bindir = calloc(strlen(SPM_PROGRAM_BIN) + 1, sizeof(char));
+    SPM_GLOBAL.fs.includedir = calloc(strlen(SPM_PROGRAM_INCLUDE) + 1, sizeof(char));
+    SPM_GLOBAL.fs.libdir = calloc(strlen(SPM_PROGRAM_LIB) + 1, sizeof(char));
+    SPM_GLOBAL.fs.datadir = calloc(strlen(SPM_PROGRAM_DATA) + 1, sizeof(char));
 
-    if (!SPM_GLOBAL.fs.binpath || !SPM_GLOBAL.fs.includepath
-        || !SPM_GLOBAL.fs.libpath) {
+    if (!SPM_GLOBAL.fs.bindir || !SPM_GLOBAL.fs.includedir
+        || !SPM_GLOBAL.fs.libdir) {
         perror("Unable to allocate memory for global filesystem paths");
         fprintf(SYSERROR);
         exit(errno);
     }
 
-    strcpy(SPM_GLOBAL.fs.binpath, SPM_PROGRAM_BIN);
-    strcpy(SPM_GLOBAL.fs.includepath, SPM_PROGRAM_INCLUDE);
-    strcpy(SPM_GLOBAL.fs.libpath, SPM_PROGRAM_LIB);
-    strcpy(SPM_GLOBAL.fs.datapath, SPM_PROGRAM_DATA);
-    SPM_GLOBAL.fs.manpath = join((char *[]) {SPM_PROGRAM_DATA, "man", NULL}, DIRSEPS);
+    strcpy(SPM_GLOBAL.fs.bindir, SPM_PROGRAM_BIN);
+    strcpy(SPM_GLOBAL.fs.includedir, SPM_PROGRAM_INCLUDE);
+    strcpy(SPM_GLOBAL.fs.libdir, SPM_PROGRAM_LIB);
+    strcpy(SPM_GLOBAL.fs.datadir, SPM_PROGRAM_DATA);
+    SPM_GLOBAL.fs.mandir = join((char *[]) {SPM_PROGRAM_DATA, "man", NULL}, DIRSEPS);
 
     SPM_GLOBAL.user_config_basedir = get_user_conf_dir();
     SPM_GLOBAL.user_config_file = get_user_config_file();
@@ -300,11 +335,11 @@ void free_global_config(void) {
         mirror_list_free(SPM_GLOBAL.mirror_list);
     }
 
-    free(SPM_GLOBAL.fs.binpath);
-    free(SPM_GLOBAL.fs.includepath);
-    free(SPM_GLOBAL.fs.libpath);
-    free(SPM_GLOBAL.fs.datapath);
-    free(SPM_GLOBAL.fs.manpath);
+    free(SPM_GLOBAL.fs.bindir);
+    free(SPM_GLOBAL.fs.includedir);
+    free(SPM_GLOBAL.fs.libdir);
+    free(SPM_GLOBAL.fs.datadir);
+    free(SPM_GLOBAL.fs.mandir);
     if (SPM_GLOBAL.config) {
         config_free(SPM_GLOBAL.config);
     }

@@ -597,4 +597,28 @@ char *normalize_space(char *s) {
     return result;
 }
 
+/**
+ * Duplicate an array of strings
+ * @param array
+ * @return
+ */
+char **strdup_array(char **array) {
+    char **result = NULL;
+    size_t elems = 0;
 
+    // Guard
+    if (array == NULL) {
+        return NULL;
+    }
+
+    // Count elements in `array`
+    for (elems = 0; array[elems] != NULL; elems++);
+
+    // Create new array
+    result = calloc(elems + 1, sizeof(char *));
+    for (size_t i = 0; i < elems; i++) {
+        result[i] = strdup(array[i]);
+    }
+
+    return result;
+}

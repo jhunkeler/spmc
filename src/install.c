@@ -48,7 +48,7 @@ void install_show_package(ManifestPackage *package) {
  * @param _package name of archive to install (not a path)
  * @return success=0, exists=1, error=-1 (general), -2 (unable to create `destroot`)
  */
-int install(const char *destroot, const char *tmpdir, const char *_package) {
+int install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
     char *package = strdup(_package);
 
     if (!package) {
@@ -56,11 +56,11 @@ int install(const char *destroot, const char *tmpdir, const char *_package) {
         return -1;
     }
 
-    if (exists(destroot) != 0) {
+    if (exists(fs->rootdir) != 0) {
         if (SPM_GLOBAL.verbose) {
-            printf("Creating destination root: %s\n", destroot);
+            printf("Creating destination root: %s\n", fs->rootdir);
         }
-        if (mkdirs(destroot, 0755) != 0) {
+        if (mkdirs(fs->rootdir, 0755) != 0) {
             fprintf(SYSERROR);
             free(package);
             return -2;
@@ -81,12 +81,12 @@ int install(const char *destroot, const char *tmpdir, const char *_package) {
     return 0;
 }
 
-int install_package_record(char *from_root, char *package_name) {
+int install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name) {
     RuntimeEnv *rt = runtime_copy(__environ);
-    char *records_topdir = normpath(runtime_expand_var(rt, "$SPM_LOCALSTATE/db/records"));
+    char *records_topdir = join((char *[]) {fs->localstatedir, "db", "records", NULL}, DIRSEPS);
     char *records_pkgdir = join((char *[]) {records_topdir, package_name, NULL}, DIRSEPS);
-    char *descriptor = join((char *[]) {from_root, SPM_META_DESCRIPTOR, NULL}, DIRSEPS);
-    char *filelist = join((char *[]) {from_root, SPM_META_FILELIST, NULL}, DIRSEPS);
+    char *descriptor = join((char *[]) {tmpdir, SPM_META_DESCRIPTOR, NULL}, DIRSEPS);
+    char *filelist = join((char *[]) {tmpdir, SPM_META_FILELIST, NULL}, DIRSEPS);
 
     if (exists(records_pkgdir) != 0) {
         if (mkdirs(records_pkgdir, 0755) != 0) {
@@ -122,21 +122,41 @@ int install_package_record(char *from_root, char *package_name) {
     return 0;
 }
 
-int is_installed(const char *rootdir, char *package_name) {
-    RuntimeEnv *rt = runtime_copy(__environ);
-    char *records_topdir = normpath(runtime_expand_var(rt, "$SPM_LOCALSTATE/db/records"));
+int is_installed(SPM_Hierarchy *fs, char *package_name) {
+    char *records_topdir = join((char *[]) {fs->localstatedir, "db", "records", NULL}, DIRSEPS);
     char *records_pkgdir = join((char *[]) {records_topdir, package_name, NULL}, DIRSEPS);
-    int result = 1; // 1 == exists
+    char *descriptor = join((char *[]) {records_pkgdir, SPM_META_DESCRIPTOR, NULL}, DIRSEPS);
+    char *filelist = join((char *[]) {records_pkgdir, SPM_META_FILELIST, NULL}, DIRSEPS);
+    char **data = NULL;
 
     if (exists(records_pkgdir) != 0) {
-        // does not exist
-        result = 0;
+        free(records_topdir);
+        free(records_pkgdir);
+        free(descriptor);
+        free(filelist);
+        return 0; // does not exist
     }
+
+    data = metadata_read(filelist, SPM_METADATA_VERIFY);
+    if (data == NULL) {
+        free(records_topdir);
+        free(records_pkgdir);
+        free(descriptor);
+        free(filelist);
+        return -1;
+    }
+
+    for (size_t i = 0; data[i] != NULL; i++) {
+        printf("%zu: %s\n", i, data[i]);
+        free(data[i]);
+    }
+    free(data);
 
     free(records_topdir);
     free(records_pkgdir);
-    // exists
-    return result;
+    free(descriptor);
+    free(filelist);
+    return 1; // exists
 }
 
 /**
@@ -146,7 +166,7 @@ int is_installed(const char *rootdir, char *package_name) {
  * @param packages
  * @return 0=success, -1=failed to create storage, -2=denied by user
  */
-int do_install(ManifestList *mf, const char *rootdir, StrList *packages) {
+int do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     size_t num_requirements = 0;
     ManifestPackage **requirements = NULL;
     char source[PATH_MAX];
@@ -159,7 +179,7 @@ int do_install(ManifestList *mf, const char *rootdir, StrList *packages) {
     }
 
     if (SPM_GLOBAL.verbose) {
-        printf("Installation root: %s\n", rootdir);
+        printf("Installation root: %s\n", fs->rootdir);
     }
 
     // Produce a dependency tree from requested package(s)
@@ -207,15 +227,15 @@ int do_install(ManifestList *mf, const char *rootdir, StrList *packages) {
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
         char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
 
-        if (is_installed(rootdir, requirements[i]->name)) {
+        if (is_installed(fs, requirements[i]->name)) {
             printf("  -> %s is already installed\n", requirements[i]->name);
             free(package_path);
             continue;
         }
 
         install_show_package(requirements[i]);
-        install(rootdir, tmpdir, package_path);
-        install_package_record(tmpdir, requirements[i]->name);
+        install(fs, tmpdir, package_path);
+        install_package_record(fs, tmpdir, requirements[i]->name);
         num_installed++;
         free(package_path);
     }
@@ -227,7 +247,7 @@ int do_install(ManifestList *mf, const char *rootdir, StrList *packages) {
 
     if (num_installed != 0) {
         // Relocate installation root
-        relocate_root(rootdir, tmpdir);
+        relocate_root(fs->rootdir, tmpdir);
 
         // Append a trailing slash to tmpdir to direct rsync to copy files, not the directory, into destroot
         sprintf(source, "%s%c", tmpdir, DIRSEP);
@@ -240,10 +260,10 @@ int do_install(ManifestList *mf, const char *rootdir, StrList *packages) {
 
         // Copy temporary directory to destination
         if (SPM_GLOBAL.verbose) {
-            printf("Installing tree: '%s' => '%s'\n", source, rootdir);
+            printf("Installing tree: '%s' => '%s'\n", source, fs->rootdir);
         }
 
-        if (rsync(NULL, source, rootdir) != 0) {
+        if (rsync(NULL, source, fs->rootdir) != 0) {
             exit(1);
         }
     }

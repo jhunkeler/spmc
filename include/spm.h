@@ -34,6 +34,7 @@
 #include "config.h"
 #include "internal_cmd.h"
 #include "environment.h"
+#include "metadata.h"
 #include "manifest.h"
 #include "fs.h"
 #include "version_spec.h"

@@ -1,7 +1,7 @@
 #include "spm.h"
 #include "url.h"
 
-char **file_readlines(const char *filename) {
+char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn *readerFn) {
     FILE *fp = NULL;
     char **result = NULL;
     char *buffer = NULL;
@@ -34,13 +34,46 @@ char **file_readlines(const char *filename) {
 
     rewind(fp);
 
+    // Handle invalid start offset
+    if (start > lines) {
+        start = 0;
+    }
+
+    // Adjust line count when start offset is non-zero
+    if (start != 0 && start < lines) {
+        lines -= start;
+    }
+
+
+    // Handle minimum and maximum limits
+    if (limit == 0 || limit > lines) {
+        limit = lines;
+    }
+
     // Populate results array
     result = calloc(lines + 1, sizeof(char *));
-    for (size_t i = 0; i < lines; i++) {
+    for (size_t i = start; i < limit; i++) {
+        if (i < start) {
+            continue;
+        }
+
         if (fgets(buffer, BUFSIZ, fp) == NULL) {
             break;
         }
-        result[i] = strdup(buffer);
+
+        if (readerFn != NULL) {
+            int status = readerFn(i - start, &buffer);
+            // A status greater than zero indicates we should ignore this line entirely and "continue"
+            // A status less than zero indicates we should "break"
+            // A zero status proceeds normally
+            if (status > 0) {
+                i--;
+                continue;
+            } else if (status < 0) {
+                break;
+            }
+        }
+        result[i - start] = strdup(buffer);
     }
 
     free(buffer);
@@ -49,7 +82,7 @@ char **file_readlines(const char *filename) {
 }
 
 char **mirror_list(const char *filename) {
-    char **mirrors = file_readlines(filename);
+    char **mirrors = file_readlines(filename, 0, 0, NULL);
     char **result = NULL;
     size_t count;
     for (count = 0; mirrors[count] != NULL; count++);

@@ -175,36 +175,24 @@ int main(int argc, char *argv[], char *arge[]) {
         sprintf(rootdir, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
     }
 
+    SPM_Hierarchy *rootfs = spm_hierarchy_init(rootdir);
+
     // Construct installation runtime environment
     RuntimeEnv *rt = runtime_copy(arge);
     // TODO: Move environment allocation out of (above) this loop if possible
     // TODO: replace variables below with SPM_Hierarchy, and write some control functions
 
-    char *spm_bindir = join((char *[]) {rootdir, "bin", NULL}, DIRSEPS);
-    char *spm_includedir = join((char *[]) {rootdir, "include", NULL}, DIRSEPS);
-    char *spm_libdir = join((char *[]) {rootdir, "lib", NULL}, DIRSEPS);
-    char *spm_datadir = join((char *[]) {rootdir, "share", NULL}, DIRSEPS);
-    char *spm_mandir = join((char *[]) {spm_datadir, "man", NULL}, DIRSEPS);
-    char *spm_localstatedir = join((char *[]) {rootdir, "var", NULL}, DIRSEPS);
-
-    runtime_set(rt, "SPM_BIN", spm_bindir);
-    runtime_set(rt, "SPM_INCLUDE", spm_includedir);
-    runtime_set(rt, "SPM_LIB", spm_libdir);
-    runtime_set(rt, "SPM_DATA", spm_datadir);
-    runtime_set(rt, "SPM_MAN", spm_mandir);
-    runtime_set(rt, "SPM_LOCALSTATE", spm_localstatedir);
+    runtime_set(rt, "SPM_BIN", rootfs->bindir);
+    runtime_set(rt, "SPM_INCLUDE", rootfs->includedir);
+    runtime_set(rt, "SPM_LIB", rootfs->libdir);
+    runtime_set(rt, "SPM_DATA", rootfs->datadir);
+    runtime_set(rt, "SPM_MAN", rootfs->mandir);
+    runtime_set(rt, "SPM_LOCALSTATE", rootfs->localstatedir);
     runtime_apply(rt);
-
-    free(spm_bindir);
-    free(spm_includedir);
-    free(spm_libdir);
-    free(spm_datadir);
-    free(spm_mandir);
-    free(spm_localstatedir);
 
     if (RUNTIME_INSTALL) {
         int status_install = 0;
-        if ((status_install = do_install(mf, rootdir, packages)) == -1) {
+        if ((status_install = do_install(rootfs, mf, packages)) == -1) {
             // failed to create temporary destination root
             exit(1);
         }
@@ -287,5 +275,6 @@ int main(int argc, char *argv[], char *arge[]) {
     free_global_config();
     strlist_free(packages);
     manifestlist_free(mf);
+    spm_hierarchy_free(rootfs);
     return 0;
 }

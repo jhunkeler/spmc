@@ -23,5 +23,6 @@ char *strip(char *sptr);
 int isempty(char *sptr);
 int isquoted(char *sptr);
 char *normalize_space(char *s);
+char **strdup_array(char **array);
 
 #endif //SPM_STR_H

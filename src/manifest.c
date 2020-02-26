@@ -133,7 +133,7 @@ Manifest *manifest_from(const char *package_dir) {
             exit(1);
         }
         char *depfile = join((char *[]) {tmpdir, SPM_META_DEPENDS, NULL}, DIRSEPS);
-        info->packages[i]->requirements = file_readlines(depfile);
+        info->packages[i]->requirements = file_readlines(depfile, 0, 0, NULL);
 
         // Record count of requirement specs
         if (info->packages[i]->requirements != NULL) {

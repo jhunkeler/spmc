@@ -244,10 +244,10 @@ char *expandpath(const char *_path) {
  *  - On UNIX, Win32 paths will be converted UNIX
  *  - On Win32, UNIX paths will be converted to Win32
  *
- * This function is platform dependent.
+ * This function is platform dependent. The string is modified in-place.
  *
  * @param path a system path
- * @return string (caller is responsible for `free`ing memory)
+ * @return string
  */
 char *normpath(const char *path) {
     char *result = strdup(path);

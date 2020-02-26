@@ -13,11 +13,14 @@ typedef struct {
 } ConfigItem;
 
 typedef struct {
-    char *binpath;
-    char *includepath;
-    char *libpath;
-    char *datapath;
-    char *manpath;
+    char *rootdir;
+    char *bindir;
+    char *includedir;
+    char *libdir;
+    char *datadir;
+    char *mandir;
+    char *sysconfdir;
+    char *localstatedir;
 } SPM_Hierarchy;
 
 typedef struct {
@@ -51,5 +54,8 @@ void init_config_global(void);
 void free_global_config(void);
 void show_global_config(void);
 void check_runtime_environment(void);
+
+SPM_Hierarchy *spm_hierarchy_init(char *basepath);
+void spm_hierarchy_free(SPM_Hierarchy *fs);
 
 #endif //SPM_CONF_H
