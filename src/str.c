@@ -251,6 +251,65 @@ char *join(char **arr, const char *separator) {
 }
 
 /**
+ * Join two or more strings by a `separator` string
+ * @param separator
+ * @param ...
+ * @return string
+ */
+char *join_ex(char *separator, ...) {
+    va_list ap;                 // Variadic argument list
+    size_t separator_len = 0;   // Length of separator string
+    size_t size = 0;            // Length of output string
+    size_t argc = 0;            // Number of arguments ^ "..."
+    char **argv = NULL;         // Arguments
+    char *current = NULL;       // Current argument
+    char *result = NULL;        // Output string
+
+    // Initialize array
+    argv = calloc(argc + 1, sizeof(char));
+    if (argv == NULL) {
+        perror("join_ex calloc failed");
+        return NULL;
+    }
+
+    // Get length of the separator
+    separator_len = strlen(separator);
+
+    // Process variadic arguments:
+    // 1. Iterate over argument list `ap`
+    // 2. Assign `current` with the value of argument in `ap`
+    // 3. Extend the `argv` array by the latest argument count `argc`
+    // 4. Sum the length of the argument and the `separator` passed to the function
+    // 5. Append `current` string to `argv` array
+    // 6. Update argument counter `argc`
+    va_start(ap, separator);
+    for(argc = 0; (current = va_arg(ap, char *)) != NULL; argc++) {
+        char **tmp = realloc(argv, (argc + 1) * sizeof(char *));
+        if (tmp == NULL) {
+            perror("join_ex realloc failed");
+            return NULL;
+        }
+        argv = tmp;
+        size += strlen(current) + separator_len;
+        argv[argc] = strdup(current);
+    }
+    va_end(ap);
+
+    // Generate output string
+    result = calloc(size, sizeof(char));
+    for (size_t i = 0; i < argc; i++) {
+        // Append argument to string
+        strcat(result, argv[i]);
+
+        // Do not append a trailing separator when we reach the last argument
+        if (i < (argc - 1)) {
+            strcat(result, separator);
+        }
+    }
+
+    return result;
+}
+/**
  * Extract the string encapsulated by characters listed in `delims`
  *
  * ~~~{.c}

@@ -11,6 +11,7 @@ void strdelsuffix(char *sptr, const char *suffix);
 char** split(char *sptr, const char* delim);
 void split_free(char **ptr);
 char *join(char **arr, const char *separator);
+char *join_ex(char *separator, ...);
 char *substring_between(char *sptr, const char *delims);
 void strsort(char **arr);
 int find_in_file(const char *filename, const char *pattern);
