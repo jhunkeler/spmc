@@ -1,12 +1,10 @@
 #ifndef SPM_INSTALL_H
 #define SPM_INSTALL_H
 
-int metadata_remove(const char *_path);
-void install_show_package(ManifestPackage *package);
-int install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package);
-int install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name);
-int is_installed(SPM_Hierarchy *fs, char *package_name);
-int do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages);
-
+void spm_install_show_package(ManifestPackage *package);
+int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package);
+int spm_install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name);
+int spm_check_installed(SPM_Hierarchy *fs, char *package_name);
+int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages);
 
 #endif //SPM_INSTALL_H

@@ -169,6 +169,9 @@ SPM_Hierarchy *spm_hierarchy_init(char *basepath) {
     fs->localstatedir = join((char *[]) {fs->rootdir, "var", NULL}, DIRSEPS);
     fs->sysconfdir = join((char *[]) {fs->rootdir, "etc", NULL}, DIRSEPS);
     fs->mandir = join((char *[]) {fs->datadir, "man", NULL}, DIRSEPS);
+    fs->tmpdir = join((char *[]) {fs->rootdir, "tmp", NULL}, DIRSEPS);
+    fs->dbdir = join((char *[]) {fs->localstatedir, "db", NULL}, DIRSEPS);
+    fs->dbrecdir = join((char *[]) {fs->dbdir, "records", NULL}, DIRSEPS);
 
     return fs;
 }
@@ -186,6 +189,9 @@ void spm_hierarchy_free(SPM_Hierarchy *fs) {
     free(fs->localstatedir);
     free(fs->sysconfdir);
     free(fs->mandir);
+    free(fs->tmpdir);
+    free(fs->dbdir);
+    free(fs->dbrecdir);
     free(fs);
 }
 

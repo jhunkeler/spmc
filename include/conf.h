@@ -20,7 +20,10 @@ typedef struct {
     char *datadir;
     char *mandir;
     char *sysconfdir;
+    char *tmpdir;
     char *localstatedir;
+    char *dbdir;        // $localstate/db
+    char *dbrecdir;     // $localstate/db/records
 } SPM_Hierarchy;
 
 typedef struct {

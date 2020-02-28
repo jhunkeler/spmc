@@ -30,6 +30,7 @@ add_executable(spm
 	shlib.c
 	user_input.c
 	metadata.c
+		purge.c
 )
 
 target_link_libraries(spm crypto ssl curl)

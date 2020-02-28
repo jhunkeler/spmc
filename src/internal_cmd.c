@@ -141,7 +141,7 @@ int mkmanifest_interface(int argc, char **argv) {
  *
  */
 void mkruntime_interface_usage(void) {
-    printf("usage: mkruntime {root_dir}");
+    printf("usage: mkruntime {root_dir}\n");
 }
 
 /**
@@ -162,20 +162,15 @@ int mkruntime_interface(int argc, char **argv) {
     }
 
     char *root = argv[1];
-    char *spm_bindir = join((char *[]) {root, "bin", NULL}, DIRSEPS);
-    char *spm_includedir = join((char *[]) {root, "include", NULL}, DIRSEPS);
-    char *spm_libdir = join((char *[]) {root, "lib", NULL}, DIRSEPS);
-    char *spm_datadir = join((char *[]) {root, "share", NULL}, DIRSEPS);
-    char *spm_mandir = join((char *[]) {spm_datadir, "man", NULL}, DIRSEPS);
-    char *spm_localstatedir = join((char *[]) {root, "var", NULL}, DIRSEPS);
-    char *spm_pkgconfigdir = join((char *[]) {spm_libdir, "pkgconfig", NULL}, DIRSEPS);
+    SPM_Hierarchy *fs = spm_hierarchy_init(root);
+    char *spm_pkgconfigdir = join((char *[]) {fs->libdir, "pkgconfig", NULL}, DIRSEPS);
 
-    runtime_set(rt, "SPM_BIN", spm_bindir);
-    runtime_set(rt, "SPM_INCLUDE", spm_includedir);
-    runtime_set(rt, "SPM_LIB", spm_libdir);
-    runtime_set(rt, "SPM_DATA", spm_datadir);
-    runtime_set(rt, "SPM_MAN", spm_mandir);
-    runtime_set(rt, "SPM_LOCALSTATE", spm_localstatedir);
+    runtime_set(rt, "SPM_BIN", fs->bindir);
+    runtime_set(rt, "SPM_INCLUDE", fs->includedir);
+    runtime_set(rt, "SPM_LIB", fs->libdir);
+    runtime_set(rt, "SPM_DATA", fs->datadir);
+    runtime_set(rt, "SPM_MAN", fs->mandir);
+    runtime_set(rt, "SPM_LOCALSTATE", fs->localstatedir);
     runtime_set(rt, "SPM_PKGCONFIG", spm_pkgconfigdir);
     runtime_set(rt, "SPM_META_DEPENDS", SPM_META_DEPENDS);
     runtime_set(rt, "SPM_META_PREFIX_BIN", SPM_META_PREFIX_BIN);
@@ -188,7 +183,7 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
     runtime_set(rt, "PKG_CONFIG_PATH", "$SPM_PKGCONFIG:$PKG_CONFIG_PATH");
 
-    char *spm_ccpath = join((char *[]) {spm_bindir, "gcc"}, DIRSEPS);
+    char *spm_ccpath = join((char *[]) {fs->bindir, "gcc"}, DIRSEPS);
     if (exists(spm_ccpath) == 0) {
         runtime_set(rt, "CC", "$SPM_BIN/gcc");
     }
@@ -198,14 +193,9 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_export(rt, NULL);
     runtime_free(rt);
 
-    free(spm_bindir);
-    free(spm_includedir);
-    free(spm_libdir);
-    free(spm_datadir);
-    free(spm_mandir);
-    free(spm_localstatedir);
     free(spm_pkgconfigdir);
     free(spm_ccpath);
+    spm_hierarchy_free(fs);
     return 0;
 }
 

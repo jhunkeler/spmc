@@ -5,6 +5,7 @@
 #include <errno.h>
 #include "spm.h"
 
+int RUNTIME_REMOVE = 0;
 int RUNTIME_INSTALL = 0;
 int RUNTIME_ROOTDIR = 0;
 int RUNTIME_LIST = 0;
@@ -131,6 +132,22 @@ int main(int argc, char *argv[], char *arge[]) {
                 strcpy(rootdir, arg_next);
                 i++;
             }
+            else if (strcmp(arg, "-R") == 0 || strcmp(arg, "--remove") == 0) {
+                RUNTIME_REMOVE = 1;
+                for (int p = 0; i < argc; p++) {
+                    i++;
+                    if (startswith(argv[i], "-") == 0 || startswith(argv[i], "--") == 0) {
+                        i--;
+                        break;
+                    }
+                    if ((argc - i) == 0) {
+                        fprintf(stderr, "-R|--remove requires at least one package\n");
+                        usage(program_name);
+                        exit(1);
+                    }
+                    strlist_append(packages, argv[i]);
+                }
+            }
             else if (strcmp(arg, "-I") == 0 || strcmp(arg, "--install") == 0) {
                 RUNTIME_INSTALL = 1;
                 for (int p = 0; i < argc; p++) {
@@ -165,8 +182,12 @@ int main(int argc, char *argv[], char *arge[]) {
         show_global_config();
     }
 
-    if (RUNTIME_ROOTDIR && !RUNTIME_INSTALL) {
+    if (!RUNTIME_ROOTDIR && RUNTIME_INSTALL) {
         fprintf(stderr, "-r|--root requires -I|--install\n");
+        usage(program_name);
+        exit(1);
+    } else if (!RUNTIME_ROOTDIR && RUNTIME_REMOVE) {
+        fprintf(stderr, "-r|--root requires -R|--remove\n");
         usage(program_name);
         exit(1);
     }
@@ -190,9 +211,21 @@ int main(int argc, char *argv[], char *arge[]) {
     runtime_set(rt, "SPM_LOCALSTATE", rootfs->localstatedir);
     runtime_apply(rt);
 
+    if (RUNTIME_REMOVE) {
+        int status_remove = 0;
+        if ((status_remove = spm_do_purge(rootfs, packages)) == -1) {
+            exit(1);
+        }
+        else if (status_remove == -2) {
+            // user said no when asked to proceed
+            exit(2);
+        }
+
+    }
+
     if (RUNTIME_INSTALL) {
         int status_install = 0;
-        if ((status_install = do_install(rootfs, mf, packages)) == -1) {
+        if ((status_install = spm_do_install(rootfs, mf, packages)) == -1) {
             // failed to create temporary destination root
             exit(1);
         }

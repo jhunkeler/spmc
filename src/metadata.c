@@ -1,5 +1,7 @@
 #include "spm.h"
 
+extern const char *METADATA_FILES[];
+
 static int verify_filelist(size_t lineno, char **a) {
     if (lineno == 0) {
         if (strncmp((*a), SPM_PACKAGE_HEADER_FILELIST, strlen(SPM_PACKAGE_HEADER_FILELIST)) != 0) {
@@ -54,11 +56,11 @@ static int reader_metadata(size_t lineno, char **line) {
 /**
  * Detect the type of metadata based on file name and execute the appropriate function against each line
  * in the file. Verification can be disabled by passing a non-zero value as the second argument.
- * @param _filename
+ * @param filename
  * @param no_verify SPM_METADATA_VERIFY or SPM_METADATA_NO_VERIFY
  * @return array of strings (line endings removed)
  */
-char **metadata_read(const char *_filename, int no_verify) {
+char **spm_metadata_read(const char *_filename, int no_verify) {
     char *filename = strdup(_filename);
     char **data = NULL;
     char **result = NULL;
@@ -126,3 +128,37 @@ char **metadata_read(const char *_filename, int no_verify) {
 
     return result;
 }
+
+/**
+ * SPM packages contain metadata files that are not useful post-install and would amount to a lot of clutter.
+ * This function removes these data files from a directory tree
+ * @param _path
+ * @return success=0, error=-1
+ */
+int spm_metadata_remove(const char *_path) {
+    if (exists(_path) != 0) {
+        perror(_path);
+        fprintf(SYSERROR);
+        return -1;
+    }
+
+    for (int i = 0; METADATA_FILES[i] != NULL; i++) {
+        char path[PATH_MAX];
+        sprintf(path, "%s%c%s", _path, DIRSEP, METADATA_FILES[i]);
+        if (exists(path) != 0) {
+            continue;
+        }
+        if (unlink(path) < 0) {
+            perror(path);
+            fprintf(SYSERROR);
+            return -1;
+        }
+    }
+    return 0;
+}
+
+ConfigItem **spm_descriptor_read(const char *filename) {
+    ConfigItem **result = config_read(filename);
+    return result;
+}
+

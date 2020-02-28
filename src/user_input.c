@@ -25,6 +25,35 @@ int spm_user_yesno(int answer, int empty_input_is_yes) {
     return result;
 }
 
+int spm_prompt_user(const char *msg, int empty_input_is_yes) {
+    int user_choice = 0;
+    int status_choice = 0;
+    char ch_yes = 'y';
+    char ch_no = 'n';
+
+    if (empty_input_is_yes) {
+        ch_yes = 'Y';
+    } else {
+        ch_no = 'N';
+    }
+
+    printf("\n%s [%c/%c] ", msg, ch_yes, ch_no);
+    while ((user_choice = getchar())) {
+        status_choice = spm_user_yesno(user_choice, 1);
+        if (status_choice == 0) { // No
+            break;
+        } else if (status_choice == 1) { // Yes
+            break;
+        } else { // Only triggers when spm_user_yesno's second argument is zero
+            puts("Please answer 'y' or 'n'...");
+        }
+    }
+    puts("");
+
+    return status_choice;
+}
+
+
 void spm_user_yesno_test() {
     int choice;
     int status;

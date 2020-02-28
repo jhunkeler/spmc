@@ -50,6 +50,7 @@
 #include "mirrors.h"
 #include "user_input.h"
 #include "install.h"
+#include "purge.h"
 
 #define SYSERROR stderr, "%s:%s:%d: %s\n", basename(__FILE__), __FUNCTION__, __LINE__, strerror(errno)
 

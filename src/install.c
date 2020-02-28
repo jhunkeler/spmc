@@ -1,39 +1,10 @@
 /**
  * @file install.c
  */
+#include <url.h>
 #include "spm.h"
 
-extern const char *METADATA_FILES[];
-
-/**
- * SPM packages contain metadata files that are not useful post-install and would amount to a lot of clutter.
- * This function removes these data files from a directory tree
- * @param _path
- * @return success=0, error=-1
- */
-int metadata_remove(const char *_path) {
-    if (exists(_path) != 0) {
-        perror(_path);
-        fprintf(SYSERROR);
-        return -1;
-    }
-
-    for (int i = 0; METADATA_FILES[i] != NULL; i++) {
-        char path[PATH_MAX];
-        sprintf(path, "%s%c%s", _path, DIRSEP, METADATA_FILES[i]);
-        if (exists(path) != 0) {
-            continue;
-        }
-        if (unlink(path) < 0) {
-            perror(path);
-            fprintf(SYSERROR);
-            return -1;
-        }
-    }
-    return 0;
-}
-
-void install_show_package(ManifestPackage *package) {
+void spm_install_show_package(ManifestPackage *package) {
     if (package == NULL) {
         fprintf(stderr, "ERROR: package was NULL\n");
         return;
@@ -48,7 +19,7 @@ void install_show_package(ManifestPackage *package) {
  * @param _package name of archive to install (not a path)
  * @return success=0, exists=1, error=-1 (general), -2 (unable to create `destroot`)
  */
-int install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
+int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
     char *package = strdup(_package);
 
     if (!package) {
@@ -71,6 +42,35 @@ int install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
         printf("Extracting archive: %s\n", package);
     }
 
+    if (strstr(package, "://") != NULL) {
+        if (exists(fs->tmpdir) != 0) {
+            mkdirs(fs->tmpdir, 0755);
+        }
+        long response = 0;
+        char *url = strdup(package);
+        char *tmp_package = join_ex(DIRSEPS, fs->tmpdir, basename(package), NULL);
+        size_t tmp_package_len = strlen(tmp_package);
+
+        if (tmp_package_len > strlen(package)) {
+            char *tmp = realloc(package, (strlen(package) + 1) * sizeof(char));
+            if (tmp == NULL) {
+                perror("cannot realloc package path");
+                return -1;
+            }
+            package = tmp;
+        }
+        strcpy(package, tmp_package);
+
+        if (exists(tmp_package) != 0) {
+            if ((response = fetch(url, package)) >= 400) {
+                fprintf(stderr, "HTTP(%ld): %s\n", response, http_response_str(response));
+                return -1;
+            }
+        }
+        free(url);
+        free(tmp_package);
+    }
+
     if (tar_extract_archive(package, tmpdir) != 0) {
         fprintf(stderr, "%s: %s\n", package, strerror(errno));
         free(package);
@@ -81,7 +81,7 @@ int install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
     return 0;
 }
 
-int install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name) {
+int spm_install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name) {
     RuntimeEnv *rt = runtime_copy(__environ);
     char *records_topdir = join((char *[]) {fs->localstatedir, "db", "records", NULL}, DIRSEPS);
     char *records_pkgdir = join((char *[]) {records_topdir, package_name, NULL}, DIRSEPS);
@@ -122,14 +122,15 @@ int install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name) 
     return 0;
 }
 
-int is_installed(SPM_Hierarchy *fs, char *package_name) {
+int spm_check_installed(SPM_Hierarchy *fs, char *package_name) {
     char *records_topdir = join((char *[]) {fs->localstatedir, "db", "records", NULL}, DIRSEPS);
     char *records_pkgdir = join((char *[]) {records_topdir, package_name, NULL}, DIRSEPS);
+
     char *descriptor = join((char *[]) {records_pkgdir, SPM_META_DESCRIPTOR, NULL}, DIRSEPS);
     char *filelist = join((char *[]) {records_pkgdir, SPM_META_FILELIST, NULL}, DIRSEPS);
     char **data = NULL;
 
-    if (exists(records_pkgdir) != 0) {
+    if ((exists(records_pkgdir) || exists(descriptor) || exists(descriptor)) != 0) {
         free(records_topdir);
         free(records_pkgdir);
         free(descriptor);
@@ -137,7 +138,7 @@ int is_installed(SPM_Hierarchy *fs, char *package_name) {
         return 0; // does not exist
     }
 
-    data = metadata_read(filelist, SPM_METADATA_VERIFY);
+    data = spm_metadata_read(filelist, SPM_METADATA_VERIFY);
     if (data == NULL) {
         free(records_topdir);
         free(records_pkgdir);
@@ -147,7 +148,6 @@ int is_installed(SPM_Hierarchy *fs, char *package_name) {
     }
 
     for (size_t i = 0; data[i] != NULL; i++) {
-        printf("%zu: %s\n", i, data[i]);
         free(data[i]);
     }
     free(data);
@@ -166,7 +166,7 @@ int is_installed(SPM_Hierarchy *fs, char *package_name) {
  * @param packages
  * @return 0=success, -1=failed to create storage, -2=denied by user
  */
-int do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
+int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     size_t num_requirements = 0;
     ManifestPackage **requirements = NULL;
     char source[PATH_MAX];
@@ -202,24 +202,13 @@ int do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     // Install packages
     printf("Requested package(s):\n");
     for (size_t i = 0; requirements !=NULL && requirements[i] != NULL; i++) {
-        install_show_package(requirements[i]);
+        spm_install_show_package(requirements[i]);
     }
 
     if (SPM_GLOBAL.prompt_user) {
-        int user_choice;
-        int status_choice;
-        printf("\nProceed with installation? [Y/n] ");
-        while ((user_choice = getchar())) {
-            status_choice = spm_user_yesno(user_choice, 1);
-            if (status_choice == 0) { // No
-                exit(-2);
-            } else if (status_choice == 1) { // Yes
-                break;
-            } else { // Only triggers when spm_user_yesno's second argument is zero
-                puts("Please answer 'y' or 'n'...");
-            }
+        if (spm_prompt_user("Proceed with installation?", 1) == 0) {
+            exit(-2);
         }
-        puts("");
     }
 
     printf("Installing package(s):\n");
@@ -227,15 +216,15 @@ int do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
         char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
 
-        if (is_installed(fs, requirements[i]->name)) {
+        if (spm_check_installed(fs, requirements[i]->name)) {
             printf("  -> %s is already installed\n", requirements[i]->name);
             free(package_path);
             continue;
         }
 
-        install_show_package(requirements[i]);
-        install(fs, tmpdir, package_path);
-        install_package_record(fs, tmpdir, requirements[i]->name);
+        spm_install_show_package(requirements[i]);
+        spm_install(fs, tmpdir, package_path);
+        spm_install_package_record(fs, tmpdir, requirements[i]->name);
         num_installed++;
         free(package_path);
     }
@@ -256,7 +245,7 @@ int do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
         if (SPM_GLOBAL.verbose) {
             printf("Removing metadata\n");
         }
-        metadata_remove(source);
+        spm_metadata_remove(source);
 
         // Copy temporary directory to destination
         if (SPM_GLOBAL.verbose) {
