@@ -23,30 +23,36 @@
  */
 ConfigItem **config_read(const char *filename) {
     const char sep = '=';
-    char *line = (char *)calloc(CONFIG_BUFFER_SIZE, sizeof(char));
+    size_t record = 0;
+    char *line = NULL;
+    FILE *fp = NULL;
+
+    if (SPM_GLOBAL.verbose) {
+        printf("Reading configuration file: %s\n", filename);
+    }
+
+    fp = fopen(filename, "r");
+    if (!fp) {
+        // errno will be set, so die, and let the caller handle it
+        return NULL;
+    }
+
+    ConfigItem **config = (ConfigItem **) calloc(record + 1, sizeof(ConfigItem *));
+    if (!config) {
+        perror("ConfigItem");
+        fprintf(SYSERROR);
+        fclose(fp);
+        return NULL;
+    }
+
+    line = (char *)calloc(CONFIG_BUFFER_SIZE, sizeof(char));
     if (!line) {
         perror("config line buffer");
         fprintf(SYSERROR);
         return NULL;
     }
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        // errno will be set, so die, and let the caller handle it
-        free(line);
-        return NULL;
-    }
-    size_t record_initial = 2;
-    size_t record = 0;
-    ConfigItem **config = (ConfigItem **) calloc(record_initial, sizeof(ConfigItem *));
-    if (!config) {
-        perror("ConfigItem");
-        fprintf(SYSERROR);
-        free(line);
-        fclose(fp);
-        return NULL;
-    }
 
-    while (fgets(line, CONFIG_BUFFER_SIZE, fp) != NULL) {
+    while (fgets(line, CONFIG_BUFFER_SIZE - 1, fp) != NULL) {
         char *lptr = line;
         // Remove trailing space and newlines
         lptr = strip(lptr);
@@ -58,6 +64,7 @@ ConfigItem **config_read(const char *filename) {
         if (isempty(lptr)) {
             continue;
         }
+
         // Skip comment-only lines
         if (*lptr == '#' || *lptr == ';') {
             continue;
@@ -132,16 +139,24 @@ ConfigItem **config_read(const char *filename) {
         // Destroy contents of line buffer
         memset(line, '\0', CONFIG_BUFFER_SIZE);
 
+        if (SPM_GLOBAL.verbose) {
+            printf("CONFIG RECORD=%zu, PTR='%p', KEY='%s', VALUE='%s'\n",
+                    record, config[record], config[record]->key, config[record]->value);
+        }
+
         // increment record count
         record++;
+
         // Expand config by another record
-        config = (ConfigItem **)reallocarray(config, (record + record_initial) + 1, sizeof(ConfigItem *));
+        config = (ConfigItem **)reallocarray(config, record + 1, sizeof(ConfigItem *));
         if (!config) {
             perror("ConfigItem array");
             fprintf(SYSERROR);
             free(line);
             return NULL;
         }
+
+        config[record] = NULL;
     }
     free(line);
     return config;
@@ -182,7 +197,7 @@ ConfigItem *config_get(ConfigItem **item, const char *key) {
     if (!item) {
         return NULL;
     }
-    for (int i = 0; item[i] != NULL; i++) {
+    for (size_t i = 0; item[i] != NULL; i++) {
         if (!strcmp(item[i]->key, key)) {
             return item[i];
         }
