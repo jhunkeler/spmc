@@ -94,21 +94,14 @@ char *get_user_package_dir(void) {
  * @return
  */
 char *get_package_manifest(void) {
-    char template[PATH_MAX];
+    Manifest *manifest = NULL;
+    char *template = NULL;
     char *ucd = get_user_conf_dir();
 
-    sprintf(template, "%s%c%s", ucd, DIRSEP, "manifest.dat");
+    //free(ucd);
+    //return strdup(template);
 
-    free(ucd);
-    return strdup(template);
-
-    /*
-    Manifest *manifest;
-    manifest = manifest_read(NULL);
-    if (manifest != NULL) {
-        manifest_free(manifest);
-    }
-
+    template = join_ex(DIRSEPS, SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, SPM_MANIFEST_FILENAME, NULL);
     if (access(template, F_OK) != 0) {
         fprintf(stderr, "Package manifest not found: %s\n", template);
         manifest = manifest_from(PKG_DIR);
@@ -117,13 +110,12 @@ char *get_package_manifest(void) {
             fprintf(SYSERROR);
             return NULL;
         }
-        manifest_write(manifest);
+        manifest_write(manifest, PKG_DIR);
         manifest_free(manifest);
     }
 
     free(ucd);
-    return strdup(template);
-    */
+    return template;
 }
 
 
@@ -298,14 +290,12 @@ void init_config_global(void) {
     item = config_get(SPM_GLOBAL.config, "package_manifest");
     if (item) {
         SPM_GLOBAL.package_manifest = strdup(item->value);
-        /*
         if (access(SPM_GLOBAL.package_manifest, F_OK) != 0) {
             fprintf(stderr, "Package manifest not found: %s\n", SPM_GLOBAL.package_manifest);
             Manifest *manifest = manifest_from(PKG_DIR);
-            manifest_write(manifest);
+            manifest_write(manifest, SPM_GLOBAL.package_manifest);
             manifest_free(manifest);
         }
-         */
     }
     else {
         SPM_GLOBAL.package_manifest = get_package_manifest();

@@ -76,7 +76,9 @@ Manifest *manifest_from(const char *package_dir) {
         return NULL;
     }
 
-    printf("Initializing package manifest:\n");
+    if (SPM_GLOBAL.verbose) {
+        printf("Initializing package manifest:\n");
+    }
     strncpy(info->origin, package_dir, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
 
 
@@ -91,7 +93,10 @@ Manifest *manifest_from(const char *package_dir) {
 
     for (size_t i = 0; i < fsdata->files_length; i++) {
         float percent = (((float)i + 1) / fsdata->files_length) * 100;
-        printf("[%3.0f%%] %s\n", percent, basename(fsdata->files[i]));
+
+        if (SPM_GLOBAL.verbose) {
+            printf("[%3.0f%%] %s\n", percent, basename(fsdata->files[i]));
+        }
 
         // Initialize package record
         info->packages[i] = (ManifestPackage *) calloc(1, sizeof(ManifestPackage));
@@ -231,7 +236,9 @@ int manifest_write(Manifest *info, const char *pkgdir) {
     }
 #endif
 
-    printf("Generating manifest file: %s\n", path_manifest);
+    if (SPM_GLOBAL.verbose) {
+        printf("Generating manifest file: %s\n", path_manifest);
+    }
     fprintf(fp, "%s\n", SPM_MANIFEST_HEADER);
     char data[BUFSIZ];
     for (size_t i = 0; i < info->records; i++) {
@@ -367,11 +374,13 @@ Manifest *manifest_read(char *file_or_url) {
     char *filename = SPM_MANIFEST_FILENAME;
     char *tmpdir = NULL;
     char path[PATH_MAX];
+    char *pathptr = path;
+    memset(path, '\0', PATH_MAX);
 
     // When file_or_url is NULL we want to use the global manifest
     if (file_or_url == NULL) {
         // TODO: move this out
-        strcpy(path, SPM_GLOBAL.package_manifest);
+        strcpy(path, SPM_GLOBAL.package_dir);
     }
     else {
         char *template = join((char *[]) {TMP_DIR, "spm_manifest_read_XXXXXX", NULL}, DIRSEPS);
@@ -382,15 +391,18 @@ Manifest *manifest_read(char *file_or_url) {
             return NULL;
         }
 
-        snprintf(path, PATH_MAX, "%s%c%s", template, DIRSEP, filename);
+        snprintf(pathptr, PATH_MAX - 1, "%s%c%s", template, DIRSEP, filename);
+        //strncpy(pathptr, template, PATH_MAX - 1);
     }
 
     // Handle receiving a path without the manifest filename
     // by appending the manifest to the path
+    /*
     if (startswith(path, "http") != 0 && endswith(path, filename) != 0) {
         strcat(path, DIRSEPS);
         strcat(path, filename);
     }
+     */
 
     char *remote_manifest = join((char *[]) {file_or_url, SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
     if (exists(path) != 0) {
@@ -562,6 +574,13 @@ void manifestlist_free(ManifestList *pManifestList) {
  * @param str
  */
 void manifestlist_append(ManifestList *pManifestList, char *path) {
+    Manifest *manifest = manifest_read(path);
+    if (manifest == NULL) {
+        fprintf(stderr, "Failed to create manifest in memory\n");
+        fprintf(SYSERROR);
+        exit(1);
+    }
+
     Manifest **tmp = realloc(pManifestList->data, (pManifestList->num_alloc + 1) * sizeof(Manifest *));
     if (tmp == NULL) {
         manifestlist_free(pManifestList);
@@ -569,17 +588,29 @@ void manifestlist_append(ManifestList *pManifestList, char *path) {
         exit(1);
     }
     pManifestList->data = tmp;
-    pManifestList->data[pManifestList->num_inuse] = manifest_read(path);
+    pManifestList->data[pManifestList->num_inuse] = manifest;
     pManifestList->num_inuse++;
     pManifestList->num_alloc++;
 }
 
 ManifestPackage *manifestlist_search(ManifestList *pManifestList, const char *_package) {
+    ManifestPackage *found[255] = {0,};
     ManifestPackage *result = NULL;
+    ssize_t offset = -1;
+
     for (size_t i = 0; i < manifestlist_count(pManifestList); i++) {
-        result = manifest_search(manifestlist_item(pManifestList, i), _package);
+        Manifest *item = manifestlist_item(pManifestList, i);
+        result = manifest_search(item, _package);
+        if (result != NULL) {
+            offset++;
+            found[offset] = result;
+        }
     }
-    return result;
+
+    if (offset < 0) {
+        return NULL;
+    }
+    return found[offset];
 }
 
 /**

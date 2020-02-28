@@ -136,7 +136,8 @@ int main(int argc, char *argv[], char *arge[]) {
                 RUNTIME_REMOVE = 1;
                 for (int p = 0; i < argc; p++) {
                     i++;
-                    if (startswith(argv[i], "-") == 0 || startswith(argv[i], "--") == 0) {
+                    char *next = argv[i];
+                    if (next == NULL || (startswith(next, "-") == 0 || startswith(next, "--") == 0)) {
                         i--;
                         break;
                     }
@@ -152,7 +153,8 @@ int main(int argc, char *argv[], char *arge[]) {
                 RUNTIME_INSTALL = 1;
                 for (int p = 0; i < argc; p++) {
                     i++;
-                    if (startswith(argv[i], "-") == 0 || startswith(argv[i], "--") == 0) {
+                    char *next = argv[i];
+                    if (next == NULL || (startswith(next, "-") == 0 || startswith(next, "--") == 0)) {
                         i--;
                         break;
                     }
@@ -161,7 +163,7 @@ int main(int argc, char *argv[], char *arge[]) {
                         usage(program_name);
                         exit(1);
                     }
-                    strlist_append(packages, argv[i]);
+                    strlist_append(packages, next);
                 }
             }
         }

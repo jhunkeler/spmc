@@ -42,35 +42,6 @@ int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
         printf("Extracting archive: %s\n", package);
     }
 
-    if (strstr(package, "://") != NULL) {
-        if (exists(fs->tmpdir) != 0) {
-            mkdirs(fs->tmpdir, 0755);
-        }
-        long response = 0;
-        char *url = strdup(package);
-        char *tmp_package = join_ex(DIRSEPS, fs->tmpdir, basename(package), NULL);
-        size_t tmp_package_len = strlen(tmp_package);
-
-        if (tmp_package_len > strlen(package)) {
-            char *tmp = realloc(package, (strlen(package) + 1) * sizeof(char));
-            if (tmp == NULL) {
-                perror("cannot realloc package path");
-                return -1;
-            }
-            package = tmp;
-        }
-        strcpy(package, tmp_package);
-
-        if (exists(tmp_package) != 0) {
-            if ((response = fetch(url, package)) >= 400) {
-                fprintf(stderr, "HTTP(%ld): %s\n", response, http_response_str(response));
-                return -1;
-            }
-        }
-        free(url);
-        free(tmp_package);
-    }
-
     if (tar_extract_archive(package, tmpdir) != 0) {
         fprintf(stderr, "%s: %s\n", package, strerror(errno));
         free(package);
@@ -160,6 +131,45 @@ int spm_check_installed(SPM_Hierarchy *fs, char *package_name) {
 }
 
 /**
+ *
+ * @return
+ */
+char *spm_install_fetch(const char *pkgdir, const char *_package) {
+    char *package = strdup(_package);
+    if (package == NULL) {
+        perror("could not allocate memory for package name");
+        fprintf(SYSERROR);
+        return NULL;
+    }
+
+    long response = 0;
+    char *url = strdup(package);
+    char *payload = join_ex(DIRSEPS, pkgdir, basename(package), NULL);
+    size_t tmp_package_len = strlen(payload);
+
+    if (tmp_package_len > strlen(package)) {
+        char *tmp = realloc(package, (strlen(package) + 1) * sizeof(char));
+        if (tmp == NULL) {
+            perror("cannot realloc package path");
+            return NULL;
+        }
+        package = tmp;
+    }
+    strcpy(package, payload);
+
+    if (exists(payload) != 0) {
+        if ((response = fetch(url, package)) >= 400) {
+            fprintf(stderr, "HTTP(%ld): %s\n", response, http_response_str(response));
+            return NULL;
+        }
+    }
+    free(url);
+    free(payload);
+
+    return package;
+}
+
+/**
  * Perform a full package installation
  * @param mf
  * @param rootdir
@@ -184,7 +194,8 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
 
     // Produce a dependency tree from requested package(s)
     for (size_t i = 0; i < strlist_count(packages); i++) {
-        requirements = resolve_dependencies(mf, strlist_item(packages, i));
+        char *item  = strlist_item(packages, i);
+        requirements = resolve_dependencies(mf, item);
         if (requirements != NULL) {
             for (size_t c = 0; requirements[c] != NULL; c++) {
                 num_requirements++;
@@ -211,10 +222,47 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
         }
     }
 
+    int fetched = 0;
+    char *package_dir = join_ex(DIRSEPS, SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, NULL);
+    for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
+        char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
+        char *package_localpath = join_ex(DIRSEPS, package_dir, requirements[i]->archive, NULL);
+
+        // Download the archive if necessary
+        if (strstr(package_path, "://") != NULL && exists(package_localpath) != 0) {
+            printf("Fetching: %s\n", package_path);
+            package_path = spm_install_fetch(package_dir, package_path);
+            if (package_path == NULL) {
+                exit(1);
+            }
+            fetched = 1;
+        }
+        // Or copy the archive if necessary
+        else {
+            // You have another local manifest in use. Copy any used packages from there into the local package directory.
+            // TODO: Possibly an issue down the road, but not at the moment
+            if (exists(package_localpath) != 0) {
+                printf("Copying: %s\n", package_path);
+                rsync(NULL, package_path, package_dir);
+                fetched = 1;
+            }
+        }
+        free(package_path);
+        free(package_localpath);
+    }
+
+    // Update the package manifest
+    if (fetched) {
+        printf("Updating package manifest...\n");
+        Manifest *tmp_manifest = manifest_from(SPM_GLOBAL.package_dir);
+        manifest_write(tmp_manifest, package_dir);
+        manifest_free(tmp_manifest);
+    }
+
     printf("Installing package(s):\n");
     size_t num_installed = 0;
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
-        char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
+        char *package_path = join((char *[]) {package_dir, requirements[i]->archive, NULL}, DIRSEPS);
 
         if (spm_check_installed(fs, requirements[i]->name)) {
             printf("  -> %s is already installed\n", requirements[i]->name);
@@ -233,6 +281,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
         manifest_package_free(requirements[i]);
     }
+    free(package_dir);
 
     if (num_installed != 0) {
         // Relocate installation root
