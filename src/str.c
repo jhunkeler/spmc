@@ -24,7 +24,7 @@ int num_chars(const char *sptr, int ch) {
  *
  * @param sptr string to scan
  * @param pattern string to search for
- * @return 0 = found, 1 = not found, -1 = error
+ * @return 1 = found, 0 = not found, -1 = error
  */
 int startswith(const char *sptr, const char *pattern) {
     if (!sptr) {
@@ -32,10 +32,10 @@ int startswith(const char *sptr, const char *pattern) {
     }
     for (size_t i = 0; i < strlen(pattern); i++) {
         if (sptr[i] != pattern[i]) {
-            return 1;
+            return 0;
         }
     }
-    return 0;
+    return 1;
 }
 
 /**
@@ -43,7 +43,7 @@ int startswith(const char *sptr, const char *pattern) {
  *
  * @param sptr string to scan
  * @param pattern string to search for
- * @return 0 = found, 1 = not found, -1 = error
+ * @return 1 = found, 0 = not found, -1 = error
  */
 int endswith(const char *sptr, const char *pattern) {
     if (!sptr) {
@@ -54,11 +54,11 @@ int endswith(const char *sptr, const char *pattern) {
     for (size_t s = sptr_size - pattern_size, p = 0 ; s < sptr_size; s++, p++) {
         if (sptr[s] != pattern[p]) {
             // sptr does not end with pattern
-            return 1;
+            return 0;
         }
     }
     // sptr ends with pattern
-    return 0;
+    return 1;
 }
 
 /**
@@ -284,7 +284,7 @@ char *join_ex(char *separator, ...) {
     // 6. Update argument counter `argc`
     va_start(ap, separator);
     for(argc = 0; (current = va_arg(ap, char *)) != NULL; argc++) {
-        char **tmp = realloc(argv, (argc + 1) * sizeof(char *));
+        char **tmp = (char **)realloc(argv, (argc + 1) * sizeof(char *));
         if (tmp == NULL) {
             perror("join_ex realloc failed");
             return NULL;
