@@ -93,7 +93,7 @@ char **mirror_list(const char *filename) {
 
     result = calloc(count + 1, sizeof(char **));
     for (size_t i = 0; mirrors[i] != NULL; i++) {
-        if (startswith(mirrors[i], "#") == 0 || isempty(mirrors[i])) {
+        if (startswith(mirrors[i], "#") || isempty(mirrors[i])) {
             continue;
         }
         result[i] = join((char *[]) {mirrors[i], SPM_GLOBAL.repo_target, NULL}, DIRSEPS);

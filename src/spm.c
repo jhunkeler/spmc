@@ -137,7 +137,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 for (int p = 0; i < argc; p++) {
                     i++;
                     char *next = argv[i];
-                    if (next == NULL || (startswith(next, "-") == 0 || startswith(next, "--") == 0)) {
+                    if (next == NULL || (startswith(next, "-") || startswith(next, "--"))) {
                         i--;
                         break;
                     }
@@ -154,7 +154,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 for (int p = 0; i < argc; p++) {
                     i++;
                     char *next = argv[i];
-                    if (next == NULL || (startswith(next, "-") == 0 || startswith(next, "--") == 0)) {
+                    if (next == NULL || (startswith(next, "-") || startswith(next, "--"))) {
                         i--;
                         break;
                     }

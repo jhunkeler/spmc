@@ -184,7 +184,7 @@ RelocationEntry **prefixes_read(const char *filename) {
         if (isempty(lptr)) {
             continue;
         }
-        if (startswith(lptr, "#") == 0) {
+        if (startswith(lptr, "#")) {
             do_prefix = 1;
         }
         else {

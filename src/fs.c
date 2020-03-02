@@ -56,10 +56,10 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
                 if (filter_mode & SPM_FSTREE_FLT_CONTAINS && strstr(node->fts_path, filter_by[i]) == NULL) {
                     continue;
                 }
-                else if (filter_mode & SPM_FSTREE_FLT_ENDSWITH && endswith(node->fts_path, filter_by[i]) != 0) {
+                else if (filter_mode & SPM_FSTREE_FLT_ENDSWITH && !endswith(node->fts_path, filter_by[i])) {
                     continue;
                 }
-                else if (filter_mode & SPM_FSTREE_FLT_STARTSWITH && startswith(node->fts_path, filter_by[i]) != 0) {
+                else if (filter_mode & SPM_FSTREE_FLT_STARTSWITH && !startswith(node->fts_path, filter_by[i])) {
                     continue;
                 }
                 switch (node->fts_info) {
@@ -475,13 +475,20 @@ char *human_readable_size(uint64_t n) {
  * @param name
  * @return success=path, failure=NULL
  */
-char *spm_mkdtemp(const char *name) {
+char *spm_mkdtemp(const char *name, const char *extended_path) {
     const char *template_unique = "XXXXXX";
     char *tmpdir = NULL;
     char *template = calloc(PATH_MAX, sizeof(char));
 
     sprintf(template, "%s%s%s_%s", TMP_DIR, DIRSEPS, name, template_unique);
     tmpdir = mkdtemp(template);
+    if (extended_path != NULL) {
+        char extended[PATH_MAX] = {0,};
+        strncpy(extended, tmpdir, PATH_MAX - 1);
+        strcat(extended, DIRSEPS);
+        strcat(extended, extended_path);
+        mkdirs(extended, 0755);
+    }
     return tmpdir;
 }
 

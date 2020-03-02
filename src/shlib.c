@@ -59,7 +59,7 @@ StrList *shlib_deps(const char *filename) {
     // AFAIK when "NEEDED" is present, a string containing the library name is guaranteed to be there
     for (size_t i = 0; data[i] != NULL; i++) {
         data[i] = normalize_space(data[i]);
-        if (startswith(data[i], "NEEDED") == 0) {
+        if (startswith(data[i], "NEEDED")) {
             char **field = split(data[i], " ");
             strlist_append(result, field[1]);
             split_free(field);

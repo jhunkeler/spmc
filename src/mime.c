@@ -103,7 +103,7 @@ int file_is_text(const char *filename) {
     int result = 0;
     char *path = normpath(filename);
     Mime *type = file_mimetype(path);
-    if (startswith(type->type, "text/") == 0) {
+    if (startswith(type->type, "text/")) {
         result = 1;
     }
     free(path);
@@ -120,7 +120,7 @@ int file_is_binary(const char *filename) {
     int result = 0;
     char *path = normpath(filename);
     Mime *type = file_mimetype(path);
-    if (startswith(type->type, "application/") == 0 && strcmp(type->charset, "binary") == 0) {
+    if (startswith(type->type, "application/") && strcmp(type->charset, "binary") == 0) {
         result = 1;
     }
     free(path);
