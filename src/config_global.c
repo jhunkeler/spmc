@@ -56,9 +56,9 @@ char *get_user_config_file(void) {
  * @return
  */
 char *get_user_tmp_dir(void) {
-    char template[PATH_MAX];
+    char *template = NULL;
     char *ucd = get_user_conf_dir();
-    sprintf(template, "%s%c%s", ucd, DIRSEP, "tmp");
+    template = join_ex(DIRSEPS, ucd, "tmp", NULL);
 
     if (access(template, F_OK) != 0) {
         if (mkdirs(template, 0755) != 0) {
@@ -67,7 +67,7 @@ char *get_user_tmp_dir(void) {
     }
 
     free(ucd);
-    return strdup(template);
+    return template;
 }
 
 /**
@@ -75,9 +75,10 @@ char *get_user_tmp_dir(void) {
  * @return
  */
 char *get_user_package_dir(void) {
-    char template[PATH_MAX];
+    char *template = NULL;
     char *ucd = get_user_conf_dir();
-    sprintf(template, "%s%c%s", ucd, DIRSEP, "pkgs");
+
+    template = join_ex(DIRSEPS, ucd, "pkgs", SPM_GLOBAL.repo_target, NULL);
 
     if (access(template, F_OK) != 0) {
         if (mkdirs(template, 0755) != 0) {
@@ -86,7 +87,7 @@ char *get_user_package_dir(void) {
     }
 
     free(ucd);
-    return strdup(template);
+    return template;
 }
 
 /**
@@ -101,7 +102,7 @@ char *get_package_manifest(void) {
     //free(ucd);
     //return strdup(template);
 
-    template = join_ex(DIRSEPS, SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, SPM_MANIFEST_FILENAME, NULL);
+    template = join_ex(DIRSEPS, SPM_GLOBAL.package_dir, SPM_MANIFEST_FILENAME, NULL);
     if (access(template, F_OK) != 0) {
         fprintf(stderr, "Package manifest not found: %s\n", template);
         manifest = manifest_from(PKG_DIR);
@@ -273,7 +274,11 @@ void init_config_global(void) {
     // Initialize package directory
     item = config_get(SPM_GLOBAL.config, "package_dir");
     if (item) {
-        SPM_GLOBAL.package_dir = strdup(item->value);
+        SPM_GLOBAL.package_dir = calloc(PATH_MAX, sizeof(char)); //strdup(item->value);
+        strncpy(SPM_GLOBAL.package_dir, item->value, PATH_MAX - 1);
+        strcat(SPM_GLOBAL.package_dir, DIRSEPS);
+        strcat(SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target);
+
         if (access(SPM_GLOBAL.package_dir, F_OK) != 0) {
             if (mkdirs(SPM_GLOBAL.package_dir, 0755) != 0) {
                 fprintf(stderr, "Unable to create global package directory: %s\n", SPM_GLOBAL.package_dir);

@@ -148,7 +148,7 @@ char *spm_install_fetch(const char *pkgdir, const char *_package) {
     size_t tmp_package_len = strlen(payload);
 
     if (tmp_package_len > strlen(package)) {
-        char *tmp = realloc(package, (strlen(package) + 1) * sizeof(char));
+        char *tmp = realloc(package, (strlen(tmp_package_len) + 1) * sizeof(char));
         if (tmp == NULL) {
             perror("cannot realloc package path");
             return NULL;
@@ -180,7 +180,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     size_t num_requirements = 0;
     ManifestPackage **requirements = NULL;
     char source[PATH_MAX];
-    char *tmpdir = spm_mkdtemp("spm_destroot");
+    char *tmpdir = spm_mkdtemp("spm_destroot", NULL);
 
     if (tmpdir == NULL) {
         perror("Could not create temporary destination root");
@@ -223,7 +223,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     }
 
     int fetched = 0;
-    char *package_dir = join_ex(DIRSEPS, SPM_GLOBAL.package_dir, SPM_GLOBAL.repo_target, NULL);
+    char *package_dir = strdup(SPM_GLOBAL.package_dir);
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
         char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
         char *package_localpath = join_ex(DIRSEPS, package_dir, requirements[i]->archive, NULL);
@@ -233,6 +233,8 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
             printf("Fetching: %s\n", package_path);
             package_path = spm_install_fetch(package_dir, package_path);
             if (package_path == NULL) {
+                free(package_path);
+                free(package_localpath);
                 exit(1);
             }
             fetched = 1;

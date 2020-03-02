@@ -37,7 +37,7 @@ int tar_extract_file(const char *_archive, const char* _filename, const char *_d
 
     sprintf(cmd, "tar xf \"%s\" -C \"%s\" \"%s\" 2>&1", archive, destination, filename);
     if (exists(archive) != 0) {
-        fprintf(stderr, "%s :: ", archive);
+        fprintf(stderr, "unable to find archive: %s\n", archive);
         fprintf(SYSERROR);
         return -1;
     }

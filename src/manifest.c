@@ -54,16 +54,8 @@ void manifest_package_separator_restore(char **name) {
  */
 Manifest *manifest_from(const char *package_dir) {
     char *package_filter[] = {SPM_PACKAGE_EXTENSION, NULL}; // We only want packages
-    char *template = NULL;
     FSTree *fsdata = NULL;
     fsdata = fstree(package_dir, package_filter, SPM_FSTREE_FLT_ENDSWITH);
-
-    template = join((char *[]) {TMP_DIR, "spm_manifest_from_XXXXXX", NULL}, DIRSEPS);
-    if (!template) {
-        perror("Failed to allocate template string");
-        fprintf(SYSERROR);
-        return NULL;
-    }
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
     info->records = fsdata->files_length;
@@ -82,9 +74,9 @@ Manifest *manifest_from(const char *package_dir) {
     strncpy(info->origin, package_dir, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
 
 
-    char *tmpdir = mkdtemp(template);
-    if (exists(tmpdir) != 0) {
-        perror("temporary directory creation failed");
+    char *tmpdir = spm_mkdtemp("spm_manifest_from", NULL);
+    if (!tmpdir) {
+        perror("failed to create temporary directory");
         fprintf(SYSERROR);
         free(info);
         fstree_free(fsdata);
@@ -105,6 +97,7 @@ Manifest *manifest_from(const char *package_dir) {
             fprintf(SYSERROR);
             fstree_free(fsdata);
             free(info);
+            rmdirs(tmpdir);
             return NULL;
         }
 
@@ -130,7 +123,7 @@ Manifest *manifest_from(const char *package_dir) {
         strdelsuffix(info->packages[i]->revision, SPM_PACKAGE_EXTENSION);
 
         // Read package requirement specs
-        char *archive = join((char *[]) {info->origin, SPM_GLOBAL.repo_target, info->packages[i]->archive, NULL}, DIRSEPS);
+        char *archive = join((char *[]) {info->origin, info->packages[i]->archive, NULL}, DIRSEPS);
         if (tar_extract_file(archive, SPM_META_DEPENDS, tmpdir) != 0) {
             // TODO: at this point is the package is invalid? .SPM_DEPENDS should be there...
             fprintf(stderr, "extraction failure: %s\n", archive);
@@ -206,11 +199,12 @@ int manifest_write(Manifest *info, const char *pkgdir) {
     strcpy(path_manifest, path);
 
     // Append the manifest filename if its missing
-    if (endswith(path_manifest, SPM_MANIFEST_FILENAME) != 0) {
+    if (!endswith(path_manifest, SPM_MANIFEST_FILENAME)) {
         strcat(path_manifest, DIRSEPS);
         strcat(path_manifest, SPM_MANIFEST_FILENAME);
     }
 
+    char *asdfasd = path_manifest;
     FILE *fp = fopen(path_manifest, "w+");
 #ifdef _DEBUG
     if (SPM_GLOBAL.verbose) {
@@ -383,31 +377,29 @@ Manifest *manifest_read(char *file_or_url) {
         strcpy(path, SPM_GLOBAL.package_dir);
     }
     else {
-        char *template = join((char *[]) {TMP_DIR, "spm_manifest_read_XXXXXX", NULL}, DIRSEPS);
-        tmpdir = mkdtemp(template);
+        tmpdir = spm_mkdtemp("spm_manifest_read_XXXXXX", SPM_GLOBAL.repo_target);
         if (exists(tmpdir) != 0) {
             fprintf(stderr, "Failed to create temporary storage directory\n");
             fprintf(SYSERROR);
             return NULL;
         }
 
-        snprintf(pathptr, PATH_MAX - 1, "%s%c%s", template, DIRSEP, filename);
-        //strncpy(pathptr, template, PATH_MAX - 1);
+        snprintf(pathptr, PATH_MAX - 1, "%s%s%s%s%s", tmpdir, DIRSEPS, SPM_GLOBAL.repo_target, DIRSEPS, filename);
     }
 
-    // Handle receiving a path without the manifest filename
-    // by appending the manifest to the path
-    /*
-    if (startswith(path, "http") != 0 && endswith(path, filename) != 0) {
-        strcat(path, DIRSEPS);
-        strcat(path, filename);
+    const char *target_is;
+    if (strstr(file_or_url, SPM_GLOBAL.repo_target) != NULL) {
+        target_is = "";
     }
-     */
+    else {
+        target_is = SPM_GLOBAL.repo_target;
+    }
 
-    char *remote_manifest = join((char *[]) {file_or_url, SPM_GLOBAL.repo_target, filename, NULL}, DIRSEPS);
-    if (exists(path) != 0) {
+    char *remote_manifest = join_ex(DIRSEPS, file_or_url, target_is, filename, NULL);
+
+    if (exists(pathptr) != 0) {
         // TODO: Move this out
-        int fetch_status = fetch(remote_manifest, path);
+        int fetch_status = fetch(remote_manifest, pathptr);
         if (fetch_status >= 400) {
             fprintf(stderr, "HTTP %d: %s: %s\n", fetch_status, http_response_str(fetch_status), remote_manifest);
             free(remote_manifest);
@@ -425,7 +417,7 @@ Manifest *manifest_read(char *file_or_url) {
     char *dptr = data;
     memset(dptr, '\0', BUFSIZ);
 
-    fp = fopen(path, "r+");
+    fp = fopen(pathptr, "r+");
     if (!fp) {
         perror(filename);
         fprintf(SYSERROR);
