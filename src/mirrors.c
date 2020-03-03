@@ -81,12 +81,27 @@ char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn
     return result;
 }
 
+/**
+ *
+ * @param filename
+ * @return
+ */
 char **mirror_list(const char *filename) {
-    char **mirrors = file_readlines(filename, 0, 0, NULL);
+    char **mirrors = NULL;
     char **result = NULL;
     size_t count;
-    for (count = 0; mirrors[count] != NULL; count++);
 
+    // The configuration file isn't critical so if it isn't available, no big deal
+    if (exists(filename) != 0) {
+        return NULL;
+    }
+
+    mirrors = file_readlines(filename, 0, 0, NULL);
+    if (mirrors == NULL) {
+        return NULL;
+    }
+
+    for (count = 0; mirrors[count] != NULL; count++);
     if (!count) {
         return NULL;
     }
