@@ -128,6 +128,7 @@ void check_runtime_environment(void) {
     char *required[] = {
             "file",
             "patchelf",
+            "objdump",
             "rsync",
             "tar",
             "bash",
