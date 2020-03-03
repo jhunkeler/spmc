@@ -135,6 +135,12 @@ void check_runtime_environment(void) {
             "reloc",
             NULL,
     };
+
+    if (getenv("SHELL") == NULL) {
+        fprintf(stderr, "Required environment variable 'SHELL' is not defined\n");
+        bad_rt = 1;
+    }
+
     for (int i = 0; required[i] != NULL; i++) {
         char *result = find_executable(required[i]);
         if (!result) {
