@@ -203,7 +203,7 @@ int mkruntime_interface(int argc, char **argv) {
  *
  */
 void mirror_clone_interface_usage(void) {
-    printf("usage: mirror_clone {url} {output_dir}");
+    printf("usage: mirror_clone {url} {output_dir}\n");
 }
 
 /**
