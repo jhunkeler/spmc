@@ -174,8 +174,11 @@ int main(int argc, char *argv[], char *arge[]) {
         }
     }
 
+    // Apply some default manifest locations; unless the user passes -M|--override-manifests
     if (override_manifests == 0) {
-        // Place the default package location at the bottom of the list
+        // Remote package manifests have priority over the local package store
+        manifestlist_append(mf, "https://astroconda.org/spm");
+        // Add the local package store to the bottom
         manifestlist_append(mf, SPM_GLOBAL.package_dir);
     }
 
@@ -195,7 +198,13 @@ int main(int argc, char *argv[], char *arge[]) {
     }
 
     if (isempty(rootdir)) {
-        sprintf(rootdir, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
+        // No root directory defined so check if the environment variable was declared
+        char *global_root = getenv("SPM_ROOT");
+        if (global_root != NULL) {
+            strncpy(rootdir, global_root, PATH_MAX);
+        } else { // Nothing declared; fall back to user's home directory
+            sprintf(rootdir, "%s%c%s", getenv("HOME"), DIRSEP, "spm_root");
+        }
     }
 
     SPM_Hierarchy *rootfs = spm_hierarchy_init(rootdir);
