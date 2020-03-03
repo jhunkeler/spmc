@@ -20,6 +20,7 @@ A basic userland package management system with a few humble goals:
 
 - file (http://darwinsys.com/file)
 - patchelf (https://nixos.org/patchelf.html)
+- objdump (https://www.gnu.org/software/binutils)
 - reloc (https://github.com/jhunkeler/reloc)
 - rsync (https://rsync.samba.org)
 - tar (https://www.gnu.org/software/tar)
@@ -32,13 +33,13 @@ A basic userland package management system with a few humble goals:
 
 ```bash
 $ yum install epel-release
-$ yum install cmake curl-devel file gcc openssl-devel patchelf rsync tar
+$ yum install binutils cmake curl-devel file gcc openssl-devel patchelf rsync tar
 ```
 
 #### Arch
 
 ```bash
-$ pacman -S cmake curl file gcc openssl patchelf rsync tar
+$ pacman -S binutils cmake curl file gcc openssl patchelf rsync tar
 ```
 
 ### Install reloc
@@ -70,15 +71,19 @@ _TODO_
 
 ```bash
 $ spm --help
-usage: spm [-hVvBIrLS]
-  -h,  --help     show this help message
-  -V,  --version  show version
-  -v,  --verbose  show more information
-  -B,  --build    build package(s)
-  -I,  --install  install package(s)
-  -r,  --root     installation prefix (requires --install)
-  -L,  --list     list available packages
-  -S,  --search   search for a package
+usage: spm [-hVvBIrmMLS]
+  -h,  --help                show this help message
+  -V,  --version             show version
+  -v,  --verbose             show more information
+  -y   --yes                 do not prompt
+  -B,  --build               build package(s)
+  -I,  --install             install package(s)
+  -r,  --root                installation prefix (requires --install)
+  -m   --manifest            specify a package manifest to use
+  -M   --override-manifests  disable default package manifest location
+  -L,  --list                list available packages
+  -S,  --search              search for a package
+       --cmd                 execute an internal spm command
 ```
 
 ### Example
@@ -91,30 +96,23 @@ $ spm --root ~/spmenv123 --install "python" # [...]
 #### Export environment variables
 
 ```bash
-$ export PATH="~/spmenv123/bin:$PATH"
-$ export MANPATH="~/spmenv123/share/man:$MANPATH"
+$ source <(spm --mkruntime ~/spmenv123)
 $ hash -r  # or "rehash" if your shell supports it
 ```
 
 #### Use Python
 
 ```bash
-$ which python
-/home/example/spmenv123/bin/python
-$ which pip
-/home/example/spmenv123/bin/pip
-$ which git
-/home/example/spmenv123/bin/git
-
+$ python -m ensurepip
 $ python -m venv ~/spmenv123/venv
 $ source ~/spmenv123/venv/bin/activate
-$ pip install https://github.com/spacetelescope/jwst.git#egg=jwst
+(venv) $ pip install https://github.com/spacetelescope/jwst.git#egg=jwst
 # ... do work
 ```
 
 ## Building SPM Packages
 
-_TODO_
+See the [spm_packages](https://github.com/jhunkeler/spm_packages) repository.
 
 ## Development
 
@@ -122,7 +120,7 @@ _TODO_
 $ git clone https://github.com/jhunkeler/spm
 $ cd spm
 $ mkdir build
-$ make
+$ cmake ..
 ```
 
 
