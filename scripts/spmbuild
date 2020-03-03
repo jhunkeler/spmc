@@ -357,7 +357,12 @@ source "${SPM_BUILD_SCRIPT_ROOT}/${SPM_BUILD_SCRIPT}"
 # Declare package metadata we need at this level
 package_name="${name}-${version}-${revision}"
 package_archive="${package_name}$(spm_build_get_package_ext)"
-package_final="${SPM_BUILD_STORE_PACKAGES}/${SPM_BUILD_SYS_TARGET}/${package_archive}"
+package_target="${SPM_BUILD_STORE_PACKAGES}/${SPM_BUILD_SYS_TARGET}"
+package_final="${package_target}/${package_archive}"
+
+if [[ ! -d "${package_target}" ]]; then
+    mkdir -p ${package_target}
+fi
 
 msg2 "Downloading source files..."
 spm_build_do_sources "${package_name}"
