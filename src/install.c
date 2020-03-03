@@ -54,7 +54,7 @@ int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
 
 int spm_install_package_record(SPM_Hierarchy *fs, char *tmpdir, char *package_name) {
     RuntimeEnv *rt = runtime_copy(__environ);
-    char *records_topdir = join((char *[]) {fs->localstatedir, "db", "records", NULL}, DIRSEPS);
+    char *records_topdir = strdup(fs->dbrecdir);
     char *records_pkgdir = join((char *[]) {records_topdir, package_name, NULL}, DIRSEPS);
     char *descriptor = join((char *[]) {tmpdir, SPM_META_DESCRIPTOR, NULL}, DIRSEPS);
     char *filelist = join((char *[]) {tmpdir, SPM_META_FILELIST, NULL}, DIRSEPS);
@@ -148,7 +148,7 @@ char *spm_install_fetch(const char *pkgdir, const char *_package) {
     size_t tmp_package_len = strlen(payload);
 
     if (tmp_package_len > strlen(package)) {
-        char *tmp = realloc(package, (strlen(tmp_package_len) + 1) * sizeof(char));
+        char *tmp = realloc(package, (tmp_package_len + 1) * sizeof(char));
         if (tmp == NULL) {
             perror("cannot realloc package path");
             return NULL;
@@ -197,7 +197,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
         char *item  = strlist_item(packages, i);
         requirements = resolve_dependencies(mf, item);
         if (requirements != NULL) {
-            for (size_t c = 0; requirements[c] != NULL; c++) {
+            for (size_t c = num_requirements; requirements[c] != NULL; c++) {
                 num_requirements++;
             }
         }
@@ -207,6 +207,12 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     for (size_t i = 0; i < strlist_count(packages); i++) {
         char *name = strlist_item(packages, i);
         ManifestPackage *package = manifestlist_search(mf, name);
+
+        if (package == NULL) {
+            fprintf(stderr, "Package not found: %s\n", name);
+            return -1;
+        }
+
         requirements[i + num_requirements] = package;
     }
 
@@ -225,7 +231,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     int fetched = 0;
     char *package_dir = strdup(SPM_GLOBAL.package_dir);
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
-        char *package_path = join((char *[]) {requirements[i]->origin, SPM_GLOBAL.repo_target, requirements[i]->archive, NULL}, DIRSEPS);
+        char *package_path = join((char *[]) {requirements[i]->origin, requirements[i]->archive, NULL}, DIRSEPS);
         char *package_localpath = join_ex(DIRSEPS, package_dir, requirements[i]->archive, NULL);
 
         // Download the archive if necessary
@@ -241,12 +247,19 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
         }
         // Or copy the archive if necessary
         else {
-            // You have another local manifest in use. Copy any used packages from there into the local package directory.
             // TODO: Possibly an issue down the road, but not at the moment
-            if (exists(package_localpath) != 0) {
+            // You have another local manifest in use. Copy any used packages from there into the local package directory.
+            if (exists(package_localpath) != 0 && strncmp(package_dir, package_path, strlen(package_dir)) != 0) {
                 printf("Copying: %s\n", package_path);
-                rsync(NULL, package_path, package_dir);
+                if (rsync(NULL, package_path, package_dir) != 0) {
+                    fprintf(stderr, "Unable to copy: %s to %s\n", package_path, package_dir);
+                    return -1;
+                }
                 fetched = 1;
+            } else if (exists(package_localpath) != 0) {
+                // All attempts to retrieve the requested package have failed. Die.
+                fprintf(stderr, "Package manifest in '%s' claims '%s' exists, however it does not.\n", requirements[i]->origin, package_path);
+                return -1;
             }
         }
         free(package_path);
