@@ -4,16 +4,19 @@ install(
 		archive.h
 		checksum.h
 		conf.h
-		deps.h
 		environment.h
 		find.h
 		fs.h
 		install.h
 		internal_cmd.h
 		manifest.h
+		metadata.h
 		mime.h
 		mirrors.h
+		package.h
+		purge.h
 		relocation.h
+		resolve.h
 		rpath.h
 		shell.h
 		shlib.h
@@ -21,6 +24,7 @@ install(
 		str.h
 		strlist.h
 		url.h
+		user_input.h
 		version_spec.h
 
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}"
