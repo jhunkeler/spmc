@@ -204,8 +204,12 @@ int manifest_write(Manifest *info, const char *pkgdir) {
         strcat(path_manifest, SPM_MANIFEST_FILENAME);
     }
 
-    char *asdfasd = path_manifest;
     FILE *fp = fopen(path_manifest, "w+");
+    if (fp == NULL) {
+        perror(path_manifest);
+        fprintf(SYSERROR);
+        return -1;
+    }
 #ifdef _DEBUG
     if (SPM_GLOBAL.verbose) {
         for (size_t i = 0; i < info->records; i++) {
