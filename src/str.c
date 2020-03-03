@@ -266,7 +266,7 @@ char *join_ex(char *separator, ...) {
     char *result = NULL;        // Output string
 
     // Initialize array
-    argv = calloc(argc + 1, sizeof(char));
+    argv = calloc(argc + 1, sizeof(char *));
     if (argv == NULL) {
         perror("join_ex calloc failed");
         return NULL;
@@ -284,7 +284,7 @@ char *join_ex(char *separator, ...) {
     // 6. Update argument counter `argc`
     va_start(ap, separator);
     for(argc = 0; (current = va_arg(ap, char *)) != NULL; argc++) {
-        char **tmp = (char **)realloc(argv, (argc + 1) * sizeof(char *));
+        char **tmp = realloc(argv, (argc + 1) * sizeof(char *));
         if (tmp == NULL) {
             perror("join_ex realloc failed");
             return NULL;
@@ -296,7 +296,7 @@ char *join_ex(char *separator, ...) {
     va_end(ap);
 
     // Generate output string
-    result = calloc(size, sizeof(char));
+    result = calloc(size + 1, sizeof(char));
     for (size_t i = 0; i < argc; i++) {
         // Append argument to string
         strcat(result, argv[i]);
@@ -305,10 +305,13 @@ char *join_ex(char *separator, ...) {
         if (i < (argc - 1)) {
             strcat(result, separator);
         }
+        free(argv[i]);
     }
+    free(argv);
 
     return result;
 }
+
 /**
  * Extract the string encapsulated by characters listed in `delims`
  *
@@ -495,7 +498,7 @@ char **strdeldup(char **arr) {
 char *lstrip(char *sptr) {
     char *tmp = sptr;
     size_t bytes = 0;
-    while (isblank(*tmp)) {
+    while (isblank(*tmp) || isspace(*tmp)) {
         bytes++;
         tmp++;
     }
@@ -516,7 +519,7 @@ char *strip(char *sptr) {
     if (len == 0) {
         return sptr;
     }
-    else if (len == 1) {
+    else if (len == 1 && (isblank(*sptr) || isspace(*sptr))) {
         *sptr = '\0';
         return sptr;
     }
@@ -542,7 +545,7 @@ char *strip(char *sptr) {
 int isempty(char *sptr) {
     char *tmp = sptr;
     while (*tmp) {
-        if (!isblank(*tmp)) {
+        if (!isblank(*tmp) || !isspace(*tmp)) {
             return 0;
         }
         tmp++;
