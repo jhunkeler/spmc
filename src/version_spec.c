@@ -158,7 +158,7 @@ int64_t version_from(const char *version_str) {
     char *suffix_alpha = NULL;      // pointer to location of the first character after the version
     char *suffix_modifier = NULL;   // pointer to location of the modifier after the version
     char *x = NULL;         // pointer to each string delimited by "."
-    char *vstr = calloc(strlen(version_str) + 1, sizeof(char));
+    char *vstr = strdup(version_str);
     if (!vstr) {
         perror("Version string copy");
         return -1;
@@ -166,7 +166,6 @@ int64_t version_from(const char *version_str) {
 
     memset(head, '\0', sizeof(head));
     memset(tail, '\0', sizeof(tail));
-    strncpy(vstr, version_str, strlen(version_str));
 
     // Split the version into parts
     while ((x = strsep(&vstr, delim)) != NULL) {
