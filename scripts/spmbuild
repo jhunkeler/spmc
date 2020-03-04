@@ -164,43 +164,43 @@ function spm_build_cleanup() {
 }
 
 function spm_build_install() {
-    ${SPM} --override-manifests --manifest "${SPM_BUILD_STORE_PACKAGES}" --install $@ --root "${SPM_BUILD_RUNTIME}"
+    ${SPM} --yes --override-manifests --manifest "${SPM_BUILD_STORE_PACKAGES}" --install $@ --root "${SPM_BUILD_RUNTIME}"
 }
 
 function spm_build_mkprefixbin() {
-    ${SPM} --cmd mkprefixbin $@
+    ${SPM} --yes --cmd mkprefixbin $@
 }
 
 function spm_build_mkprefixtext() {
-    ${SPM} --cmd mkprefixtext $@
+    ${SPM} --yes --cmd mkprefixtext $@
 }
 
 function spm_build_mkmanifest() {
-    ${SPM} --cmd mkmanifest "$1" "$2"
+    ${SPM} --yes --cmd mkmanifest "$1" "$2"
 }
 
 function spm_build_mkruntime() {
-    ${SPM} --cmd mkruntime "${1}"
+    ${SPM} --yes --cmd mkruntime "${1}"
 }
 
 function spm_build_rpath_set() {
-    ${SPM} --cmd rpath_set $@
+    ${SPM} --yes --cmd rpath_set $@
 }
 
 function spm_build_rpath_autoset() {
-    ${SPM} --cmd rpath_autoset $@
+    ${SPM} --yes --cmd rpath_autoset $@
 }
 
 function spm_build_get_package_ext() {
-    ${SPM} --cmd get_package_ext
+    ${SPM} --yes --cmd get_package_ext
 }
 
 function spm_build_get_sys_target() {
-    ${SPM} --cmd get_sys_target
+    ${SPM} --yes --cmd get_sys_target
 }
 
 function spm_build_check_rt_env() {
-    ${SPM} --cmd check_rt_env
+    ${SPM} --yes --cmd check_rt_env
 }
 
 function spm_build_fetch() {
