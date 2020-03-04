@@ -15,22 +15,20 @@ Process *file_command(const char *_filename) {
     char sh_cmd[PATH_MAX];
     sh_cmd[0] = '\0';
 #ifdef __APPLE__
-    const char *fmt_cmd = "file -I \"%s\"";
+    const char *fmt_cmd = "file -I \"%s\" 2>&1";
 #else  // GNU
-    const char *fmt_cmd = "file -E -i \"%s\" 2>&1";
+    const char *fmt_cmd = "file -i \"%s\" 2>&1";
 #endif
+    const char *fail_pattern = ": cannot open";
 
     strchrdel(filename, SHELL_INVALID);
     sprintf(sh_cmd, fmt_cmd, filename);
     shell(&proc_info, SHELL_OUTPUT, sh_cmd);
 
-#ifdef __APPLE__
-    // Force BSD command to return non-zero when a file can't be found
-    const char *failmsg = ": cannot open";
-    if (strstr(proc_info->output, failmsg) != NULL) {
+    // POSIXly ridiculous. Return non-zero when a file can't be found, or isn't accessible
+    if (strstr(proc_info->output, fail_pattern) != NULL) {
         proc_info->returncode = 1;
     }
-#endif
     free(filename);
     return proc_info;
 }
@@ -47,6 +45,9 @@ Mime *file_mimetype(const char *filename) {
     Process *proc = file_command(filename);
 
     if (proc->returncode != 0) {
+        fprintf(stderr, "%s\n", proc->output);
+        fprintf(stderr, "file command returned: %d\n", proc->returncode);
+        fprintf(SYSERROR);
         shell_free(proc);
         return NULL;
     }
@@ -103,6 +104,10 @@ int file_is_text(const char *filename) {
     int result = 0;
     char *path = normpath(filename);
     Mime *type = file_mimetype(path);
+    if (type == NULL) {
+        fprintf(stderr, "type detection failed: %s\n", filename);
+        return -1;
+    }
     if (startswith(type->type, "text/")) {
         result = 1;
     }
@@ -120,6 +125,10 @@ int file_is_binary(const char *filename) {
     int result = 0;
     char *path = normpath(filename);
     Mime *type = file_mimetype(path);
+    if (type == NULL) {
+        fprintf(stderr, "type detection failed: %s\n", filename);
+        return -1;
+    }
     if (startswith(type->type, "application/") && strcmp(type->charset, "binary") == 0) {
         result = 1;
     }
@@ -132,6 +141,10 @@ int file_is_binexec(const char *filename) {
     int result = 0;
     char *path = normpath(filename);
     Mime *type = file_mimetype(path);
+    if (type == NULL) {
+        fprintf(stderr, "type detection failed: %s\n", filename);
+        return -1;
+    }
     // file-5.38: changed mime name associated with executables
     // TODO: implement compatibility function to return the correct search pattern
     if (fnmatch("application/x-[pic|pie|ex|sh]*", type->type, FNM_PATHNAME) != FNM_NOMATCH && strcmp(type->charset, "binary") == 0) {
