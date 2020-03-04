@@ -231,8 +231,19 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     int fetched = 0;
     char *package_dir = strdup(SPM_GLOBAL.package_dir);
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
-        char *package_path = join((char *[]) {requirements[i]->origin, requirements[i]->archive, NULL}, DIRSEPS);
+        char *package_origin = calloc(PATH_MAX, sizeof(char));
+	strncpy(package_origin, requirements[i]->origin, PATH_MAX);
+
+        if (strstr(package_origin, SPM_GLOBAL.repo_target) == NULL) {
+            if (!endswith(package_origin, DIRSEPS)) {
+                strcat(package_origin, DIRSEPS);
+            }
+            strcat(package_origin, SPM_GLOBAL.repo_target);
+        }
+
+        char *package_path = join((char *[]) {package_origin, requirements[i]->archive, NULL}, DIRSEPS);
         char *package_localpath = join_ex(DIRSEPS, package_dir, requirements[i]->archive, NULL);
+        free(package_origin);
 
         // Download the archive if necessary
         if (strstr(package_path, "://") != NULL && exists(package_localpath) != 0) {

@@ -209,6 +209,7 @@ char *rpath_autodetect(const char *filename) {
     char *start = realpath(rootdir, NULL);
     char *cwd = realpath(".", NULL);
     char *result = NULL;
+    int multilib_os = (exists("/lib64") == 0);
 
     // Change directory to the requested root
     chdir(start);
@@ -228,7 +229,11 @@ char *rpath_autodetect(const char *filename) {
         }
 
         // Using the current visit path, check if it contains a lib directory
-        char *path = join((char *[]) {visit, "lib", NULL}, DIRSEPS);
+        char *path = NULL;
+        if (multilib_os)
+            path = join((char *[]) {visit, "lib64", NULL}, DIRSEPS);
+        else
+            path = join((char *[]) {visit, "lib", NULL}, DIRSEPS);
 
         if (access(path, F_OK) == 0) {
             // Check whether the lib directory contains one of `filename`'s libraries
@@ -248,7 +253,11 @@ char *rpath_autodetect(const char *filename) {
 
             // Stop processing when a good lib directory is found
             if (has_real_libdir != 0) {
-                strcat(relative, "lib");
+                if (multilib_os) {
+                    strcat(relative, "lib64");
+                } else {
+                    strcat(relative, "lib");
+                }
                 free(path);
                 free(visit);
                 break;

@@ -30,7 +30,7 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
     ManifestPackage *package = manifestlist_search(manifests, spec);
     ManifestPackage *requirement = NULL;
     if (package == NULL) {
-        return NULL;
+        return requirements;
     }
 
     for (size_t i = 0; i < package->requirements_records && i < SPM_REQUIREMENT_MAX; i++) {
