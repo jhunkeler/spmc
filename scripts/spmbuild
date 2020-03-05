@@ -153,7 +153,7 @@ function spm_build_initialize_stage2() {
     fi
 
     source <(spm_build_mkruntime "${SPM_BUILD_RUNTIME}")
-    export LD_LIBRARY_PATH="${SPM_BUILD_RUNTIME}/lib"
+    export LD_LIBRARY_PATH="${SPM_BUILD_RUNTIME}/lib$:${SPM_BUILD_RUNTIME}/lib64"
 }
 
 function spm_build_cleanup() {
