@@ -14,11 +14,12 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
     FSTree *fsdata = NULL;
     int no_filter = 0;
     char *path = NULL;
+    char *abspath = realpath(_path, NULL);
 
     if (filter_mode & SPM_FSTREE_FLT_RELATIVE) {
         path = strdup(_path);
     } else {
-        path = realpath(_path, NULL);
+        path = abspath;
     }
 
     if (path == NULL) {
@@ -42,11 +43,17 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
     size_t files_records = 0;
 
     fsdata = (FSTree *)calloc(1, sizeof(FSTree));
-    fsdata->root = (char *)calloc(strlen(path) + 1, sizeof(char));
+    fsdata->root = (char *)calloc(PATH_MAX, sizeof(char));
     fsdata->dirs = (char **)calloc(dirs_size, sizeof(char *));
     fsdata->files = (char **)calloc(files_size, sizeof(char *));
 
-    strncpy(fsdata->root, path, strlen(path));
+    if (filter_mode & SPM_FSTREE_FLT_RELATIVE) {
+        // Return an absolute path regardless
+        strncpy(fsdata->root, abspath, PATH_MAX - 1);
+    } else {
+        strncpy(fsdata->root, path, PATH_MAX - 1);
+    }
+
     parent = fts_open(root, FTS_PHYSICAL | FTS_NOCHDIR, &_fstree_compare);
 
     if (parent != NULL) {
@@ -273,6 +280,9 @@ char *normpath(const char *path) {
  * @return success=path to directory, failure=NULL
  */
 char *dirname(const char *_path) {
+    if (_path == NULL) {
+        return NULL;
+    }
     char *path = strdup(_path);
     char *last = strrchr(path, DIRSEP);
     if (!last) {
