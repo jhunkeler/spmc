@@ -29,9 +29,7 @@ void usage(const char *program_name) {
 }
 
 int main(int argc, char *argv[], char *arge[]) {
-    char program_name[strlen(argv[0]) + 1];
-    memset(program_name, '\0', sizeof(program_name) + 1);
-    strcpy(program_name, basename(argv[0]));
+    char *program_name = strdup(basename(argv[0]));
 
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
@@ -320,5 +318,6 @@ int main(int argc, char *argv[], char *arge[]) {
     strlist_free(packages);
     manifestlist_free(mf);
     spm_hierarchy_free(rootfs);
+    free(program_name);
     return 0;
 }

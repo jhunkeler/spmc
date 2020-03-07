@@ -120,29 +120,19 @@ char *rpath_get(const char *_filename) {
  * @param _filename
  * @return
  */
-char *rpath_generate(const char *_filename) {
-    char *origin = "$ORIGIN/../lib:$ORIGIN/";
+char *rpath_generate(const char *_filename, FSTree *tree) {
     char *filename = realpath(_filename, NULL);
-
     if (!filename) {
         return NULL;
     }
 
-    char *nearest_lib = rpath_autodetect(filename);
-    if (!nearest_lib) {
-        free(filename);
-        return NULL;
-    }
-
-    char *result = join((char *[]) {origin, nearest_lib, NULL}, "");
+    char *result = rpath_autodetect(filename, tree);
     if (!result) {
         free(filename);
-        free(nearest_lib);
         return NULL;
     }
 
     free(filename);
-    free(nearest_lib);
     return result;
 }
 
@@ -154,20 +144,8 @@ char *rpath_generate(const char *_filename) {
  */
 int rpath_set(const char *filename, const char *rpath) {
     int returncode = 0;
-    /*
-    char *rpath_orig = rpath_get(filename);
-    if (!rpath_orig) {
-        return -1;
-    }
-
-    // Are the original and new RPATH identical?
-    if (strcmp(rpath_orig, rpath) == 0) {
-        free(rpath_orig);
-        return 0;
-    }
-     */
-
     char args[PATH_MAX];
+
     memset(args, '\0', PATH_MAX);
     sprintf(args, "--set-rpath '%s'", rpath);   // note: rpath requires single-quotes
     Process *pe = patchelf(filename, args);
@@ -184,10 +162,10 @@ int rpath_set(const char *filename, const char *rpath) {
  * @param _rpath
  * @return
  */
-int rpath_autoset(const char *filename) {
+int rpath_autoset(const char *filename, FSTree *tree) {
     int returncode = 0;
 
-    char *rpath_new = rpath_generate(filename);
+    char *rpath_new = rpath_generate(filename, tree);
     if (!rpath_new) {
         return -1;
     }
@@ -199,98 +177,118 @@ int rpath_autoset(const char *filename) {
 }
 
 /**
- * Using `filename` as a starting point, step backward through the filesystem looking for a lib directory
+ * Find shared libraries in a directory tree
+ *
+ * @param root directory
+ * @return `FSTree`
+ */
+FSTree *rpath_libraries_available(const char *root) {
+    // TODO: Darwin support
+    FSTree *tree = fstree(root, (char *[]) {".so", NULL}, SPM_FSTREE_FLT_CONTAINS | SPM_FSTREE_FLT_RELATIVE);
+    if (tree == NULL) {
+        perror(root);
+        fprintf(SYSERROR);
+        return NULL;
+    }
+    return tree;
+}
+
+/**
+ * Compute a RPATH based on the location `filename` relative to the shared libraries it requires
+ *
  * @param filename path to file (or a directory)
  * @return success=relative path from `filename` to nearest lib directory, failure=NULL
  */
-char *rpath_autodetect(const char *filename) {
-    int has_real_libdir = 0;
+char *rpath_autodetect(const char *filename, FSTree *tree) {
+    const char *origin = "$ORIGIN";
     char *rootdir = dirname(filename);
     char *start = realpath(rootdir, NULL);
     char *cwd = realpath(".", NULL);
     char *result = NULL;
-    int multilib_os = (exists("/lib64") == 0);
+
+    char *visit = NULL;                 // Current directory
+    char _relative[PATH_MAX] = {0,};    // Generated relative path to lib directory
+    char *relative = _relative;         // Pointer to relative path
+    size_t depth_to_root = 0;
 
     // Change directory to the requested root
     chdir(start);
 
-    char *visit = NULL;         // Current directory
-    char relative[PATH_MAX];    // Generated relative path to lib directory
+    // Count the relative path distance between the location of the binary, and the top of the root
+    visit = dirname(start);
+    for (depth_to_root = 0; strcmp(tree->root, visit) != 0; depth_to_root++) {
+        // Copy the current visit pointer
+        char *prev = visit;
+        // Walk back another directory level
+        visit = dirname(visit);
+        // Free previous visit pointer
+        if (prev) free(prev);
+    }
+    free(visit);
 
-    // Initialize character arrays;
-    relative[0] = '\0';
+    // return to calling directory
+    chdir(cwd);
 
-    while(1) {
-        StrList *libs = NULL;
-
-        // Where are we in the file system?
-        if((visit = getcwd(NULL, PATH_MAX)) == NULL) {
-            exit(errno);
-        }
-
-        // Using the current visit path, check if it contains a lib directory
-        char *path = NULL;
-        if (multilib_os)
-            path = join((char *[]) {visit, "lib64", NULL}, DIRSEPS);
-        else
-            path = join((char *[]) {visit, "lib", NULL}, DIRSEPS);
-
-        if (access(path, F_OK) == 0) {
-            // Check whether the lib directory contains one of `filename`'s libraries
-            libs = shlib_deps(filename);
-            if (libs != NULL) {
-                for (size_t i = 0; i < strlist_count(libs); i++) {
-                    char *check_path = join((char *[]) {path, strlist_item(libs, i), NULL}, DIRSEPS);
-                    if (exists(check_path) == 0) {
-                        // The library exists so mark it for processing
-                        has_real_libdir = 1;  // gate for memory allocation below
-                        break;
-                    }
-                    free(check_path);
-                }
-                strlist_free(libs);
-            }
-
-            // Stop processing when a good lib directory is found
-            if (has_real_libdir != 0) {
-                if (multilib_os) {
-                    strcat(relative, "lib64");
-                } else {
-                    strcat(relative, "lib");
-                }
-                free(path);
-                free(visit);
-                break;
-            }
-        }
-        // Reaching the top of the file system indicates our search for a lib directory failed
-        else if (strcmp(visit, "/") == 0) {
-            free(path);
-            free(visit);
-            break;
-        }
-
-        // Nothing found
-        // Append another relative path step
-        strcat(relative, "..");
-        strcat(relative, DIRSEPS);
-
-        // Step one directory up
-        chdir("..");
-        free(path);
-        free(visit);
+    StrList *libs = strlist_init();
+    if (libs == NULL) {
+        fprintf(stderr, "failed to initialize library StrList\n");
+        fprintf(SYSERROR);
+        return NULL;
+    }
+    StrList *libs_wanted = shlib_deps(filename);
+    if (libs_wanted == NULL) {
+        fprintf(stderr, "failed to retrieve list of share libraries from: %s\n", filename);
+        fprintf(SYSERROR);
+        return NULL;
     }
 
-    // If we found a viable lib directory, allocate memory for it
-    if (has_real_libdir) {
-        result = strdup(relative);
-        if (!result) {
-            chdir(cwd);     // return to calling directory
-            return NULL;
+    for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
+        // zero out relative path string
+        memset(_relative, '\0', sizeof(_relative));
+        // Get the shared library name we are going to look for in the tree
+        char *shared_library = strlist_item(libs_wanted, i);
+
+        // Is the the shared library in the tree?
+        char *match = NULL;
+        if ((match = dirname(strstr_array(tree->files, shared_library))) != NULL) {
+            size_t match_offset = 0;
+
+            // Begin generating the relative path string
+            strcat(relative, origin);
+            strcat(relative, DIRSEPS);
+
+            // Append the number of relative levels to the relative path string
+            if (depth_to_root) {
+                for (size_t d = 0; d <= depth_to_root; d++) {
+                    strcat(relative, "..");
+                    strcat(relative, DIRSEPS);
+                }
+            } else {
+                strcat(relative, "..");
+                strcat(relative, DIRSEPS);
+            }
+
+            // fstree relative mode returns truncated absolute paths, so "strip" the absolute path notation
+            if (startswith(match, "./")) {
+                match_offset = 2;
+            }
+
+            // Append the match to the relative path string
+            strcat(relative, match + match_offset);
+
+            // Append relative path to array of libraries (if it isn't already in there)
+            if (strstr_array(libs->data, relative) == NULL) {
+                strlist_append(libs, relative);
+            }
         }
     }
 
-    chdir(cwd);     // return to calling directory
+    // Populate result string
+    result = join(libs->data, ":");
+
+    // Clean up
+    strlist_free(libs);
+    strlist_free(libs_wanted);
     free(rootdir);
     free(cwd);
     free(start);

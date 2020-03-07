@@ -2,11 +2,12 @@
 #define SPM_RPATH_H
 
 Process *patchelf(const char *_filename, const char *_args);
-char *rpath_autodetect(const char *filename);
+FSTree *rpath_libraries_available(const char *root);
+char *rpath_autodetect(const char *filename, FSTree *tree);
 int has_rpath(const char *_filename);
 char *rpath_get(const char *_filename);
-char *rpath_generate(const char *_filename);
-int rpath_autoset(const char *filename);
+char *rpath_generate(const char *_filename, FSTree *tree);
+int rpath_autoset(const char *filename, FSTree *tree);
 int rpath_set(const char *filename, const char *rpath);
 
 #endif //SPM_RPATH_H

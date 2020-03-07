@@ -387,6 +387,7 @@ void relocate_root(const char *destroot, const char *baseroot) {
     getcwd(cwd, sizeof(cwd));
     chdir(baseroot);
     {
+        FSTree *libs = rpath_libraries_available(".");
         // Rewrite binary prefixes
         b_record = prefixes_read(SPM_META_PREFIX_BIN);
         if (b_record) {
@@ -395,7 +396,7 @@ void relocate_root(const char *destroot, const char *baseroot) {
                     if (SPM_GLOBAL.verbose) {
                         printf("Relocate RPATH: %s\n", b_record[i]->path);
                     }
-                    rpath_autoset(b_record[i]->path);
+                    rpath_autoset(b_record[i]->path, libs);
                 }
                 if (SPM_GLOBAL.verbose) {
                     printf("Relocate DATA : %s\n", b_record[i]->path);

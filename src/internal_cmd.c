@@ -270,15 +270,19 @@ void rpath_autoset_interface_usage(void) {
  * @return return value of `rpath_autoset`
  */
 int rpath_autoset_interface(int argc, char **argv) {
-    if (argc < 2) {
+    if (argc < 3) {
         rpath_autoset_interface_usage();
         return -1;
     }
     char *filename = argv[1];
-    int result = rpath_autoset(filename);
+    const char *topdir = argv[2];
+    FSTree *libs = rpath_libraries_available(topdir);
+    int result = rpath_autoset(filename, libs);
+
     if (result < 0) {
         fprintf(SYSERROR);
     }
+
     return result;
 }
 
