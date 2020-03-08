@@ -268,11 +268,6 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
         char var[MAXNAMLEN];    // environment variable name
         memset(var, '\0', MAXNAMLEN);   // zero out name
 
-        // Ignore closing brace
-        if (input[i] == '}') {
-            i++;
-        }
-
         // Handle literal statement "$$var"
         // Value becomes "\$var"
         if (strncmp(&input[i], delim_literal, strlen(delim_literal)) == 0) {
@@ -280,14 +275,18 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
             strncat(expanded, &delim, 1);
             i += strlen(delim_literal);
             // Ignore opening brace
-            if (input[i] == '{') i++;
+            if (input[i] == '{') {
+                i++;
+            }
         }
 
         // Handle variable when encountering a single $
         // Value expands from "$var" to "environment value of var"
         if (input[i] == delim) {
             // Ignore opening brace
-            if (input[i] == '{') i++;
+            if (input[i+1] == '{') {
+                i++;
+            }
             char *tmp = NULL;
             i++;
 
@@ -296,6 +295,10 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
             // "$-*)!@ == no
             // "$var" == yes
             for (size_t c = 0; isalnum(input[i]) || input[i] == '_'; c++, i++) {
+                // Ignore closing brace
+                if (input[i] == '}') {
+                    i++;
+                }
                 var[c] = input[i];
             }
 
@@ -312,7 +315,12 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
             strncat(expanded, tmp, strlen(tmp));
             free(tmp);
         }
+
         // Nothing to do so append input to output
+        if (input[i] == '}') {
+            // Unless we ended on a closing brace
+            continue;
+        }
         strncat(expanded, &input[i], 1);
     }
 
