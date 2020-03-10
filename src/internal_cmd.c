@@ -168,10 +168,12 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "SPM_BIN", fs->bindir);
     runtime_set(rt, "SPM_INCLUDE", fs->includedir);
     runtime_set(rt, "SPM_LIB", fs->libdir);
+    runtime_set(rt, "SPM_LIB64", "${SPM_LIB}64");
     runtime_set(rt, "SPM_DATA", fs->datadir);
     runtime_set(rt, "SPM_MAN", fs->mandir);
     runtime_set(rt, "SPM_LOCALSTATE", fs->localstatedir);
     runtime_set(rt, "SPM_PKGCONFIG", spm_pkgconfigdir);
+    runtime_set(rt, "SPM_PKGCONFIG", "${SPM_PKGCONFIG}:${SPM_LIB64}/pkgconfig:${SPM_DATA}/pkgconfig");
     runtime_set(rt, "SPM_META_DEPENDS", SPM_META_DEPENDS);
     runtime_set(rt, "SPM_META_PREFIX_BIN", SPM_META_PREFIX_BIN);
     runtime_set(rt, "SPM_META_PREFIX_TEXT", SPM_META_PREFIX_TEXT);
@@ -182,6 +184,7 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
     runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
     runtime_set(rt, "PKG_CONFIG_PATH", "$SPM_PKGCONFIG:$PKG_CONFIG_PATH");
+    runtime_set(rt, "ACLOCAL_PATH", "${SPM_DATA}/aclocal");
 
     char *spm_ccpath = join((char *[]) {fs->bindir, "gcc"}, DIRSEPS);
     if (exists(spm_ccpath) == 0) {
@@ -189,7 +192,7 @@ int mkruntime_interface(int argc, char **argv) {
     }
 
     runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
-    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_BIN/../lib -L$SPM_LIB $LDFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
     runtime_export(rt, NULL);
     runtime_free(rt);
 
@@ -260,7 +263,7 @@ int rpath_set_interface(int argc, char **argv) {
  *
  */
 void rpath_autoset_interface_usage(void) {
-    printf("usage: rpath_autoset {file}\n");
+    printf("usage: rpath_autoset {file} {topdir}\n");
 }
 
 /**
@@ -276,6 +279,17 @@ int rpath_autoset_interface(int argc, char **argv) {
     }
     char *filename = argv[1];
     const char *topdir = argv[2];
+
+    if (exists(filename) != 0) {
+        perror(filename);
+        return -1;
+    }
+
+    if (exists(topdir) != 0) {
+        perror(topdir);
+        return -1;
+    }
+
     FSTree *libs = rpath_libraries_available(topdir);
     int result = rpath_autoset(filename, libs);
 
