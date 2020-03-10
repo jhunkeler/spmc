@@ -215,7 +215,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
     chdir(start);
 
     // Count the relative path distance between the location of the binary, and the top of the root
-    visit = dirname(start);
+    visit = strdup(start);
     for (depth_to_root = 0; strcmp(tree->root, visit) != 0; depth_to_root++) {
         // Copy the current visit pointer
         char *prev = visit;
@@ -235,6 +235,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         fprintf(SYSERROR);
         return NULL;
     }
+
     StrList *libs_wanted = shlib_deps(filename);
     if (libs_wanted == NULL) {
         fprintf(stderr, "failed to retrieve list of share libraries from: %s\n", filename);
@@ -251,15 +252,13 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         // Is the the shared library in the tree?
         char *match = NULL;
         if ((match = dirname(strstr_array(tree->files, shared_library))) != NULL) {
-            size_t match_offset = 0;
-
             // Begin generating the relative path string
             strcat(relative, origin);
             strcat(relative, DIRSEPS);
 
             // Append the number of relative levels to the relative path string
             if (depth_to_root) {
-                for (size_t d = 0; d <= depth_to_root; d++) {
+                for (size_t d = 0; d < depth_to_root; d++) {
                     strcat(relative, "..");
                     strcat(relative, DIRSEPS);
                 }
@@ -267,14 +266,8 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
                 strcat(relative, "..");
                 strcat(relative, DIRSEPS);
             }
-
-            // fstree relative mode returns truncated absolute paths, so "strip" the absolute path notation
-            if (startswith(match, "./")) {
-                match_offset = 2;
-            }
-
             // Append the match to the relative path string
-            strcat(relative, match + match_offset);
+            strcat(relative, basename(match));
 
             // Append relative path to array of libraries (if it isn't already in there)
             if (strstr_array(libs->data, relative) == NULL) {
