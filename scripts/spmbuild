@@ -335,7 +335,7 @@ function spm_build_do_stage_archive() {
             msg2 "Recording paths..."
             spm_build_mkfilelist "${SPM_META_FILELIST}"
             msg2 "Archiving files..."
-            tar --create --gzip --file "${archive}" --exclude '..' --exclude '.' .* *
+            tar --hard-dereference --create --gzip --file "${archive}" --exclude '..' --exclude '.' .* *
         popd
     popd
 }
