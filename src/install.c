@@ -298,6 +298,10 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
 
         spm_install_show_package(requirements[i]);
         spm_install(fs, tmpdir, package_path);
+
+        // Relocate installation root
+        relocate_root(fs->rootdir, tmpdir);
+
         spm_install_package_record(fs, tmpdir, requirements[i]->name);
         num_installed++;
         free(package_path);
@@ -310,9 +314,6 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     free(package_dir);
 
     if (num_installed != 0) {
-        // Relocate installation root
-        relocate_root(fs->rootdir, tmpdir);
-
         // Append a trailing slash to tmpdir to direct rsync to copy files, not the directory, into destroot
         sprintf(source, "%s%c", tmpdir, DIRSEP);
 
