@@ -36,6 +36,7 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
     for (size_t i = 0; i < package->requirements_records && i < SPM_REQUIREMENT_MAX; i++) {
         requirement = manifestlist_search(manifests, package->requirements[i]);
         if (requirement == NULL) {
+            fprintf(stderr, "WARNING: unable to resolve package via manifestlist_search(): '%s'\n", package->requirements[i]);
             break;
         }
         if (resolve_has_dependency(requirement->archive)) {
