@@ -43,6 +43,7 @@ int replace_text(char *data, const char *spattern, const char *sreplacement) {
         if (strncmp(tmp, spattern, spattern_len) == 0) {
             memmove(tmp, sreplacement, sreplacement_len);
             memmove(tmp + sreplacement_len, tmp + spattern_len, data_len - spattern_len);
+            memset(tmp + sreplacement_len + (data_len - spattern_len), '\0', 1);
         }
         tmp++;
     }
