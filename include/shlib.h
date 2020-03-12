@@ -2,10 +2,10 @@
 #define SPM_SHLIB_H
 
 #ifdef __APPLE__
-#define SPM_SHLIB_EXEC "otool"
+#define SPM_SHLIB_EXEC "/usr/bin/otool"
 #define SPM_SHLIB_EXEC_ARGS "-l"
 #else
-#define SPM_SHLIB_EXEC "objdump"
+#define SPM_SHLIB_EXEC "/usr/bin/objdump"
 #define SPM_SHLIB_EXEC_ARGS "-p"
 #endif
 

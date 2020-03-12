@@ -15,7 +15,7 @@ char *shlib_deps_objdump(const char *_filename) {
     }
 
     strchrdel(filename, SHELL_INVALID);
-    snprintf(cmd, sizeof(cmd), "%s %s '%s'", "objdump", "-p", filename);
+    snprintf(cmd, sizeof(cmd), "%s %s '%s'", SPM_SHLIB_EXEC, "-p", filename);
     shell(&proc, SHELL_OUTPUT, cmd);
 
     if (proc->returncode != 0) {
