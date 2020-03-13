@@ -29,6 +29,10 @@ const char *METADATA_FILES[] = {
  * @return success=0, error=-1
  */
 int replace_text(char *data, const char *spattern, const char *sreplacement) {
+    if (data == NULL || spattern == NULL || sreplacement == NULL) {
+        return -1;
+    }
+
     char *tmp = data;
     size_t data_len = strlen(data);
     size_t spattern_len = strlen(spattern);
@@ -41,9 +45,13 @@ int replace_text(char *data, const char *spattern, const char *sreplacement) {
 
     while (*tmp != '\0') {
         if (strncmp(tmp, spattern, spattern_len) == 0) {
-            memmove(tmp, sreplacement, sreplacement_len);
-            memmove(tmp + sreplacement_len, tmp + spattern_len, data_len - spattern_len);
-            memset(tmp + sreplacement_len + (data_len - spattern_len), '\0', 1);
+            if (sreplacement_len == 1) {
+                *tmp = *sreplacement;
+            } else {
+                memmove(tmp, sreplacement, sreplacement_len);
+                memmove(tmp + sreplacement_len, tmp + spattern_len, data_len - spattern_len);
+                memset(tmp + sreplacement_len + (data_len - spattern_len), '\0', 1);
+            }
         }
         tmp++;
     }
