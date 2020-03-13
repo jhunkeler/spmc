@@ -25,15 +25,17 @@ int manifest_package_cmp(ManifestPackage *a, ManifestPackage *b) {
 
 void manifest_package_separator_swap(char **name) {
     // Replace unwanted separators in the package name with placeholder to prevent splitting on the wrong one
-    int delim_count = num_chars((*name), SPM_PACKAGE_MEMBER_SEPARATOR);
-    if (delim_count > PACKAGE_MIN_DELIM) {
-        for (size_t t = strlen((*name)); t != 0; t--) {
-            if ((*name)[t] == SPM_PACKAGE_MEMBER_SEPARATOR) {
-                delim_count--;
-                if (delim_count == 0) {
-                    (*name)[t] = SPM_PACKAGE_MEMBER_SEPARATOR_PLACEHOLD;
-                }
-            }
+    int delim_count = num_chars((*name), SPM_PACKAGE_MEMBER_SEPARATOR) - PACKAGE_MIN_DELIM;
+
+    if (delim_count < 0) {
+        return;
+    }
+
+    for (size_t t = 0; t < strlen((*name)); t++) {
+        if (delim_count == 0) break;
+        if ((*name)[t] == SPM_PACKAGE_MEMBER_SEPARATOR) {
+            (*name)[t] = SPM_PACKAGE_MEMBER_SEPARATOR_PLACEHOLD;
+            delim_count--;
         }
     }
 }
