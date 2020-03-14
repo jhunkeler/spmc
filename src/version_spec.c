@@ -336,16 +336,19 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
 ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
     const char *operators = VERSION_OPERATORS;  // note: whitespace is synonymous with ">=" if no operators are present
     char *pos = NULL;
-    char op[NAME_MAX];
-    char name[NAME_MAX];
-    char version[NAME_MAX];
+    char s_op[NAME_MAX];
+    char s_name[NAME_MAX];
+    char s_version[NAME_MAX];
+    char *op = s_op;
+    char *name = s_name;
+    char *version = s_version;
 
     memset(op, '\0', NAME_MAX);
     memset(name, '\0', NAME_MAX);
     memset(version, '\0', NAME_MAX);
 
     // Parse name
-    for (size_t i = 0; isalnum(_strspec[i]) || _strspec[i] == '_'; i++) {
+    for (size_t i = 0; isalnum(_strspec[i]) || _strspec[i] == '_' || _strspec[i] == '-'; i++) {
         name[i] = _strspec[i];
     }
 
