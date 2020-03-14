@@ -413,7 +413,7 @@ popd
 msg "Create package: ${package_final}"
 spm_build_do_stage_archive "${package_final}"
 
-msg "Update manifest:"
+msg "Update manifest"
 spm_build_mkmanifest "${package_target}" "${package_target}"
 
 msg "Clean"
