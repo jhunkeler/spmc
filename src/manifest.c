@@ -4,7 +4,6 @@
 #include "spm.h"
 #include <fnmatch.h>
 #include "url.h"
-#define PACKAGE_MIN_DELIM 2
 
 /**
  * Compare `ManifestPackage` packages (lazily)
@@ -25,7 +24,7 @@ int manifest_package_cmp(ManifestPackage *a, ManifestPackage *b) {
 
 void manifest_package_separator_swap(char **name) {
     // Replace unwanted separators in the package name with placeholder to prevent splitting on the wrong one
-    int delim_count = num_chars((*name), SPM_PACKAGE_MEMBER_SEPARATOR) - PACKAGE_MIN_DELIM;
+    int delim_count = num_chars((*name), SPM_PACKAGE_MEMBER_SEPARATOR) - SPM_PACKAGE_MIN_DELIM;
 
     if (delim_count < 0) {
         return;
