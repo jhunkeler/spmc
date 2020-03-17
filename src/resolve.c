@@ -6,6 +6,13 @@
 
 static ManifestPackage *requirements[SPM_REQUIREMENT_MAX] = {0, };
 
+void resolve_free() {
+    for (size_t i = 0; i < SPM_REQUIREMENT_MAX; i++) {
+        if (requirements[i] != NULL)
+            manifest_package_free(requirements[i]);
+    }
+}
+
 /**
  * Scan global `requirements` array for `archive`
  * @param archive
@@ -27,8 +34,10 @@ int resolve_has_dependency(const char *archive) {
  * @return success = array of `ManifestPackage`, not found = NULL
  */
 ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec) {
+    static size_t req_i = 0;
     ManifestPackage *package = manifestlist_search(manifests, spec);
     ManifestPackage *requirement = NULL;
+
     if (package == NULL) {
         return requirements;
     }
@@ -41,11 +50,19 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
         }
         if (resolve_has_dependency(requirement->archive)) {
             free(requirement);
-            continue;
+        } else {
+            resolve_dependencies(manifests, requirement->archive);
+            requirements[req_i] = requirement;
+            req_i++;
         }
-        resolve_dependencies(manifests, requirement->archive);
-        requirements[i] = requirement;
     }
-    free(package);
+
+    if (!resolve_has_dependency(package->archive)) {
+        requirements[req_i] = package;
+#ifdef _DEBUG
+        printf("%s: requirements[%zu] = '%s'\n", __FUNCTION__, req_i, requirements[req_i]->archive);
+#endif
+    }
+    //free(package);
     return requirements;
 }
