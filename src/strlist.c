@@ -155,13 +155,18 @@ void strlist_set(StrList *pStrList, size_t index, char *value) {
     if ((item = strlist_item(pStrList, index)) == NULL) {
         return;
     }
-    if ((tmp = realloc(pStrList->data[index], strlen(value) + 1)) == NULL) {
-        perror("realloc strlist_set replacement value");
-        return;
+    if (value == NULL) {
+        pStrList->data[index] = NULL;
+    } else {
+        if ((tmp = realloc(pStrList->data[index], strlen(value) + 1)) == NULL) {
+            perror("realloc strlist_set replacement value");
+            return;
+        }
+
+        pStrList->data[index] = tmp;
+        memset(pStrList->data[index], '\0', strlen(value) + 1);
+        strncpy(pStrList->data[index], value, strlen(value));
     }
-    pStrList->data[index] = tmp;
-    memset(pStrList->data[index], '\0', strlen(value) + 1);
-    strncpy(pStrList->data[index], value, strlen(value));
 }
 
 /**
