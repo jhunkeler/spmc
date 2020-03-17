@@ -155,6 +155,8 @@ function spm_build_initialize_stage2() {
     source <(spm_build_mkruntime "${SPM_BUILD_RUNTIME}")
     export LD_LIBRARY_PATH="${SPM_BUILD_RUNTIME}/lib:${SPM_BUILD_RUNTIME}/lib64"
     export LD_RUN_PATH="${LD_LIBRARY_PATH}"
+    export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
+    export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 }
 
 function spm_build_cleanup() {
