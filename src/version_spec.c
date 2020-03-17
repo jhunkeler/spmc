@@ -333,8 +333,61 @@ ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char 
     return list;
 }
 
-ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
+static void get_name(char **buf, const char *_str) {
+    char *str = strdup(_str);
+    int has_relational = 0;
+    int is_archive = endswith(str, SPM_PACKAGE_EXTENSION);
+    for (size_t i = 0; str[i] != '\0'; i++) {
+        if (isrelational(str[i]))
+            has_relational = 1;
+    }
+
+    if (is_archive == 0 && !has_relational) {
+        strcpy((*buf), str);
+    }
+    else if (has_relational) {
+        size_t stop = 0;
+        for (stop = 0; !isrelational(str[stop]); stop++);
+        strncpy((*buf), str, stop);
+        (*buf)[stop] = '\0';
+    } else {
+        StrList *tmp = strlist_init();
+        char sep[2];
+        sep[0] = SPM_PACKAGE_MEMBER_SEPARATOR;
+        sep[1] = '\0';
+
+        char **parts = split(str, sep);
+        if (parts != NULL) {
+            for (size_t i = 0; parts[i] != NULL; i++) {
+                strlist_append(tmp, parts[i]);
+            }
+        }
+        split_free(parts);
+
+        if (strlist_count(tmp) > SPM_PACKAGE_MIN_DELIM) {
+            strlist_set(tmp, strlist_count(tmp) - SPM_PACKAGE_MIN_DELIM, NULL);
+        }
+        char *result = join(tmp->data, sep);
+        strcpy((*buf), result);
+        free(result);
+        strlist_free(tmp);
+    }
+    free(str);
+}
+
+static char *get_operators(char **op, const char *_strspec) {
     const char *operators = VERSION_OPERATORS;  // note: whitespace is synonymous with ">=" if no operators are present
+    char *pos = NULL;
+    pos = strpbrk(_strspec, operators);
+    if (pos != NULL) {
+        for (size_t i = 0; !isalnum(*pos) || *pos == '.'; i++) {
+            (*op)[i] = *pos++;
+        }
+    }
+    return pos;
+}
+
+ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
     char *pos = NULL;
     char s_op[NAME_MAX];
     char s_name[NAME_MAX];
@@ -342,23 +395,19 @@ ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
     char *op = s_op;
     char *name = s_name;
     char *version = s_version;
+    char *strspec = strdup(_strspec);
 
     memset(op, '\0', NAME_MAX);
     memset(name, '\0', NAME_MAX);
     memset(version, '\0', NAME_MAX);
 
     // Parse name
-    for (size_t i = 0; isalnum(_strspec[i]) || _strspec[i] == '_' || _strspec[i] == '-'; i++) {
-        name[i] = _strspec[i];
-    }
+    //for (size_t i = 0; isalnum(_strspec[i]) || _strspec[i] == '_' || _strspec[i] == '-'; i++) {
+    //    name[i] = _strspec[i];
+    //}
+    get_name(&name, strspec);
+    pos = get_operators(&op, strspec);
 
-    // Parse operators
-    pos = strpbrk(_strspec, operators);
-    if (pos != NULL) {
-        for (size_t i = 0; !isalnum(*pos) || *pos == '.'; i++) {
-            op[i] = *pos++;
-        }
-    }
 
     ManifestPackage **m = NULL;
     // No operators found
@@ -376,14 +425,21 @@ ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
 
     // When `m` has been populated by either test above, return a COPY of the manifest
     if (m != NULL) {
-        ManifestPackage *result = manifest_package_copy(m[0]);
+        ManifestPackage *selected = NULL;
+        for (size_t i = 0; m[i] != NULL; i++) {
+            selected = m[i];
+        }
+
+        ManifestPackage *result = manifest_package_copy(selected);
         for (size_t i = 0; m[i] != NULL; i++) {
             manifest_package_free(m[i]);
         }
         free(m);
+        free(strspec);
         return result;
     }
 
     // Obviously it didn't work out
+    free(strspec);
     return NULL;
 }
