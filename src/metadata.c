@@ -104,6 +104,7 @@ char **spm_metadata_read(const char *_filename, int no_verify) {
             int status = func_verify(i, &data[i]);
             if (status > 0) {
                 fprintf(stderr, "%s: file verification failed\n", filename);
+                free(filename);
                 return NULL;
             } else if (status < 0) {
                 // NOT AN ERROR
@@ -126,6 +127,7 @@ char **spm_metadata_read(const char *_filename, int no_verify) {
         result = data;
     }
 
+    free(filename);
     return result;
 }
 
