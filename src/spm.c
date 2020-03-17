@@ -237,8 +237,7 @@ int main(int argc, char *argv[], char *arge[]) {
         if ((status_install = spm_do_install(rootfs, mf, packages)) == -1) {
             // failed to create temporary destination root
             exit(1);
-        }
-        else if (status_install == -2) {
+        } else if (status_install == -2) {
             // user said no when asked to proceed
             exit(2);
         }
@@ -313,6 +312,7 @@ int main(int argc, char *argv[], char *arge[]) {
         }
     }
 
+    //resolve_free();   // TODO: fix invalid free()
     runtime_free(rt);
     free_global_config();
     strlist_free(packages);
