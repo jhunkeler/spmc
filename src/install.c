@@ -9,7 +9,7 @@ void spm_install_show_package(ManifestPackage *package) {
         fprintf(stderr, "ERROR: package was NULL\n");
         return;
     }
-    printf("  -> %-10s %-10s (origin: %s)\n", package->name, package->version, package->origin);
+    printf("  -> %-20s %-10s (origin: %s)\n", package->name, package->version, package->origin);
 }
 
 /**
@@ -201,19 +201,6 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
                 num_requirements++;
             }
         }
-    }
-
-    // Append requested package(s) to requirements array
-    for (size_t i = 0; i < strlist_count(packages); i++) {
-        char *name = strlist_item(packages, i);
-        ManifestPackage *package = manifestlist_search(mf, name);
-
-        if (package == NULL) {
-            fprintf(stderr, "Package not found: %s\n", name);
-            return -1;
-        }
-
-        requirements[i + num_requirements] = package;
     }
 
     // Install packages
