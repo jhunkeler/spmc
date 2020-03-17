@@ -42,27 +42,23 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
         return requirements;
     }
 
+    if (!resolve_has_dependency(package->archive)) {
+        requirements[req_i] = package;
+        req_i++;
+    }
+
     for (size_t i = 0; i < package->requirements_records && i < SPM_REQUIREMENT_MAX; i++) {
         requirement = manifestlist_search(manifests, package->requirements[i]);
         if (requirement == NULL) {
-            fprintf(stderr, "WARNING: unable to resolve package via manifestlist_search(): '%s'\n", package->requirements[i]);
-            break;
+            fprintf(stderr, "ERROR: unable to resolve package via manifestlist_search(): '%s'\n", package->requirements[i]);
+            exit(1);
         }
         if (resolve_has_dependency(requirement->archive)) {
             free(requirement);
         } else {
             resolve_dependencies(manifests, requirement->archive);
             requirements[req_i] = requirement;
-            req_i++;
         }
     }
-
-    if (!resolve_has_dependency(package->archive)) {
-        requirements[req_i] = package;
-#ifdef _DEBUG
-        printf("%s: requirements[%zu] = '%s'\n", __FUNCTION__, req_i, requirements[req_i]->archive);
-#endif
-    }
-    //free(package);
     return requirements;
 }
