@@ -49,9 +49,22 @@ int endswith(const char *sptr, const char *pattern) {
     if (!sptr) {
         return -1;
     }
-    size_t sptr_size = strlen(sptr);
-    size_t pattern_size = strlen(pattern);
-    for (size_t s = sptr_size - pattern_size, p = 0 ; s < sptr_size; s++, p++) {
+    ssize_t sptr_size = strlen(sptr);
+    ssize_t pattern_size = strlen(pattern);
+
+    if (sptr_size == pattern_size) {
+       if (strcmp(sptr, pattern) == 0) {
+           return 1; // yes
+       }
+       return 0; // no
+    }
+
+    ssize_t s = sptr_size - pattern_size;
+    if (s < 0) {
+        return 0;
+    }
+
+    for (size_t p = 0 ; s < sptr_size; s++, p++) {
         if (sptr[s] != pattern[p]) {
             // sptr does not end with pattern
             return 0;
