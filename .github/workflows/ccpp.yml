@@ -26,4 +26,4 @@ jobs:
     - name: install
       run: sudo make install
     - name: smoketest
-      run: /usr/local/bin/spm --list
+      run: SHELL=/bin/bash /usr/local/bin/spm --list
