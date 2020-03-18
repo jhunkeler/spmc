@@ -361,6 +361,10 @@ int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     memset(cmd, '\0', sizeof(cmd));
     sprintf(cmd, "reloc \"%s\" \"%s\" \"%s\" \"%s\" 2>&1", oldstr, newstr, filename, filename);
 
+    if (SPM_GLOBAL.verbose > 1) {
+        printf("         EXEC : %s\n", cmd);
+    }
+
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         free(oldstr);
@@ -419,7 +423,10 @@ void relocate_root(const char *destroot, const char *baseroot) {
         if (t_record) {
             for (int i = 0; t_record[i] != NULL; i++) {
                 if (SPM_GLOBAL.verbose) {
-                    printf("Relocate TEXT : %s (%s -> %s)\n", t_record[i]->path, t_record[i]->prefix, destroot);
+                    printf("Relocate TEXT : %s\n", t_record[i]->path);
+                }
+                if (SPM_GLOBAL.verbose > 1) {
+                    printf("         EDIT : '%s' -> '%s'\n", t_record[i]->prefix, destroot);
                 }
                 file_replace_text(t_record[i]->path, t_record[i]->prefix, destroot);
             }
