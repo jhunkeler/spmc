@@ -21,7 +21,7 @@ jobs:
         && pushd reloc && cmake . && sudo make install && popd 
     - name: configure
       working-directory: build
-      run: cmake -DCMAKE_BUILD_TYPE=Release ..
+      run: find . && cmake -DCMAKE_BUILD_TYPE=Release ..
     - name: make
       working-directory: build
       run: make
