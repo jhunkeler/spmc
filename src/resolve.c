@@ -42,11 +42,6 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
         return requirements;
     }
 
-    if (!resolve_has_dependency(package->archive)) {
-        requirements[req_i] = package;
-        req_i++;
-    }
-
     for (size_t i = 0; i < package->requirements_records && i < SPM_REQUIREMENT_MAX; i++) {
         requirement = manifestlist_search(manifests, package->requirements[i]);
         if (requirement == NULL) {
@@ -60,5 +55,11 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
             requirements[req_i] = requirement;
         }
     }
+
+    if (!resolve_has_dependency(package->archive)) {
+        requirements[req_i] = package;
+        req_i++;
+    }
+
     return requirements;
 }
