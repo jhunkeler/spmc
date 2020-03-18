@@ -1,3 +1,6 @@
+/**
+ * @file user_input.h
+ */
 #ifndef SPM_USER_INPUT_H
 #define SPM_USER_INPUT_H
 

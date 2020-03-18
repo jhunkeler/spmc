@@ -1,3 +1,6 @@
+/**
+ * @file environment.h
+ */
 #ifndef SPM_ENVIRONMENT_H
 #define SPM_ENVIRONMENT_H
 

@@ -1,3 +1,6 @@
+/**
+ * @file checksum.h
+ */
 #ifndef SPM_CHECKSUM_H
 #define SPM_CHECKSUM_H
 

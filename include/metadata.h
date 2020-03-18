@@ -1,3 +1,6 @@
+/**
+ * @file metadata.h
+ */
 #ifndef SPM_METADATA_H
 #define SPM_METADATA_H
 #include "conf.h"

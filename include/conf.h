@@ -1,3 +1,6 @@
+/**
+ * @file conf.h
+ */
 #ifndef SPM_CONF_H
 #define SPM_CONF_H
 

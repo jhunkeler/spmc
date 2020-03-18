@@ -1,3 +1,6 @@
+/**
+ * @file internal_cmd.h
+ */
 #ifndef SPM_INTERNAL_CMD_H
 #define SPM_INTERNAL_CMD_H
 

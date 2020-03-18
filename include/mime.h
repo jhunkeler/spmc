@@ -1,3 +1,6 @@
+/**
+ * @file mime.h
+ */
 #ifndef SPM_MIME_H
 #define SPM_MIME_H
 

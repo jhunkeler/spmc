@@ -1,3 +1,6 @@
+/**
+ * @file rpath.h
+ */
 #ifndef SPM_RPATH_H
 #define SPM_RPATH_H
 

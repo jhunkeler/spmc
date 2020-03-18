@@ -1,3 +1,6 @@
+/**
+ * @file mirrors.h
+ */
 #ifndef SPM_MIRRORS_H
 #define SPM_MIRRORS_H
 

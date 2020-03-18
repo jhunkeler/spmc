@@ -1,3 +1,6 @@
+/**
+ * @file str.h
+ */
 #ifndef SPM_STR_H
 #define SPM_STR_H
 

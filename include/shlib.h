@@ -1,3 +1,6 @@
+/**
+ * @file shlib.h
+ */
 #ifndef SPM_SHLIB_H
 #define SPM_SHLIB_H
 

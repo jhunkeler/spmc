@@ -1,3 +1,6 @@
+/**
+ * @file archive.h
+ */
 #ifndef SPM_ARCHIVE_H
 #define SPM_ARCHIVE_H
 

@@ -1,3 +1,6 @@
+/**
+ * @file version_spec.h
+ */
 #ifndef SPM_VERSION_SPEC_H
 #define SPM_VERSION_SPEC_H
 

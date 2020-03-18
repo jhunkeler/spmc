@@ -1,3 +1,6 @@
+/**
+ * @file shell.h
+ */
 #ifndef SPM_SHELL_H
 #define SPM_SHELL_H
 

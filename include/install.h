@@ -1,3 +1,6 @@
+/**
+ * @file install.h
+ */
 #ifndef SPM_INSTALL_H
 #define SPM_INSTALL_H
 

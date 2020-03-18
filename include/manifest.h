@@ -1,3 +1,6 @@
+/**
+ * @file manifest.h
+ */
 #ifndef SPM_MANIFEST_H
 #define SPM_MANIFEST_H
 

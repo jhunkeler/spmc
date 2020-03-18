@@ -1,3 +1,6 @@
+/**
+ * @file relocation.h
+ */
 #ifndef SPM_RELOCATION_H
 #define SPM_RELOCATION_H
 

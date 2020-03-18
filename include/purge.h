@@ -1,3 +1,6 @@
+/**
+ * @file purge.h
+ */
 #ifndef SPM_REMOVE_H
 #define SPM_REMOVE_H
 
