@@ -20,6 +20,10 @@ Process *patchelf(const char *_filename, const char *_args) {
     strchrdel(filename, SHELL_INVALID);
     sprintf(sh_cmd, "patchelf %s %s 2>&1", args, filename);
 
+    if (SPM_GLOBAL.verbose > 1) {
+        printf("         EXEC : %s\n", sh_cmd);
+    }
+
     shell(&proc_info, SHELL_OUTPUT, sh_cmd);
 
     free(filename);
@@ -211,6 +215,10 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
     char *relative = _relative;         // Pointer to relative path
     size_t depth_to_root = 0;
 
+    // BUG: Perl dumps its shared library in a strange place.
+    // This function returns `$ORIGIN/../../../CORE` which is not what we want to see.
+    // TODO: We WANT to see this: `$ORIGIN/../lib/perl5/xx.xx.xx/<arch>/CORE` not just the basename()
+
     // Change directory to the requested root
     chdir(start);
 
@@ -274,6 +282,13 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
                 strlist_append(libs, relative);
             }
         }
+    }
+
+    // Some programs do not require local libraries provided by SPM (i.e. libc)
+    // Inject "likely" defaults here
+    if (strlist_count(libs) == 0) {
+        strlist_append(libs, "$ORIGIN/../lib");
+        strlist_append(libs, "$ORIGIN/../lib64");
     }
 
     // Populate result string
