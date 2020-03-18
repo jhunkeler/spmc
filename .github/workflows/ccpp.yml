@@ -10,6 +10,8 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      SHELL: /bin/bash
     
     steps:
     - uses: actions/checkout@v2
@@ -25,5 +27,9 @@ jobs:
       run: make
     - name: install
       run: sudo make install
-    - name: smoketest
-      run: SHELL=/bin/bash /usr/local/bin/spm --list
+    - name: spm usage
+      run: spm --help
+    - name: spm list
+      run: /usr/local/bin/spm --list
+    - name: spm search
+      run: /usr/local/bin/spm --search filesystem
