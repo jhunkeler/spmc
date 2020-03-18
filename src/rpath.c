@@ -187,8 +187,7 @@ int rpath_autoset(const char *filename, FSTree *tree) {
  * @return `FSTree`
  */
 FSTree *rpath_libraries_available(const char *root) {
-    // TODO: Darwin support
-    FSTree *tree = fstree(root, (char *[]) {".so", NULL}, SPM_FSTREE_FLT_CONTAINS | SPM_FSTREE_FLT_RELATIVE);
+    FSTree *tree = fstree(root, (char *[]) {SPM_SHLIB_EXTENSION, NULL}, SPM_FSTREE_FLT_CONTAINS | SPM_FSTREE_FLT_RELATIVE);
     if (tree == NULL) {
         perror(root);
         fprintf(SYSERROR);
