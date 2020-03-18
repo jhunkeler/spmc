@@ -15,7 +15,7 @@ void usage(const char *program_name) {
     printf("usage: %s [-hVvBIrmMLS]\n"
            "  -h,  --help                show this help message\n"
            "  -V,  --version             show version\n"
-           "  -v,  --verbose             show more information\n"
+           "  -v,  --verbose             show more information (additive)\n"
            "  -y   --yes                 do not prompt\n"
            "  -B,  --build               build package(s)\n"
            "  -I,  --install             install package(s)\n"
@@ -72,7 +72,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 exit(0);
             }
             else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
-                SPM_GLOBAL.verbose = 1;
+                SPM_GLOBAL.verbose++;
             }
             else if (strcmp(arg, "-y") == 0 || strcmp(arg, "--yes") == 0) {
                 SPM_GLOBAL.prompt_user = 0;
@@ -181,7 +181,7 @@ int main(int argc, char *argv[], char *arge[]) {
     }
 
     // Dump configuration
-    if (SPM_GLOBAL.verbose) {
+    if (SPM_GLOBAL.verbose > 1) {
         show_global_config();
     }
 
