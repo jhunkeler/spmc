@@ -5,6 +5,12 @@ const char *testFmt = "case %zu: '%s' is length %zu, expected %zu\n";
 const char *testFmtChars = "case %zu: '%s' got '%c' (pos: %zu), expected '%c'\n";
 
 int main(int argc, char *argv[]) {
+    char *shit = NULL;
+    if ((shit = ttyname(STDOUT_FILENO)) == NULL) {
+        perror("tty check");
+        return 0;
+    }
+
     const int max_banner = 'z';
     const int max_banner_len = 80;
     char buf[BUFSIZ] = {0,};
