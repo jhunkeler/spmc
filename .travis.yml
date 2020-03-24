@@ -1,0 +1,14 @@
+language: c
+os:
+  - linux
+dist: bionic
+
+jobs:
+  env:
+    MALLOC_CHECK_: 1
+
+  include:
+    - stage "Build"
+      script: cmake .
+    - stage "Test"
+      script: ctest -V
