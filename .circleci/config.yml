@@ -7,9 +7,10 @@ jobs:
 
     steps:
       - checkout
+
       - run: |
             sudo yum install -y epel-release && \
-            sudo yum install -y \
+            sudo yum install -y && \
                 patchelf \
                 binutils \
                 curl-devel \
