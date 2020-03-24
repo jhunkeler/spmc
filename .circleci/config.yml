@@ -20,7 +20,7 @@ jobs:
                 which \
                 rsync \
                 tar \
-                cmake3
+                cmake3 \
                 gcc \
                 glibc-devel
       - run: |
