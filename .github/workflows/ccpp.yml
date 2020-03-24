@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHELL: /bin/bash
+      MALLOC_CHECK_: 1
 
     steps:
     - uses: actions/checkout@v2
