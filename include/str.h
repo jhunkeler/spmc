@@ -4,6 +4,11 @@
 #ifndef SPM_STR_H
 #define SPM_STR_H
 
+#define SPM_SORT_ALPHA 1 << 0
+#define SPM_SORT_NUMERIC 1 << 1
+#define SPM_SORT_LEN_ASCENDING 1 << 2
+#define SPM_SORT_LEN_DESCENDING 1 << 3
+
 int num_chars(const char *sptr, int ch);
 int startswith(const char *sptr, const char *pattern);
 int endswith(const char *sptr, const char *pattern);
@@ -16,7 +21,7 @@ void split_free(char **ptr);
 char *join(char **arr, const char *separator);
 char *join_ex(char *separator, ...);
 char *substring_between(char *sptr, const char *delims);
-void strsort(char **arr);
+void strsort(char **arr, unsigned int sort_mode);
 int find_in_file(const char *filename, const char *pattern);
 int isrelational(char ch);
 void print_banner(const char *s, int len);

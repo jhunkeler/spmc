@@ -27,7 +27,7 @@ int num_chars(const char *sptr, int ch) {
  * @return 1 = found, 0 = not found, -1 = error
  */
 int startswith(const char *sptr, const char *pattern) {
-    if (!sptr) {
+    if (!sptr || !pattern) {
         return -1;
     }
     for (size_t i = 0; i < strlen(pattern); i++) {
@@ -46,7 +46,7 @@ int startswith(const char *sptr, const char *pattern) {
  * @return 1 = found, 0 = not found, -1 = error
  */
 int endswith(const char *sptr, const char *pattern) {
-    if (!sptr) {
+    if (!sptr || !pattern) {
         return -1;
     }
     ssize_t sptr_size = strlen(sptr);
@@ -81,6 +81,10 @@ int endswith(const char *sptr, const char *pattern) {
  * @param chars a string containing characters (e.g. " \n" would delete whitespace and line feeds)
  */
 void strchrdel(char *sptr, const char *chars) {
+    if (sptr == NULL || chars == NULL) {
+        return;
+    }
+
     while (*sptr != '\0') {
         for (int i = 0; chars[i] != '\0'; i++) {
             if (*sptr == chars[i]) {
@@ -111,12 +115,23 @@ long int strchroff(const char *sptr, int ch) {
     char *orig = strdup(sptr);
     char *tmp = orig;
     long int result = 0;
+
+    int found = 0;
+    size_t i = 0;
+
     while (*tmp != '\0') {
         if (*tmp == ch) {
+            found = 1;
             break;
         }
         tmp++;
+        i++;
     }
+
+    if (found == 0 && i == strlen(sptr)) {
+        return -1;
+    }
+
     result = tmp - orig;
     free(orig);
 
@@ -164,13 +179,14 @@ void strdelsuffix(char *sptr, const char *suffix) {
  */
 char** split(char *_sptr, const char* delim)
 {
-    if (_sptr == NULL) {
+    if (_sptr == NULL || delim == NULL) {
         return NULL;
     }
     size_t split_alloc = 0;
     // Duplicate the input string and save a copy of the pointer to be freed later
     char *orig = strdup(_sptr);
     char *sptr = orig;
+
     if (!sptr) {
         return NULL;
     }
@@ -179,6 +195,12 @@ char** split(char *_sptr, const char* delim)
     for (size_t i = 0; i < strlen(delim); i++) {
         split_alloc += num_chars(sptr, delim[i]);
     }
+
+    if (split_alloc == 0) {
+        free(orig);
+        return NULL;
+    }
+
     // Preallocate enough records based on the number of delimiters
     char **result = (char **)calloc(split_alloc + 2, sizeof(char *));
     if (!result) {
@@ -243,7 +265,7 @@ char *join(char **arr, const char *separator) {
     int records = 0;
     size_t total_bytes = 0;
 
-    if (!arr) {
+    if (!arr || !separator) {
         return NULL;
     }
 
@@ -277,6 +299,10 @@ char *join_ex(char *separator, ...) {
     char **argv = NULL;         // Arguments
     char *current = NULL;       // Current argument
     char *result = NULL;        // Output string
+
+    if (separator == NULL) {
+        return NULL;
+    }
 
     // Initialize array
     argv = calloc(argc + 1, sizeof(char *));
@@ -339,6 +365,10 @@ char *join_ex(char *separator, ...) {
  * @return success=text between delimiters, failure=NULL
  */
 char *substring_between(char *sptr, const char *delims) {
+    if (sptr == NULL || delims == NULL) {
+        return NULL;
+    }
+
     // Ensure we have enough delimiters to continue
     size_t delim_count = strlen(delims);
     if (delim_count != 2) {
@@ -346,18 +376,23 @@ char *substring_between(char *sptr, const char *delims) {
     }
 
     // Create pointers to the delimiters
-    char *start = strpbrk(sptr, &delims[0]);
-    char *end = strpbrk(sptr, &delims[1]);
+    char *start = strchr(sptr, delims[0]);
+    if (start == NULL || strlen(start) == 0) {
+        return NULL;
+    }
 
-    // Ensure the string has both delimiters
-    if (!start || !end) {
+    char *end = strchr(start + 1, delims[1]);
+    if (end == NULL) {
         return NULL;
     }
 
     start++;    // ignore leading delimiter
 
     // Get length of the substring
-    size_t length = end - start;
+    ssize_t length = strlen(start);
+    if (length < 0) {
+        return NULL;
+    }
 
     char *result = (char *)calloc(length + 1, sizeof(char));
     if (!result) {
@@ -376,33 +411,34 @@ char *substring_between(char *sptr, const char *delims) {
 }
 
 /*
- * Helper function for `strsort`
+ * Comparison functions for `strsort`
  */
-static int _strsort_compare(const void *a, const void *b) {
-    const char *aa = *(const char**)a;
-    const char *bb = *(const char**)b;
+static int _strsort_alpha_compare(const void *a, const void *b) {
+    const char *aa = *(const char **)a;
+    const char *bb = *(const char **)b;
     int result = strcmp(aa, bb);
     return result;
 }
 
-/**
- * Sort an array of strings alphabetically
- * @param arr
- */
-void strsort(char **arr) {
-    size_t arr_size = 0;
+static int _strsort_numeric_compare(const void *a, const void *b) {
+    const char *aa = *(const char **)a;
+    const char *bb = *(const char **)b;
 
-    // Determine size of array
-    for (size_t i = 0; arr[i] != NULL; i++) {
-        arr_size = i;
+    if (isdigit(*aa) && isdigit(*bb)) {
+        int ia = atoi(aa);
+        int ib = atoi(bb);
+
+        if (ia == ib) {
+            return 0;
+        } else if (ia < ib) {
+            return -1;
+        } else if (ia < ib) {
+            return 1;
+        }
     }
-    qsort(arr, arr_size, sizeof(char *), _strsort_compare);
 }
 
-/*
- * Helper function for `strsortlen`
- */
-static int _strsortlen_asc_compare(const void *a, const void *b) {
+static int _strsort_asc_compare(const void *a, const void *b) {
     const char *aa = *(const char**)a;
     const char *bb = *(const char**)b;
     size_t len_a = strlen(aa);
@@ -413,31 +449,45 @@ static int _strsortlen_asc_compare(const void *a, const void *b) {
 /*
  * Helper function for `strsortlen`
  */
-static int _strsortlen_dsc_compare(const void *a, const void *b) {
+static int _strsort_dsc_compare(const void *a, const void *b) {
     const char *aa = *(const char**)a;
     const char *bb = *(const char**)b;
     size_t len_a = strlen(aa);
     size_t len_b = strlen(bb);
     return len_a < len_b;
 }
+
 /**
- * Sort an array of strings by length
+ * Sort an array of strings
  * @param arr
  */
-void strsortlen(char **arr, unsigned int sort_mode) {
-    typedef int (*compar)(const void *, const void *);
+void strsort(char **arr, unsigned int sort_mode) {
+    if (arr == NULL) {
+        return;
+    }
 
-    compar fn = _strsortlen_asc_compare;
-    if (sort_mode != 0) {
-        fn = _strsortlen_dsc_compare;
+    typedef int (*compar)(const void *, const void *);
+    // Default mode is alphabetic sort
+    compar fn = _strsort_alpha_compare;
+
+    if (sort_mode == SPM_SORT_LEN_DESCENDING) {
+        fn = _strsort_dsc_compare;
+    } else if (sort_mode == SPM_SORT_LEN_ASCENDING) {
+        fn = _strsort_asc_compare;
+    } else if (sort_mode == SPM_SORT_ALPHA) {
+        fn = _strsort_alpha_compare; // ^ still selectable though ^
+    } else if (sort_mode == SPM_SORT_NUMERIC) {
+        fn = _strsort_numeric_compare;
     }
 
     size_t arr_size = 0;
 
-    // Determine size of array
+    // Determine size of array (+ terminator)
     for (size_t i = 0; arr[i] != NULL; i++) {
         arr_size = i;
     }
+    arr_size++;
+
     qsort(arr, arr_size, sizeof(char *), fn);
 }
 
@@ -448,7 +498,7 @@ void strsortlen(char **arr, unsigned int sort_mode) {
  * @return yes=`pointer to string`, no=`NULL`, failure=`NULL`
  */
 char *strstr_array(char **arr, const char *str) {
-    if (arr == NULL) {
+    if (arr == NULL || str == NULL) {
         return NULL;
     }
 
@@ -485,19 +535,22 @@ char **strdeldup(char **arr) {
     size_t i = 0;
     while(i < records) {
         // Search for value in results
-        if (strstr_array(result, arr[i]) == 0) {
+        if (strstr_array(result, arr[i]) != NULL) {
             // value already exists in results so ignore it
             i++;
             continue;
         }
 
         // Store unique value
-        result[rec] = (char *)calloc(strlen(arr[i]) + 1, sizeof(char));
+        result[rec] = strdup(arr[i]);
         if (!result[rec]) {
+            for (size_t die = 0; result[die] != NULL; die++) {
+                free(result[die]);
+            }
             free(result);
             return NULL;
         }
-        memcpy(result[rec], arr[i], strlen(arr[i]) + 1);
+
         i++;
         rec++;
     }
@@ -511,6 +564,11 @@ char **strdeldup(char **arr) {
 char *lstrip(char *sptr) {
     char *tmp = sptr;
     size_t bytes = 0;
+
+    if (sptr == NULL) {
+        return NULL;
+    }
+
     while (isblank(*tmp) || isspace(*tmp)) {
         bytes++;
         tmp++;
@@ -528,6 +586,10 @@ char *lstrip(char *sptr) {
  * @return truncated string
  */
 char *strip(char *sptr) {
+    if (sptr == NULL) {
+        return NULL;
+    }
+
     size_t len = strlen(sptr);
     if (len == 0) {
         return sptr;
@@ -556,9 +618,13 @@ char *strip(char *sptr) {
  * @return 0=not empty, 1=empty
  */
 int isempty(char *sptr) {
+    if (sptr == NULL) {
+        return -1;
+    }
+
     char *tmp = sptr;
     while (*tmp) {
-        if (!isblank(*tmp) || !isspace(*tmp)) {
+        if (!isblank(*tmp) && !isspace(*tmp) && !iscntrl(*tmp)) {
             return 0;
         }
         tmp++;
@@ -573,6 +639,11 @@ int isempty(char *sptr) {
  */
 int isquoted(char *sptr) {
     const char *quotes = "'\"";
+
+    if (sptr == NULL) {
+        return -1;
+    }
+
     char *quote_open = strpbrk(sptr, quotes);
     if (!quote_open) {
         return 0;
