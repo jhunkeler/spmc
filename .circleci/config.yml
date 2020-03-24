@@ -1,13 +1,43 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
-# Use a package of configuration called an orb.
-orbs:
-  # Declare a dependency on the welcome-orb
-  welcome: circleci/welcome-orb@0.4.1
-# Orchestrate or schedule a set of jobs
-workflows:
-  # Name the workflow "welcome"
-  welcome:
-    # Run the welcome/run job in its own container
-    jobs:
-      - welcome/run
+jobs:
+  build:
+    docker:
+      - image: centos:7.7
+    working_directory: ~/build
+
+    steps:
+      - checkout
+      - run: |
+        sudo yum install -y epel-release
+        sudo yum install -y \
+            patchelf \
+            binutils \
+            curl-devel \
+            openssl-devel \
+            file \
+            which \
+            rsync \
+            tar \
+            cmake3
+            gcc \
+            glibc-devel
+      - run: |
+            git clone https://github.com/jhunkeler/reloc
+            mkdir -p reloc/build
+            pushd reloc/build
+            cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
+            make install
+            popd
+            rm -rf reloc
+      - run: |
+            mkdir build
+            cd build
+            cmake -DCMAKE_INSTALL_PREFIX=/opt/spm -DCMAKE_BUILD_TYPE=Release ..
+            make
+      - run: |
+            ctest -V
+      - run: |
+            make install
+
+
+
