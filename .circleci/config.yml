@@ -8,31 +8,31 @@ jobs:
     steps:
       - checkout
       - run: |
-        sudo yum install -y epel-release
-        sudo yum install -y \
-            patchelf \
-            binutils \
-            curl-devel \
-            openssl-devel \
-            file \
-            which \
-            rsync \
-            tar \
-            cmake3
-            gcc \
-            glibc-devel
+            sudo yum install -y epel-release && \
+            sudo yum install -y \
+                patchelf \
+                binutils \
+                curl-devel \
+                openssl-devel \
+                file \
+                which \
+                rsync \
+                tar \
+                cmake3
+                gcc \
+                glibc-devel
       - run: |
-            git clone https://github.com/jhunkeler/reloc
-            mkdir -p reloc/build
-            pushd reloc/build
-            cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
-            make install
-            popd
+            git clone https://github.com/jhunkeler/reloc && \
+            mkdir -p reloc/build && \
+            pushd reloc/build && \
+            cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && \
+            make install && \
+            popd && \
             rm -rf reloc
       - run: |
-            mkdir build
-            cd build
-            cmake -DCMAKE_INSTALL_PREFIX=/opt/spm -DCMAKE_BUILD_TYPE=Release ..
+            mkdir build && \
+            cd build && \
+            cmake -DCMAKE_INSTALL_PREFIX=/opt/spm -DCMAKE_BUILD_TYPE=Release .. && \
             make
       - run: |
             ctest -V
