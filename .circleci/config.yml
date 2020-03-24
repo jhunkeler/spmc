@@ -28,8 +28,10 @@ jobs:
             cmake3 -DCMAKE_INSTALL_PREFIX=/opt/spm -DCMAKE_BUILD_TYPE=Release ..
             make
       - run: |
+            cd build
             ctest3 -V
       - run: |
+            cd build
             make install
 
 
