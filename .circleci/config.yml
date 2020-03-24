@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: centos:7.7
+      - image: centos/centos:7.7
     working_directory: ~/build
 
     steps:
