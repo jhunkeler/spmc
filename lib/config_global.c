@@ -10,20 +10,16 @@
  */
 char *get_user_conf_dir(void) {
     char *result = NULL;
-    wordexp_t wexp;
-    wordexp("~/.spm", &wexp, 0);
-    if (wexp.we_wordc != 0) {
-        result = (char *)calloc(strlen(wexp.we_wordv[0]) + 1, sizeof(char));
-        if (!result) {
-            wordfree(&wexp);
-            return NULL;
-        }
-        strncpy(result, wexp.we_wordv[0], strlen(wexp.we_wordv[0]));
-        if (access(result, F_OK) != 0) {
-            mkdirs(result, 0755);
-        }
+
+    result = expandpath("~/.spm");
+    if (result == NULL) {
+        perror("get_user_conf_dir");
+        return NULL;
     }
-    wordfree(&wexp);
+
+    if (access(result, F_OK) != 0) {
+        mkdirs(result, 0755);
+    }
     return result;
 }
 
@@ -44,6 +40,7 @@ char *get_user_config_file(void) {
     sprintf(template, "%s%c%s", ucd, DIRSEP, filename);
     if (access(template, F_OK) != 0) {
         // No configuration exists, so fail
+        free(ucd);
         return NULL;
     }
     free(ucd);
@@ -109,6 +106,7 @@ char *get_package_manifest(void) {
         if (manifest == NULL) {
             perror("manifest generator");
             fprintf(SYSERROR);
+            free(ucd);
             return NULL;
         }
         manifest_write(manifest, PKG_DIR);

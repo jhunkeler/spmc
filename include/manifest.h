@@ -37,7 +37,7 @@ typedef struct {
 } ManifestList;
 
 int fetch(const char *url, const char *dest);
-int manifest_package_cmp(ManifestPackage *a, ManifestPackage *b);
+int manifest_package_cmp(const ManifestPackage *a, const ManifestPackage *b);
 void manifest_package_separator_swap(char **name);
 void manifest_package_separator_restore(char **name);
 Manifest *manifest_from(const char *package_dir);
@@ -45,15 +45,15 @@ Manifest *manifest_read(char *file_or_url);
 int manifest_write(Manifest *info, const char *dest);
 void manifest_free(Manifest *info);
 void manifest_package_free(ManifestPackage *info);
-ManifestPackage *manifest_search(Manifest *info, const char *package);
-ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec);
-ManifestPackage *manifest_package_copy(ManifestPackage *manifest);
+ManifestPackage *manifest_search(const Manifest *info, const char *package);
+ManifestPackage *find_by_strspec(const Manifest *manifest, const char *_strspec);
+ManifestPackage *manifest_package_copy(const ManifestPackage *manifest);
 
 ManifestList *manifestlist_init();
-Manifest *manifestlist_item(ManifestList *pManifestList, size_t index);
+Manifest *manifestlist_item(const ManifestList *pManifestList, size_t index);
 void manifestlist_set(ManifestList *pManifestList, size_t index, Manifest *manifest);
 ManifestPackage *manifestlist_search(ManifestList *pManifestList, const char *_package);
-size_t manifestlist_count(ManifestList *pManifestList);
+size_t manifestlist_count(const ManifestList *pManifestList);
 void manifestlist_append(ManifestList *pManifestList, char* path);
 void manifestlist_free(ManifestList *pManifestList);
 #endif //SPM_MANIFEST_H

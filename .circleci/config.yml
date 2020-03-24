@@ -1,0 +1,41 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: centos:7
+
+    environment:
+      MALLOC_CHECK_: 1
+
+    working_directory: ~/build
+
+    steps:
+      - run:
+          name: "Prepare"
+          command: |
+            yum install -y epel-release
+            yum install -y git
+
+      - checkout
+
+      - run:
+          name: "Initialize"
+          command: |
+            .circleci/init.sh
+
+      - run:
+          name: "Install reloc"
+          command: |
+            .circleci/install_reloc.sh
+
+
+      - run:
+          name: "Install spm"
+          command: |
+            .circleci/install_spm.sh
+
+      - run:
+          name: "Run tests"
+          command: |
+            .circleci/test_spm.sh
