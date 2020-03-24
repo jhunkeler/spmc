@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHELL: /bin/bash
-    
+
     steps:
     - uses: actions/checkout@v2
     - name: prepare
@@ -20,13 +20,15 @@ jobs:
         sudo apt-get -y update \
         && sudo apt-get -y install build-essential cmake libssl-dev libcurl4-openssl-dev patchelf \
         && git clone https://github.com/jhunkeler/reloc \
-        && pushd reloc && cmake . && sudo make install && popd 
+        && pushd reloc && cmake . && sudo make install && popd
     - name: configure
       run: cmake -DCMAKE_BUILD_TYPE=Release .
     - name: make
       run: make
     - name: install
       run: sudo make install
+    - name: test
+      run: ctest -V
     - name: spm usage
       run: spm --help
     - name: spm list
