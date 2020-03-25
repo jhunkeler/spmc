@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
-#include <wordexp.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 

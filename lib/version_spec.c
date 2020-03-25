@@ -279,7 +279,7 @@ static int _find_by_spec_compare(const void *a, const void *b) {
  * @param version_str
  * @return
  */
-ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str) {
+ManifestPackage **find_by_spec(const Manifest *manifest, const char *name, const char *op, const char *version_str) {
     size_t record = 0;
     ManifestPackage **list = (ManifestPackage **) calloc(manifest->records + 1, sizeof(ManifestPackage *));
     if (!list) {
@@ -387,7 +387,7 @@ static char *get_operators(char **op, const char *_strspec) {
     return pos;
 }
 
-ManifestPackage *find_by_strspec(Manifest *manifest, const char *_strspec) {
+ManifestPackage *find_by_strspec(const Manifest *manifest, const char *_strspec) {
     char *pos = NULL;
     char s_op[NAME_MAX];
     char s_name[NAME_MAX];

@@ -19,6 +19,6 @@ int64_t version_suffix_modifier_calc(char *str);
 int version_suffix_alpha_calc(char *str);
 int64_t version_from(const char *version_str);
 int version_spec_from(const char *op);
-ManifestPackage **find_by_spec(Manifest *manifest, const char *name, const char *op, const char *version_str);
+ManifestPackage **find_by_spec(const Manifest *manifest, const char *name, const char *op, const char *version_str);
 
 #endif //SPM_VERSION_SPEC_H

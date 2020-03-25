@@ -11,7 +11,7 @@
  * @param b
  * @return 0 = same, !0 = different
  */
-int manifest_package_cmp(ManifestPackage *a, ManifestPackage *b) {
+int manifest_package_cmp(const ManifestPackage *a, const ManifestPackage *b) {
     int result = 0;
     if (a == NULL || b == NULL) {
         return -1;
@@ -525,7 +525,7 @@ Manifest *manifest_read(char *file_or_url) {
  * @param _package package name
  * @return found=`ManifestPackage`, not found=NULL
  */
-ManifestPackage *manifest_search(Manifest *info, const char *_package) {
+ManifestPackage *manifest_search(const Manifest *info, const char *_package) {
     ManifestPackage *match = NULL;
     char package[PATH_MAX];
 
@@ -543,7 +543,7 @@ ManifestPackage *manifest_search(Manifest *info, const char *_package) {
  * @param manifest
  * @return `ManifestPackage`
  */
-ManifestPackage *manifest_package_copy(ManifestPackage *manifest) {
+ManifestPackage *manifest_package_copy(const ManifestPackage *manifest) {
     if (manifest == NULL) {
         return NULL;
     }
@@ -551,7 +551,7 @@ ManifestPackage *manifest_package_copy(ManifestPackage *manifest) {
     ManifestPackage *result = calloc(1, sizeof(ManifestPackage));
     memcpy(result, manifest, sizeof(ManifestPackage));
 
-    if (manifest->requirements_records > 0) {
+    if (manifest->requirements_records > 0 && manifest->requirements != NULL) {
         result->requirements = (char **)calloc(manifest->requirements_records, sizeof(char *));
         for (size_t i = 0; i < manifest->requirements_records; i++) {
             result->requirements[i] = strdup(manifest->requirements[i]);
@@ -625,7 +625,7 @@ ManifestPackage *manifestlist_search(ManifestList *pManifestList, const char *_p
  * @param ManifestList
  * @return
  */
-size_t manifestlist_count(ManifestList *pManifestList) {
+size_t manifestlist_count(const ManifestList *pManifestList) {
     return pManifestList->num_inuse;
 }
 
@@ -652,7 +652,7 @@ void manifestlist_set(ManifestList *pManifestList, size_t index, Manifest *value
  * @param index
  * @return string
  */
-Manifest *manifestlist_item(ManifestList *pManifestList, size_t index) {
+Manifest *manifestlist_item(const ManifestList *pManifestList, size_t index) {
     if (index > manifestlist_count(pManifestList)) {
         return NULL;
     }
