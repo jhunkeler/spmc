@@ -2,30 +2,36 @@
 version: 2.1
 executors:
   centos-executor:
-    docker:
-      - image: centos:7
-    environment:
-      MALLOC_CHECK_: 1
-    working_directory: ~/build
 
 jobs:
   spm:
-    executor: centos-executor
-    steps:
-      - name: "Install dependencies"
-        command: |
-          .circleci/init.sh
+    docker:
+      - image: centos:7
 
-      - name: "Install reloc"
-        command: |
-          .circleci/install_reloc.sh
+    environment:
+      MALLOC_CHECK_: 1
+
+    working_directory: ~/build
+
+    steps:
+      - run:
+          name: "Install dependencies"
+          command: |
+            .circleci/init.sh
+
+      - run:
+          name: "Install reloc"
+          command: |
+            .circleci/install_reloc.sh
 
       - checkout
 
-      - name: "Install spm"
-        command: |
-          .circleci/install_spm.sh
+      - run:
+          name: "Install spm"
+          command: |
+            .circleci/install_spm.sh
 
-      - name: "Run tests"
-        command: |
-          .circleci/test_spm.sh
+      - run:
+          name: "Run tests"
+          command: |
+            .circleci/test_spm.sh
