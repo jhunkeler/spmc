@@ -5,7 +5,7 @@ executors:
     docker:
       - image: centos:7
     environment:
-      - MALLOC_CHECK_: 1
+      MALLOC_CHECK_: 1
     working_directory: ~/build
 
 jobs:
@@ -13,19 +13,19 @@ jobs:
     executor: centos-executor
     steps:
       - name: "Install dependencies"
-        run: |
+        command: |
           .circleci/init.sh
 
       - name: "Install reloc"
-        run: |
+        command: |
           .circleci/install_reloc.sh
 
       - checkout
 
       - name: "Install spm"
-        run: |
+        command: |
           .circleci/install_spm.sh
 
       - name: "Run tests"
-        run: |
+        command: |
           .circleci/test_spm.sh
