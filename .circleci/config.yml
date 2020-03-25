@@ -12,7 +12,15 @@ jobs:
 
     steps:
       - run:
-          name: "Install dependencies"
+          name: "Prepare"
+          command: |
+            yum install -y epel-release
+            yum install -y git
+
+      - checkout
+
+      - run:
+          name: "Initialize"
           command: |
             .circleci/init.sh
 
@@ -21,7 +29,6 @@ jobs:
           command: |
             .circleci/install_reloc.sh
 
-      - checkout
 
       - run:
           name: "Install spm"
