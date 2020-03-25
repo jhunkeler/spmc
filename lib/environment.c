@@ -250,16 +250,18 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
     const char delim = '$';
     const char *delim_literal = "$$";
     const char *escape = "\\";
-    char *expanded = calloc(BUFSIZ, sizeof(char));
-    if (expanded == NULL) {
-        perror("could not allocate runtime_expand_var buffer");
-        fprintf(SYSERROR);
-        return NULL;
-    }
+    char *expanded = NULL;
 
     // If there's no environment variables to process return a copy of the input string
     if (strchr(input, delim) == NULL) {
         return strdup(input);
+    }
+
+    expanded = calloc(BUFSIZ, sizeof(char));
+    if (expanded == NULL) {
+        perror("could not allocate runtime_expand_var buffer");
+        fprintf(SYSERROR);
+        return NULL;
     }
 
     // Parse the input string
