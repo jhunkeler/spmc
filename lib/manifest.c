@@ -462,7 +462,7 @@ Manifest *manifest_read(char *file_or_url) {
     }
 
     // Begin parsing the manifest
-    char separator = SPM_MANIFEST_SEPARATOR;
+    const char separator[] = {SPM_MANIFEST_SEPARATOR, '\0'};
     size_t i = 0;
 
     // Consume header
@@ -475,7 +475,7 @@ Manifest *manifest_read(char *file_or_url) {
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         dptr = strip(dptr);
         char *garbage;
-        char **parts = split(dptr, &separator);
+        char **parts = split(dptr, separator);
         char *_origin = NULL;
         if (file_or_url != NULL) {
             _origin = strdup(file_or_url);
