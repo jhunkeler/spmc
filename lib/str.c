@@ -432,7 +432,7 @@ static int _strsort_numeric_compare(const void *a, const void *b) {
             return 0;
         } else if (ia < ib) {
             return -1;
-        } else if (ia < ib) {
+        } else if (ia > ib) {
             return 1;
         }
     }
