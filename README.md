@@ -1,6 +1,6 @@
 # Simple Package Manager (SPM)
 
-(Original project: https://github.com/jhunkeler/spm)
+[![CircleCI](https://circleci.com/gh/jhunkeler/spmc/tree/master.svg?style=svg)](https://circleci.com/gh/jhunkeler/spmc/tree/master)
 
 A basic userland package management system with a few humble goals:
 
