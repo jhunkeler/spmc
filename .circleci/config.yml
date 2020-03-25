@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  spm:
+  build:
     docker:
       - image: centos:7
 
