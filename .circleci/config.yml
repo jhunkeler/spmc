@@ -1,7 +1,4 @@
-# bump
 version: 2.1
-executors:
-  centos-executor:
 
 jobs:
   spm:
