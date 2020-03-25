@@ -417,6 +417,7 @@ int mkdirs(const char *_path, mode_t mode) {
         }
     }
     split_free(parts);
+    free(path);
     return result;
 }
 

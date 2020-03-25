@@ -159,7 +159,9 @@ Manifest *manifest_from(const char *package_dir) {
  */
 void manifest_free(Manifest *info) {
     for (size_t i = 0; i < info->records; i++) {
-        manifest_package_free(info->packages[i]);
+        if (info->packages[i] != NULL) {
+            manifest_package_free(info->packages[i]);
+        }
     }
     free(info);
 }
@@ -169,8 +171,14 @@ void manifest_free(Manifest *info) {
  * @param info `ManifestPackage`
  */
 void manifest_package_free(ManifestPackage *info) {
+    if (info->requirements == NULL) {
+        return;
+    }
+
     for (size_t i = 0; i < info->requirements_records; i++) {
-        free(info->requirements[i]);
+        if (info->requirements[i] != NULL) {
+            free(info->requirements[i]);
+        }
     }
     free(info->requirements);
     free(info);
@@ -559,7 +567,9 @@ ManifestPackage *manifest_package_copy(const ManifestPackage *manifest) {
  */
 void manifestlist_free(ManifestList *pManifestList) {
     for (size_t i = 0; i < pManifestList->num_inuse; i++) {
-        manifest_free(pManifestList->data[i]);
+        if (pManifestList->data[i] != NULL) {
+            manifest_free(pManifestList->data[i]);
+        }
     }
     free(pManifestList->data);
     free(pManifestList);
