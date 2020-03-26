@@ -474,9 +474,10 @@ Manifest *manifest_read(char *file_or_url) {
     info->records = total_records;
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         dptr = strip(dptr);
-        char *garbage;
+        char *garbage = NULL;
         char **parts = split(dptr, separator);
         char *_origin = NULL;
+
         if (file_or_url != NULL) {
             _origin = strdup(file_or_url);
         }
@@ -499,7 +500,6 @@ Manifest *manifest_read(char *file_or_url) {
         info->packages[i]->requirements = NULL;
         if (strncmp(parts[6], SPM_MANIFEST_NODATA, strlen(SPM_MANIFEST_NODATA)) != 0) {
             info->packages[i]->requirements = split(parts[6], ",");
-
         }
         if (strncmp(parts[7], SPM_MANIFEST_NODATA, strlen(SPM_MANIFEST_NODATA)) != 0) {
             memset(info->packages[i]->checksum_sha256, '\0', SHA256_DIGEST_STRING_LENGTH);
@@ -527,14 +527,14 @@ Manifest *manifest_read(char *file_or_url) {
  */
 ManifestPackage *manifest_search(const Manifest *info, const char *_package) {
     ManifestPackage *match = NULL;
-    char package[PATH_MAX];
-
-    memset(package, '\0', PATH_MAX);
-    strncpy(package, _package, PATH_MAX);
+    char *package = strdup(_package);
 
     if ((match = find_by_strspec(info, package)) != NULL) {
+        free(package);
         return match;
     }
+
+    free(package);
     return NULL;
 }
 

@@ -22,7 +22,8 @@
  * @return success=`ConfigItem` array, failure=NULL
  */
 ConfigItem **config_read(const char *filename) {
-    const char sep = '=';
+    const char sep_ch = '=';
+    const char sep_str[] = {sep_ch, '\0'};
     size_t record = 0;
     char *line = NULL;
     FILE *fp = NULL;
@@ -71,16 +72,16 @@ ConfigItem **config_read(const char *filename) {
         }
 
         // Get a pointer to the key pair separator
-        char *sep_pos = strchr(lptr, sep);
+        char *sep_pos = strchr(lptr, sep_ch);
         if (!sep_pos) {
-            printf("invalid entry on line %zu: missing '%c': '%s'\n", record, sep, lptr);
+            printf("invalid entry on line %zu: missing '%s': '%s'\n", record, sep_str, lptr);
             continue;
         }
 
         // These values are approximations.  The real length(s) are recorded using strlen below.
         // At most we'll lose a few heap bytes to whitespace, but it's better than allocating PATH_MAX or BUFSIZ
         // for a measly ten byte string.
-        size_t key_length = strcspn(lptr, &sep);
+        size_t key_length = strcspn(lptr, sep_str);
         size_t value_length = strlen(sep_pos);
 
         // Allocate a ConfigItem record

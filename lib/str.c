@@ -196,16 +196,17 @@ char** split(char *_sptr, const char* delim)
         split_alloc += num_chars(sptr, delim[i]);
     }
 
-    if (split_alloc == 0) {
-        free(orig);
-        return NULL;
-    }
-
     // Preallocate enough records based on the number of delimiters
     char **result = (char **)calloc(split_alloc + 2, sizeof(char *));
     if (!result) {
         free(sptr);
         return NULL;
+    }
+
+    // No delimiter, but the string was not NULL, so return the original string
+    if (split_alloc == 0) {
+        result[0] = sptr;
+        return result;
     }
 
     // Separate the string into individual parts and store them in the result array

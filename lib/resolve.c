@@ -38,7 +38,7 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
     ManifestPackage *package = manifestlist_search(manifests, spec);
     ManifestPackage *requirement = NULL;
 
-    if (package == NULL) {
+    if (package == NULL || package->requirements == NULL) {
         return requirements;
     }
 
@@ -48,6 +48,7 @@ ManifestPackage **resolve_dependencies(ManifestList *manifests, const char *spec
             fprintf(stderr, "ERROR: unable to resolve package via manifestlist_search(): '%s'\n", package->requirements[i]);
             exit(1);
         }
+
         if (resolve_has_dependency(requirement->archive)) {
             free(requirement);
         } else {

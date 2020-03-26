@@ -408,7 +408,6 @@ ManifestPackage *find_by_strspec(const Manifest *manifest, const char *_strspec)
     get_name(&name, strspec);
     pos = get_operators(&op, strspec);
 
-
     ManifestPackage **m = NULL;
     // No operators found
     if (pos == NULL) {
@@ -430,13 +429,15 @@ ManifestPackage *find_by_strspec(const Manifest *manifest, const char *_strspec)
             selected = m[i];
         }
 
+        /* TODO: What on earth was I trying to do here? Why am I freeing the manifest (pointers)
         ManifestPackage *result = manifest_package_copy(selected);
         for (size_t i = 0; m[i] != NULL; i++) {
             manifest_package_free(m[i]);
         }
         free(m);
+         */
         free(strspec);
-        return result;
+        return selected;
     }
 
     // Obviously it didn't work out
