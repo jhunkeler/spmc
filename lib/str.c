@@ -206,6 +206,7 @@ char** split(char *_sptr, const char* delim)
     // No delimiter, but the string was not NULL, so return the original string
     if (split_alloc == 0) {
         result[0] = sptr;
+        result[1] = NULL;
         return result;
     }
 
