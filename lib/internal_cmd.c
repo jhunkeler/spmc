@@ -186,7 +186,7 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "PKG_CONFIG_PATH", "$SPM_PKGCONFIG:$PKG_CONFIG_PATH");
     runtime_set(rt, "ACLOCAL_PATH", "${SPM_DATA}/aclocal");
 
-    char *spm_ccpath = join((char *[]) {fs->bindir, "gcc"}, DIRSEPS);
+    char *spm_ccpath = join((char *[]) {fs->bindir, "gcc", NULL}, DIRSEPS);
     if (exists(spm_ccpath) == 0) {
         runtime_set(rt, "CC", "$SPM_BIN/gcc");
     }
