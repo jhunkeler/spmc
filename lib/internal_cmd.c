@@ -172,7 +172,7 @@ static char *getenv_pair(const char *_str) {
             return NULL;
         }
     }
-    result = join((char *[]){str, getenv(str)}, "=");
+    result = join((char *[]){str, getenv(str), NULL}, "=");
     free(str);
     return result;
 }
