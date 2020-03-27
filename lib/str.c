@@ -705,6 +705,11 @@ char *normalize_space(char *s) {
     int add_whitespace = 0;
     char *result = s;
     char *tmp;
+
+    if (s == NULL) {
+        return NULL;
+    }
+
     if ((tmp = calloc(strlen(s) + 1, sizeof(char))) == NULL) {
         perror("could not allocate memory for temporary string");
         return NULL;
