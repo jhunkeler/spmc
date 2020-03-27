@@ -438,6 +438,7 @@ static int _strsort_numeric_compare(const void *a, const void *b) {
             return 1;
         }
     }
+    return 0;
 }
 
 static int _strsort_asc_compare(const void *a, const void *b) {
