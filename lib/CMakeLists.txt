@@ -44,9 +44,9 @@ if (LINUX)
 endif()
 
 if(MSVC)
-	target_compile_options(libspm PRIVATE /W4 /WX)
+	target_compile_options(libspm PUBLIC /W4 /WX)
 else()
-	target_compile_options(libspm PRIVATE -Wall -Wextra -fstack-protector)
+	target_compile_options(libspm PUBLIC -Wall -Wextra -fstack-protector)
 endif()
 
 set_target_properties(libspm PROPERTIES OUTPUT_NAME "spm")
