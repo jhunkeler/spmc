@@ -12,18 +12,14 @@ int main(int argc, char *argv[]) {
     }
 
     const int max_banner = 'z';
-    const int max_banner_len = 80;
     char buf[BUFSIZ] = {0,};
     char *buffer = buf;
     int stdout_save = 0;
 
     fflush(stdout);
-    for (size_t i = 'A', letters = 'A'; i <= max_banner; i++, letters++) {
-        char letter[1];
+    for (size_t i = 'A', letters = 'A'; i <= (size_t)max_banner; i++, letters++) {
+        char letter[] = {letters, '\0'};
         size_t buffer_len = 0;
-
-        // Assign letter character
-        sprintf(letter, "%c", (int)letters);
 
         // Redirect stdout
         stdout_save = dup(STDOUT_FILENO);
