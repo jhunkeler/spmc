@@ -145,6 +145,39 @@ void mkruntime_interface_usage(void) {
 }
 
 /**
+ * Generate a "key=value" string. If `_str` exists in the environment return a
+ * a string like:
+ *
+ * ~~~{.c}
+ * the_key=its_value
+ * ~~~
+ *
+ * However, when `_str` does not exist in the environment it creates an empty
+ * variable using setenv() and returns:
+ *
+ * ~~~{.c}
+ * the_key=
+ * ~~~
+ *
+ * @param _str a shell environment variable
+ * @return `key=value` string
+ */
+static char *getenv_pair(const char *_str) {
+    char *str = strdup(_str);
+    char *result = NULL;
+
+    if (getenv(str) == NULL) {
+        if (setenv(str, "", 1) < 0) {
+            perror("setenv failed");
+            return NULL;
+        }
+    }
+    result = join((char *[]){str, getenv(str)}, "=");
+    free(str);
+    return result;
+}
+
+/**
  *
  * @param argc
  * @param argv
@@ -156,7 +189,19 @@ int mkruntime_interface(int argc, char **argv) {
         return -1;
     }
 
-    RuntimeEnv *rt = runtime_copy(__environ);
+    // Environment variables listed here should also be referenced by the runtime_set calls below.
+    // Do not needlessly append to this array.
+    char *passthrough_runtime[] = {
+            getenv_pair("PATH"),
+            getenv_pair("MANPATH"),
+            getenv_pair("PKG_CONFIG_PATH"),
+            getenv_pair("ACLOCAL_PATH"),
+            getenv_pair("CFLAGS"),
+            getenv_pair("LDFLAGS"),
+            NULL,
+    };
+
+    RuntimeEnv *rt = runtime_copy(passthrough_runtime);
     if (rt == NULL) {
         return -1;
     }
@@ -195,6 +240,10 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
     runtime_export(rt, NULL);
     runtime_free(rt);
+
+    for (size_t i = 0; passthrough_runtime[i] != NULL; i++) {
+        free(passthrough_runtime[i]);
+    }
 
     free(spm_pkgconfigdir);
     free(spm_ccpath);
@@ -369,6 +418,11 @@ int internal_cmd(int argc, char **argv) {
     // Strip the first argument (this level) before passing it along to the interface
     int arg_count = argc - 1;
     char **arg_array = &argv[1];
+
+    // Normalize the argument counter when there's no arguments to speak of
+    if (arg_count < 0) {
+        arg_count = 0;
+    }
 
     if (strcmp(command, "mkprefixbin") == 0 || strcmp(command, "mkprefixtext") == 0) {
         return mkprefix_interface(arg_count, arg_array);
