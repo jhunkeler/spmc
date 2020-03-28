@@ -776,3 +776,44 @@ char **strdup_array(char **array) {
 
     return result;
 }
+
+/**
+ * Compare two arrays of strings
+ *
+ * `a` and/or `b` may be `NULL`. You should test for `NULL` in advance if _your_ program considers this an error condition.
+ *
+ * @param a array of strings
+ * @param b array of strings
+ * @return 0 = identical
+ */
+int strcmp_array(const char **a, const char **b) {
+    size_t a_len = 0;
+    size_t b_len = 0;
+
+    // This could lead to false-positives depending on what the caller plans to achieve
+    if (a == NULL && b == NULL) {
+        return 0;
+    } else if (a == NULL) {
+        return -1;
+    } else if (b == NULL) {
+        return 1;
+    }
+
+    // Get length of arrays
+    for (a_len = 0; a[a_len] != NULL; a_len++);
+    for (b_len = 0; b[b_len] != NULL; b_len++);
+
+    // Check lengths are equal
+    if (a_len < b_len) return (int)(b_len - a_len);
+    else if (a_len > b_len) return (int)(a_len - b_len);
+
+    // Compare strings in the arrays returning the total difference in bytes
+    int result = 0;
+    for (size_t ai = 0, bi = 0 ;a[ai] != NULL || b[bi] != NULL; ai++, bi++) {
+        int status = 0;
+        if ((status = strcmp(a[ai], b[bi]) != 0)) {
+            result += status;
+        }
+    }
+    return result;
+}
