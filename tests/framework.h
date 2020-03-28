@@ -6,6 +6,7 @@
 union TestValue {
     const char *sptr;
     char **slptr;
+    const char **cslptr;
     char character;
     unsigned int unsigned_integer;
     signed int signed_integer;
