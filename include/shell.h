@@ -10,7 +10,6 @@
 #define SHELL_BENCHMARK 1 << 2
 
 typedef struct {
-    struct timespec start_time, stop_time;
     double time_elapsed;
     int returncode;
     char *output;
