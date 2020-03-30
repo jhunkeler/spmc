@@ -32,7 +32,8 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    clockid_t clkid = CLOCK_REALTIME;
+    clockid_t clockid = CLOCK_REALTIME;
+    struct timespec start, stop;
     FILE *proc = NULL;
 
     (*proc_info) = (Process *)calloc(1, sizeof(Process));
@@ -57,7 +58,7 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
     vsnprintf(cmd, PATH_MAX, fmt, args);
 
     if (option & SHELL_BENCHMARK) {
-        if (clock_gettime(clkid, &(*proc_info)->start_time) == -1) {
+        if (clock_gettime(clockid, &start) < 0) {
             perror("clock_gettime");
             exit(errno);
         }
@@ -68,15 +69,6 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
         free(outbuf);
         va_end(args);
         return;
-    }
-
-    if (option & SHELL_BENCHMARK) {
-        if (clock_gettime(clkid, &(*proc_info)->stop_time) == -1) {
-            perror("clock_gettime");
-            exit(errno);
-        }
-        (*proc_info)->time_elapsed = ((*proc_info)->stop_time.tv_sec - (*proc_info)->start_time.tv_sec)
-                                     + ((*proc_info)->stop_time.tv_nsec - (*proc_info)->start_time.tv_nsec) / 1E9;
     }
 
     if (option & SHELL_OUTPUT) {
@@ -99,6 +91,15 @@ void shell(Process **proc_info, u_int64_t option, const char *fmt, ...) {
         }
     }
     (*proc_info)->returncode = pclose(proc);
+
+    if (option & SHELL_BENCHMARK) {
+        if (clock_gettime(clockid, &stop) < 0) {
+            perror("clock_gettime");
+            exit(errno);
+        }
+        (*proc_info)->time_elapsed = (double)(stop.tv_sec - start.tv_sec) + (double)(stop.tv_nsec - start.tv_nsec) / 1E9;;
+    }
+
     va_end(args);
     free(outbuf);
     free(cmd);
