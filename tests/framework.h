@@ -18,6 +18,7 @@ struct TestCase {
     union TestValue caseValue;
     union TestValue inputValue;
     union TestValue truthValue;
+    union TestValue arg[10]; // when there are too many damn arguments
 };
 
 char *array_to_string(char **array, const char *sep) {
