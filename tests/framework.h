@@ -51,6 +51,28 @@ char *array_to_string(char **array, const char *sep) {
     return buffer;
 }
 
+/**
+ * Write data to a file
+ * @param filename name of file
+ * @param data data to write
+ * @param size type of data
+ * @param nelem number of elements of `size` to write
+ * @return bytes written (0 = failure)
+ */
+size_t mock(const char *filename, void *data, size_t size, size_t nelem) {
+    unsigned long written = 0;
+    FILE *fp = fopen(filename, "w+b");
+    if (fp == NULL) {
+        perror(filename);
+        exit(errno);
+    }
+    if ((written = fwrite(data, size, nelem, fp)) == 0) {
+        fprintf(stderr, "warning: %s: no data written\n", filename);
+    }
+    fclose(fp);
+    return written;
+}
+
 #define myassert(condition, ...) \
     do { \
         if (!(condition)) { \
