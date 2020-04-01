@@ -10,6 +10,9 @@
  * @param pStrList `StrList`
  */
 void strlist_free(StrList *pStrList) {
+    if (pStrList == NULL) {
+        return;
+    }
     for (size_t i = 0; i < pStrList->num_inuse; i++) {
         free(pStrList->data[i]);
     }
@@ -23,7 +26,13 @@ void strlist_free(StrList *pStrList) {
  * @param str
  */
 void strlist_append(StrList *pStrList, char *str) {
-    char **tmp = realloc(pStrList->data, (pStrList->num_alloc + 1) * sizeof(char *));
+    char **tmp = NULL;
+
+    if (pStrList == NULL) {
+        return;
+    }
+
+    tmp = realloc(pStrList->data, (pStrList->num_alloc + 1) * sizeof(char *));
     if (tmp == NULL) {
         strlist_free(pStrList);
         perror("failed to append to array");
@@ -43,7 +52,13 @@ void strlist_append(StrList *pStrList, char *str) {
  * @param pStrList2 `StrList`
  */
 void strlist_append_strlist(StrList *pStrList1, StrList *pStrList2) {
-    size_t count = strlist_count(pStrList2);
+    size_t count = 0;
+
+    if (pStrList1 == NULL || pStrList2 == NULL) {
+        return;
+    }
+
+    count = strlist_count(pStrList2);
     for (size_t i = 0; i < count; i++) {
         char *item = strlist_item(pStrList2, i);
         strlist_append(pStrList1, item);
@@ -97,7 +112,13 @@ static int _strlist_dsc_cmpfn(const void *a, const void *b) {
  * @param mode Available modes: `STRLIST_DEFAULT` (alphabetic), `STRLIST_ASC` (ascending), `STRLIST_DSC` (descending)
  */
 void strlist_sort(StrList *pStrList, unsigned int mode) {
+    // TODO: use strsort_array() instead instead of duplicating effort
     void *fn = NULL;
+
+    if (pStrList == NULL) {
+        return;
+    }
+
     switch (mode) {
         case STRLIST_ASC:
             fn = _strlist_asc_cmpfn;
@@ -121,8 +142,13 @@ void strlist_sort(StrList *pStrList, unsigned int mode) {
 void strlist_reverse(StrList *pStrList) {
     char *tmp = NULL;
     size_t i = 0;
-    size_t j = pStrList->num_inuse - 1;
+    size_t j = 0;
 
+    if (pStrList == NULL) {
+        return;
+    }
+
+    j = pStrList->num_inuse - 1;
     for (i = 0; i < j; i++) {
         tmp = pStrList->data[i];
         pStrList->data[i] = pStrList->data[j];
@@ -149,7 +175,7 @@ size_t strlist_count(StrList *pStrList) {
 void strlist_set(StrList *pStrList, size_t index, char *value) {
     char *tmp = NULL;
     char *item = NULL;
-    if (index > strlist_count(pStrList)) {
+    if (pStrList == NULL || index > strlist_count(pStrList)) {
         return;
     }
     if ((item = strlist_item(pStrList, index)) == NULL) {
@@ -176,7 +202,7 @@ void strlist_set(StrList *pStrList, size_t index, char *value) {
  * @return string
  */
 char *strlist_item(StrList *pStrList, size_t index) {
-    if (index > strlist_count(pStrList)) {
+    if (pStrList == NULL || index > strlist_count(pStrList)) {
         return NULL;
     }
     return pStrList->data[index];
