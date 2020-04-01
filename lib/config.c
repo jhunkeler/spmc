@@ -74,8 +74,9 @@ ConfigItem **config_read(const char *filename) {
         // Get a pointer to the key pair separator
         char *sep_pos = strchr(lptr, sep_ch);
         if (!sep_pos) {
-            printf("invalid entry on line %zu: missing '%s': '%s'\n", record, sep_str, lptr);
-            continue;
+            fprintf(stderr, "invalid entry on line %zu: missing '%s': '%s'\n", record, sep_str, lptr);
+            config_free(config);
+            return NULL;
         }
 
         // These values are approximations.  The real length(s) are recorded using strlen below.
@@ -126,8 +127,9 @@ ConfigItem **config_read(const char *filename) {
         // Populate the value, and ignore any inline comments
         while (*lptr) {
             if (*lptr == '#' || *lptr == ';') {
-                // strip trailing whitespace where the comment is and stop processing
-                value = strip(value);
+                // `value` was populated up to the comment.
+                // now strip whitespace from the string `value` actually points to
+                value_orig = strip(value_orig);
                 break;
             }
             *value++ = *lptr++;
@@ -168,6 +170,9 @@ ConfigItem **config_read(const char *filename) {
  * @param item `ConfigItem` array
  */
 void config_free(ConfigItem **item) {
+    if (item == NULL) {
+        return;
+    }
     for (size_t i = 0; item[i] != NULL; i++) {
         free(item[i]->key);
         free(item[i]->value);
