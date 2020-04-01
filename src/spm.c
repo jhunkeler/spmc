@@ -19,6 +19,7 @@ void usage(const char *program_name) {
            "  -y   --yes                 do not prompt\n"
            "  -B,  --build               build package(s)\n"
            "  -I,  --install             install package(s)\n"
+           "  -R   --remove              remove package(s)\n"
            "  -r,  --root                installation prefix (requires --install)\n"
            "  -m   --manifest            specify a package manifest to use\n"
            "  -M   --override-manifests  disable default package manifest location\n"
