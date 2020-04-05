@@ -52,6 +52,33 @@ char *array_to_string(char **array, const char *sep) {
 }
 
 /**
+ * Hexdump a character array to stdout
+ * @param addr starting address
+ * @param size size to read
+ */
+void hexdump(char *addr, size_t size) {
+    char buf[32];
+    for (size_t i = 0, char_count = 0; i <= size; i++, char_count++) {
+        if (i % 16 == 0) {
+            printf("%04X: ", (unsigned int)i);
+        }
+
+        printf("%02X ", (unsigned char)addr[i]);
+        if (i % 16 == 15) {
+            printf("|%-16s|\n", buf);
+            char_count = 0;
+            memset(buf, '\0', sizeof(buf));
+        }
+
+        if (!isprint(addr[i])) {
+            buf[char_count] = '.';
+        } else {
+            buf[char_count] = addr[i];
+        }
+    }
+}
+
+/**
  * Write data to a file
  * @param filename name of file
  * @param data data to write
