@@ -14,7 +14,7 @@ typedef struct {
 
 int relocate(const char *filename, const char *_oldstr, const char *_newstr);
 void relocate_root(const char *destroot, const char *baseroot);
-int replace_text(char *data, const char *_spattern, const char *_sreplacement);
+ssize_t replace_text(char *data, const char *_spattern, const char *_sreplacement);
 int file_replace_text(char *filename, const char *spattern, const char *sreplacement);
 RelocationEntry **prefixes_read(const char *filename);
 void prefixes_free(RelocationEntry **entry);
