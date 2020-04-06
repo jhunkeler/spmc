@@ -16,17 +16,10 @@ size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numCases; i++) {
         char *caseValue = strdup(testCase[i].caseValue.sptr);
-        size_t caseLen = strlen(caseValue);
 
-        puts("BEFORE:");
-        hexdump(caseValue, caseLen);
-        print_banner("-", 79);
-        size_t diff = replace_text(caseValue, testCase[i].arg[0].sptr, testCase[i].arg[1].sptr);
-        printf("AFTER: (diff: %zu)\n", diff);
-        hexdump(caseValue, caseLen);
-        print_banner("-", 79);
-
+        replace_text(caseValue, testCase[i].arg[0].sptr, testCase[i].arg[1].sptr);
         myassert(strcmp(caseValue, testCase[i].truthValue.sptr) == 0, testFmt, testCase[i].caseValue.sptr, caseValue, testCase[i].truthValue.sptr);
+
         free(caseValue);
     }
     return 0;

@@ -50,14 +50,16 @@ ssize_t replace_text(char *data, const char *spattern, const char *sreplacement)
     size_t count_replaced = 0;
     while (*tmp != '\0') {
         if (strncmp(tmp, spattern, spattern_len) == 0) {
-            memmove(tmp, sreplacement, sreplacement_len);
-            memmove(tmp + sreplacement_len, tmp + spattern_len, data_len - spattern_len);
-            memset(tmp + sreplacement_len + (data_len - spattern_len), '\0', spattern_len);
-            count_replaced++;
+            memcpy(tmp, sreplacement, sreplacement_len);
+            size_t tmp_len = strlen(tmp + sreplacement_len);
+            memmove(tmp + sreplacement_len, tmp + spattern_len, tmp_len);
+            count_replaced += (spattern_len - sreplacement_len);
         }
         tmp++;
     }
-    return count_replaced * spattern_len;
+    char *end = data + data_len - count_replaced;
+    *end = '\0';
+    return count_replaced;
 }
 
 /**
