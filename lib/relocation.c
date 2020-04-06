@@ -28,9 +28,13 @@ const char *METADATA_FILES[] = {
  * @param sreplacement replacement string value
  * @return success=0, error=-1
  */
-int replace_text(char *data, const char *spattern, const char *sreplacement) {
+ssize_t replace_text(char *data, const char *spattern, const char *sreplacement) {
     if (data == NULL || spattern == NULL || sreplacement == NULL) {
         return -1;
+    }
+
+    if (strlen(spattern) == 0 || strlen(sreplacement) == 0) {
+        return 0;
     }
 
     char *tmp = data;
@@ -43,19 +47,19 @@ int replace_text(char *data, const char *spattern, const char *sreplacement) {
         return -1;
     }
 
+    size_t count_replaced = 0;
     while (*tmp != '\0') {
         if (strncmp(tmp, spattern, spattern_len) == 0) {
-            if (sreplacement_len == 1) {
-                *tmp = *sreplacement;
-            } else {
-                memmove(tmp, sreplacement, sreplacement_len);
-                memmove(tmp + sreplacement_len, tmp + spattern_len, data_len - spattern_len);
-                memset(tmp + sreplacement_len + (data_len - spattern_len), '\0', 1);
-            }
+            memcpy(tmp, sreplacement, sreplacement_len);
+            size_t tmp_len = strlen(tmp + sreplacement_len);
+            memmove(tmp + sreplacement_len, tmp + spattern_len, tmp_len);
+            count_replaced += (spattern_len - sreplacement_len);
         }
         tmp++;
     }
-    return 0;
+    char *end = data + data_len - count_replaced;
+    *end = '\0';
+    return count_replaced;
 }
 
 /**
