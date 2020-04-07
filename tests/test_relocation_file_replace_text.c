@@ -15,22 +15,26 @@ size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
 int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numCases; i++) {
+        char **data = NULL;
+        char *caseValue = NULL;
         char filename[PATH_MAX] = {0,};
         sprintf(filename, "%s.%s_%zu.mock", basename(__FILE__), __FUNCTION__, i);
 
-        mock(filename, testCase[i].caseValue.sptr, sizeof(char), strlen(testCase[i].caseValue.sptr));
+        mock(filename, (void *)testCase[i].caseValue.sptr, sizeof(char), strlen(testCase[i].caseValue.sptr));
         file_replace_text(filename, testCase[i].arg[0].sptr, testCase[i].arg[1].sptr);
 
-        char **data = file_readlines(filename, 0, 0, NULL);
-        char *caseValue = join(data, "");
+        data = file_readlines(filename, 0, 0, NULL);
+        caseValue = join(data, "");
 
         myassert(strcmp(caseValue, testCase[i].truthValue.sptr) == 0, testFmt, testCase[i].caseValue.sptr, caseValue, testCase[i].truthValue.sptr);
 
-        free(caseValue);
-
-        if (access(filename, X_OK) == 0) {
-            unlink(filename);
+        // clean up
+        for (size_t rec = 0; data[rec] != NULL; rec++) {
+            free(data[rec]);
         }
+        free(data);
+        free(caseValue);
+        unlink(filename);
     }
     return 0;
 }
