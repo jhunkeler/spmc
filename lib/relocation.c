@@ -352,11 +352,18 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
 int relocate(const char *_filename, const char *_oldstr, const char *_newstr) {
     int returncode;
     Process *proc = NULL;
-    char *oldstr = strdup(_oldstr);
-    char *newstr = strdup(_newstr);
-    char *filename = strdup(_filename);
+    char *filename = NULL;
+    char *oldstr = NULL;
+    char *newstr = NULL;
     char cmd[PATH_MAX];
 
+    if (_filename == NULL || _oldstr == NULL || _newstr == NULL) {
+        return -1;
+    }
+
+    oldstr = strdup(_oldstr);
+    newstr = strdup(_newstr);
+    filename = strdup(_filename);
     // sanitize command
     strchrdel(oldstr, SHELL_INVALID);
     strchrdel(newstr, SHELL_INVALID);
