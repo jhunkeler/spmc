@@ -73,6 +73,49 @@ size_t mock(const char *filename, void *data, size_t size, size_t nelem) {
     return written;
 }
 
+/**
+ * Generate a temporary file of `size` in bytes, filled with `fill_byte`s
+ * @param size size of new file in bytes
+ * @param fill_byte byte to write `size` times
+ * @return temporary file path
+ */
+char *mock_size(size_t size, const char *fill_byte) {
+    FILE *fp = NULL;
+    char *buffer = NULL;
+    char filename[PATH_MAX] = {"mock_file_of_size.XXXXXX"};
+
+    if ((buffer = malloc(size)) == NULL) {
+        perror("unable to allocate buffer");
+        exit(errno);
+    }
+
+    if (fill_byte == NULL) {
+        return NULL;
+    }
+
+    if ((mkstemp(filename)) < 0) {
+        perror("mktemp failed to create temporary file");
+        exit(errno);
+    }
+
+    if ((fp = fopen(filename, "w+")) == NULL) {
+        perror(filename);
+        exit(errno);
+    }
+
+    memset(buffer, fill_byte[0], size);
+    size_t bytes = fwrite(buffer, sizeof(char), size, fp);
+    if (bytes == 0 && ferror(fp) != 0) {
+        fprintf(stderr, "%s: read failed\n", filename);
+        exit(1);
+    }
+
+    fclose(fp);
+    free(buffer);
+
+    return strdup(filename);
+}
+
 #define myassert(condition, ...) \
     do { \
         if (!(condition)) { \
