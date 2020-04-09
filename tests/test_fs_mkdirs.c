@@ -35,6 +35,9 @@ int main(int argc, char *argv[]) {
         myassert(present == 0, testFmt, result, testCase[i].truthValue.signed_integer);
 
         rmdirs(path);
+
+        present = access(path, X_OK);
+        myassert(present != 0, testFmt, result, testCase[i].truthValue.signed_integer);
     }
     return 0;
 }
