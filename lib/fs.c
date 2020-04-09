@@ -388,7 +388,9 @@ long int get_file_size(const char *filename) {
     if (!fp) {
         return -1;
     }
-    fseek(fp, 0, SEEK_END);
+    if (fseek(fp, 0, SEEK_END) < 0) {
+        return -1;
+    }
     result = ftell(fp);
     fclose(fp);
     return result;
