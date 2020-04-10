@@ -12,7 +12,7 @@ int RUNTIME_LIST = 0;
 int RUNTIME_SEARCH = 0;
 
 void usage(const char *program_name) {
-    printf("usage: %s [-hVvBIrmMLS]\n"
+    printf("usage: %s [-hVvBIRrmMLS]\n"
            "  -h,  --help                show this help message\n"
            "  -V,  --version             show version\n"
            "  -v,  --verbose             show more information (additive)\n"
