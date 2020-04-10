@@ -491,10 +491,13 @@ char *human_readable_size(uint64_t n) {
 char *spm_mkdtemp(const char *name, const char *extended_path) {
     const char *template_unique = "XXXXXX";
     char *tmpdir = NULL;
-    char *template = calloc(PATH_MAX, sizeof(char));
+    char template[PATH_MAX];
 
     sprintf(template, "%s%s%s_%s", TMP_DIR, DIRSEPS, name, template_unique);
     tmpdir = mkdtemp(template);
+    if (tmpdir == NULL) {
+        return NULL;
+    }
     if (extended_path != NULL) {
         char extended[PATH_MAX] = {0,};
         strncpy(extended, tmpdir, PATH_MAX - 1);
@@ -502,6 +505,6 @@ char *spm_mkdtemp(const char *name, const char *extended_path) {
         strcat(extended, extended_path);
         mkdirs(extended, 0755);
     }
-    return tmpdir;
+    return strdup(tmpdir);
 }
 
