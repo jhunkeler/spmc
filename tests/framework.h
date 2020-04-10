@@ -10,6 +10,10 @@ union TestValue {
     char character;
     unsigned int unsigned_integer;
     signed int signed_integer;
+    unsigned long unsigned_long;
+    signed long signed_long;
+    unsigned long long unsigned_long_long;
+    signed long long signed_long_long;
     float floating;
     char str[PATH_MAX];
 };
