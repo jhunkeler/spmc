@@ -3,8 +3,6 @@
 
 #define KILOBYTE 1024
 
-
-
 const char *testFmt = "returned '%zu', expected '%zu'\n";
 struct TestCase testCase[] = {
         {.caseValue.unsigned_integer = 0, .truthValue.unsigned_integer = 0},
