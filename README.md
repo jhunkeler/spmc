@@ -14,7 +14,10 @@ A basic userland package management system with a few humble goals:
 - cmake (https://cmake.org)
 - curl (https://curl.haxx.se)
 - gcc (https://gcc.gnu.org)
+- make (https://www.gnu.org/software/make)
 - openssl (https://www.openssl.org)
+- tar (https://www.gnu.org/software/tar)
+- which (https://carlowood.github.io/which)
 
 ## Runtime Requirements
 
@@ -24,22 +27,25 @@ A basic userland package management system with a few humble goals:
 - reloc (https://github.com/jhunkeler/reloc)
 - rsync (https://rsync.samba.org)
 - tar (https://www.gnu.org/software/tar)
+- which (https://carlowood.github.io/which)
 
 ## Installation
 
 ### Dependencies
 
-#### CentOS
+#### CentOS 7+
 
 ```bash
 $ yum install epel-release
-$ yum install binutils cmake curl-devel file gcc openssl-devel patchelf rsync tar
+$ yum install -y binutils cmake3 curl-devel file gcc gcc-c++ gcc-gfortran glibc-devel \
+    make openssl-devel patchelf rsync tar which
 ```
 
 #### Arch
 
 ```bash
-$ pacman -S binutils cmake curl file gcc openssl patchelf rsync tar
+$ pacman -S binutils cmake curl file gcc gcc-c++ gcc-gfortran openssl make patchelf \
+    rsync tar which
 ```
 
 ### Install reloc
@@ -74,10 +80,11 @@ $ spm --help
 usage: spm [-hVvBIrmMLS]
   -h,  --help                show this help message
   -V,  --version             show version
-  -v,  --verbose             show more information
+  -v,  --verbose             show more information (additive)
   -y   --yes                 do not prompt
   -B,  --build               build package(s)
   -I,  --install             install package(s)
+  -R   --remove              remove package(s)
   -r,  --root                installation prefix (requires --install)
   -m   --manifest            specify a package manifest to use
   -M   --override-manifests  disable default package manifest location
@@ -88,7 +95,36 @@ usage: spm [-hVvBIrmMLS]
 
 ### Example
 
-#### Install Python
+#### List available packages
+```bash
+$ spm --list
+#-------------------------------------------------------------------------------
+# name                 version    revision   size       origin
+#-------------------------------------------------------------------------------
+  autoconf             2.69       0          885.33K    https://astroconda.org/spm
+  automake             1.16.1     0          742.90K    https://astroconda.org/spm
+  binutils             2.34       0          7.64M      https://astroconda.org/spm
+  bison                3.4.2      0          754.43K    https://astroconda.org/spm
+  bzip2                1.0.8      0          130.84K    https://astroconda.org/spm
+  cfitsio              3.47       0          1.17M      https://astroconda.org/spm
+  curl                 7.66.0     0          1.02M      https://astroconda.org/spm
+  e2fsprogs            1.45.4     0          72.66K     https://astroconda.org/spm
+  filesystem           1.0.0      0          578B       https://astroconda.org/spm
+  findutils            4.7.0      0          772.41K    https://astroconda.org/spm
+  gcc                  8.4.0      0          60.08M     https://astroconda.org/spm
+# [...]
+```
+
+#### Search for a package
+```bash
+$ spm --search python
+#-------------------------------------------------------------------------------
+# name                 version    revision   size       origin
+#-------------------------------------------------------------------------------
+  python               3.8.2      0          26.05M     https://astroconda.org/spm
+```
+
+#### Install a package
 ```bash
 $ spm --root ~/spmenv123 --install "python" # [...]
 ```
@@ -100,7 +136,7 @@ $ source <(spm --mkruntime ~/spmenv123)
 $ hash -r  # or "rehash" if your shell supports it
 ```
 
-#### Use Python
+#### Use package
 
 ```bash
 $ python -m ensurepip
