@@ -26,6 +26,7 @@
 #include <sys/utsname.h>
 #endif
 
+#include "compat.h"
 #include "package.h"
 #include "str.h"
 #include "strlist.h"
