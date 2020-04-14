@@ -118,6 +118,80 @@ int _fstree_compare(const FTSENT **one, const FTSENT **two) {
 }
 
 /**
+ * Produce a zero-depth directory listing
+ *
+ * @param path absolute or relative path string (directory)
+ * @return error=NULL, success=`FSList` structure
+ */
+FSList *fslist(const char *path) {
+    FSList *tree = NULL;
+    DIR *dir = NULL;
+    struct dirent *d_ent = NULL;
+
+    if (path == NULL) {
+        return NULL;
+    }
+
+    tree = calloc(1, sizeof(FSList));
+    if (tree == NULL) {
+        perror(path);
+        return NULL;
+    }
+
+    tree->root = strdup(path);
+    tree->records = 0;
+    tree->_num_alloc = 1;
+
+    tree->record = calloc(tree->_num_alloc, sizeof(struct dirent *));
+    if (tree->record == NULL) {
+        perror("tree->record");
+        goto failed;
+    }
+
+    if ((dir = opendir(tree->root)) == NULL) {
+        perror(tree->root);
+        goto failed;
+    }
+
+    errno = 0;  // clear errno so perror prints the correct error
+    while ((d_ent = readdir(dir)) != NULL) {
+        struct dirent **tmp = NULL;
+        if (strcmp(d_ent->d_name, ".") == 0 || strcmp(d_ent->d_name, "..") == 0) {
+            continue;
+        }
+
+        tree->record[tree->records] = calloc(1, sizeof(struct dirent));
+        memcpy(tree->record[tree->records], d_ent, sizeof(struct dirent));
+
+        if (tree->record[tree->records] == NULL) {
+            perror("unable to allocate record for tree->files");
+            goto failed;
+        }
+
+        tree->records++;
+        tree->_num_alloc++;
+
+        tmp = realloc(tree->record, tree->_num_alloc * sizeof(struct dirent *));
+        if (tmp == NULL) {
+            perror("unable to reallocate tree->record");
+            goto failed;
+        }
+        tree->record = tmp;
+        tree->record[tree->records] = NULL;
+    }
+
+    if (errno) {
+        perror(path);
+failed: // label
+        fslist_free(tree);
+        return NULL;
+    }
+
+    closedir(dir);
+    return tree;
+}
+
+/**
  *
  * @param _path
  * @return
@@ -167,6 +241,23 @@ void fstree_free(FSTree *fsdata) {
         }
         free(fsdata);
     }
+}
+
+void fslist_free(FSList *fsdata) {
+    if (fsdata == NULL) {
+        return;
+    }
+
+    if (fsdata->root != NULL) {
+        free(fsdata->root);
+    }
+    if (fsdata->record != NULL) {
+        for (size_t i = 0; fsdata->record[i] != NULL; i++) {
+            free(fsdata->record[i]);
+        }
+    }
+    free(fsdata->record);
+    free(fsdata);
 }
 
 /**
@@ -508,3 +599,39 @@ char *spm_mkdtemp(const char *name, const char *extended_path) {
     return strdup(tmpdir);
 }
 
+ /**
+  * Create an empty file or update a file's modified timestamp
+  * @param path path to file
+  * @return error=-1, success=0
+  */
+ int touch(const char *path) {
+     FILE *fp = NULL;
+     struct stat st;
+     int path_stat = 0;
+
+     if (path == NULL) {
+         return -1;
+     }
+
+     path_stat = stat(path, &st);
+     if (path_stat < 0) {
+         if ((fp = fopen(path, "w+")) == NULL) {
+             perror(path);
+             return -1;
+         }
+         fclose(fp);
+     } else {
+         if ((S_ISREG(st.st_mode) || S_ISLNK(st.st_mode)) > 0) {
+             if (utime(path, NULL) < 0) {
+                 // failed to set file time
+                 perror(path);
+                 return -1;
+             }
+             // updated file time
+         } else {
+             return -1;
+         }
+     }
+
+     return 0;
+ }

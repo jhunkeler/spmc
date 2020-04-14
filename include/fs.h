@@ -18,9 +18,18 @@ typedef struct {
     size_t files_length;
 } FSTree;
 
+typedef struct {
+    char *root;
+    struct dirent **record;
+    size_t records;
+    size_t _num_alloc;
+} FSList;
+
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
-void fstree_free(FSTree *fsdata);
 FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode);
+void fstree_free(FSTree *fsdata);
+FSList *fslist(const char *path);
+void fslist_free(FSList *fsdata);
 int exists(const char *filename);
 int rmdirs(const char *_path);
 long int get_file_size(const char *filename);
@@ -31,6 +40,7 @@ int rsync(const char *_args, const char *_source, const char *_destination);
 char *human_readable_size(uint64_t n);
 char *expandpath(const char *_path);
 char *spm_mkdtemp(const char *name, const char *extended_path);
+int touch(const char *path);
 
 
 #endif //SPM_FSTREE_H
