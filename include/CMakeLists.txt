@@ -3,6 +3,7 @@ install(
 		${CMAKE_BINARY_DIR}/include/config.h
 		archive.h
 		checksum.h
+		compat.h
 		conf.h
 		environment.h
 		find.h
