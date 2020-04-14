@@ -396,51 +396,42 @@ ManifestPackage *find_by_strspec(const Manifest *manifest, const char *_strspec)
     char *name = s_name;
     char *version = s_version;
     char *strspec = strdup(_strspec);
+    ManifestPackage **m = NULL;
+    ManifestPackage *selected = NULL;
 
     memset(op, '\0', NAME_MAX);
     memset(name, '\0', NAME_MAX);
     memset(version, '\0', NAME_MAX);
 
-    // Parse name
-    //for (size_t i = 0; isalnum(_strspec[i]) || _strspec[i] == '_' || _strspec[i] == '-'; i++) {
-    //    name[i] = _strspec[i];
-    //}
+    // Parse package name
     get_name(&name, strspec);
+    // Get the starting address of any operator(s) (>, <, =, etc)
     pos = get_operators(&op, strspec);
 
-    ManifestPackage **m = NULL;
-    // No operators found
+    // No operator(s) found
     if (pos == NULL) {
+        // Try `name >= 0`
         m = find_by_spec(manifest, name, ">=", NULL);
     }
 
     // When `m` is still NULL after applying the default operator
     if (m == NULL) {
+        // Parse the version string if it's there
         for (size_t i = 0; *(pos + i) != '\0'; i++) {
             version[i] = *(pos + i);
         }
+        // Try `name op version`
         m = find_by_spec(manifest, name, op, version);
     }
 
-    // When `m` has been populated by either test above, return a COPY of the manifest
+    // Select the highest priority package
     if (m != NULL) {
-        ManifestPackage *selected = NULL;
+        // (m[0] == default manifest, m[>0] == user-defined manifest)
         for (size_t i = 0; m[i] != NULL; i++) {
             selected = m[i];
         }
-
-        /* TODO: What on earth was I trying to do here? Why am I freeing the manifest (pointers)
-        ManifestPackage *result = manifest_package_copy(selected);
-        for (size_t i = 0; m[i] != NULL; i++) {
-            manifest_package_free(m[i]);
-        }
-        free(m);
-         */
-        free(strspec);
-        return selected;
     }
 
-    // Obviously it didn't work out
     free(strspec);
-    return NULL;
+    return selected;  // or NULL
 }
