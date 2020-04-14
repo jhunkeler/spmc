@@ -7,8 +7,6 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fts.h>
-#include <glob.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,14 +14,17 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
 #if !defined(_WIN32)
+#include <fts.h>
+#include <glob.h>
+#include <unistd.h>
 #include <sys/utsname.h>
+#include <utime.h>
 #endif
 
 #include "package.h"
