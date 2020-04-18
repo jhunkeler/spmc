@@ -153,7 +153,7 @@ void check_runtime_environment(void) {
 }
 
 /**
- *
+ * Define the structure of a SPM root hierarchy
  * @param basepath
  * @return
  */
@@ -170,12 +170,13 @@ SPM_Hierarchy *spm_hierarchy_init(char *basepath) {
     fs->tmpdir = join((char *[]) {fs->rootdir, "tmp", NULL}, DIRSEPS);
     fs->dbdir = join((char *[]) {fs->localstatedir, "db", NULL}, DIRSEPS);
     fs->dbrecdir = join((char *[]) {fs->dbdir, "records", NULL}, DIRSEPS);
+    fs->rootrec = join((char *[]) {".spm_root", NULL}, DIRSEPS);
 
     return fs;
 }
 
 /**
- *
+ * Free SPM_Hierarchy structure
  * @param fs
  */
 void spm_hierarchy_free(SPM_Hierarchy *fs) {
@@ -190,6 +191,7 @@ void spm_hierarchy_free(SPM_Hierarchy *fs) {
     free(fs->tmpdir);
     free(fs->dbdir);
     free(fs->dbrecdir);
+    free(fs->rootrec);
     free(fs);
 }
 

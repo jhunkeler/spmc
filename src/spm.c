@@ -128,6 +128,13 @@ int main(int argc, char *argv[], char *arge[]) {
                     usage(program_name);
                     exit(1);
                 }
+
+                // Installing into the system's root is forbidden for obvious reasons
+                if (strcmp(arg_next, DIRSEPS) == 0) {
+                    fprintf(stderr, "FATAL: refusing to operate on the system root directory\n");
+                    exit(1);
+                }
+
                 strcpy(rootdir, arg_next);
                 i++;
             }
@@ -236,7 +243,10 @@ int main(int argc, char *argv[], char *arge[]) {
     if (RUNTIME_INSTALL) {
         int status_install = 0;
         if ((status_install = spm_do_install(rootfs, mf, packages)) == -1) {
-            // failed to create temporary destination root
+            // general failure
+            if (spmerrno) {
+                spm_perror("Failed with reason");
+            }
             exit(1);
         } else if (status_install == -2) {
             // user said no when asked to proceed

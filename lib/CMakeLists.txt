@@ -30,6 +30,7 @@ set(libspm_src
 	user_input.c
 	metadata.c
 	purge.c
+	error_handler.c
 )
 
 add_library(libspm_obj OBJECT ${libspm_src})

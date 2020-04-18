@@ -14,6 +14,7 @@ int spm_purge(SPM_Hierarchy *fs, const char *_package_name) {
     char *package_topdir = join((char *[]) {fs->dbrecdir, package_name, NULL}, DIRSEPS);
     char *descriptor = join((char *[]) {package_topdir, SPM_META_DESCRIPTOR, NULL}, DIRSEPS);
     char *filelist = join((char *[]) {package_topdir, SPM_META_FILELIST, NULL}, DIRSEPS);
+    char *rootrec = join((char *[]){path, "var", ".spm_root"}, DIRSEPS);
 
     if (spm_check_installed(fs, package_name) == 0) {
         // package is not installed in this root
@@ -66,6 +67,11 @@ int spm_purge(SPM_Hierarchy *fs, const char *_package_name) {
  */
 int spm_do_purge(SPM_Hierarchy *fs, StrList *packages) {
     int status_remove = 0;
+
+    if (spm_hierarchy_is_root(fs) < 0) {
+        spmerrno = SPM_ERR_ROOT_NO_RECORD;
+        return -1;
+    }
 
     printf("Removing package(s):\n");
     for (size_t i = 0; i < strlist_count(packages); i++) {

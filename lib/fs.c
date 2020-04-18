@@ -624,7 +624,6 @@ char *spm_mkdtemp(const char *base, const char *name, const char *extended_path)
      path_stat = stat(path, &st);
      if (path_stat < 0) {
          if ((fp = fopen(path, "w+")) == NULL) {
-             perror(path);
              return -1;
          }
          fclose(fp);
@@ -632,7 +631,6 @@ char *spm_mkdtemp(const char *base, const char *name, const char *extended_path)
          if ((S_ISREG(st.st_mode) || S_ISLNK(st.st_mode)) > 0) {
              if (utime(path, NULL) < 0) {
                  // failed to set file time
-                 perror(path);
                  return -1;
              }
              // updated file time
