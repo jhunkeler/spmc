@@ -29,6 +29,7 @@ void usage(const char *program_name) {
            , program_name);
 }
 
+extern spm_vars SPM_GLOBAL;
 int main(int argc, char *argv[], char *arge[]) {
     char *program_name = strdup(argv[0]);
 

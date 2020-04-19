@@ -237,7 +237,13 @@ int mkruntime_interface(int argc, char **argv) {
     }
 
     runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
+#if defined(__APPLE__) && defined (__MACH__)
+    runtime_set(rt, "LDFLAGS", "-rpath $SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
+#elif defined(__linux) || defined (__linux__)
     runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
+#else
+    // TODO: Windows?
+#endif
     runtime_export(rt, NULL);
     runtime_free(rt);
 
