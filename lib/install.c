@@ -180,7 +180,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     size_t num_requirements = 0;
     ManifestPackage **requirements = NULL;
     char source[PATH_MAX];
-    char *tmpdir = spm_mkdtemp("spm_destroot", NULL);
+    char *tmpdir = spm_mkdtemp(TMP_DIR, "spm_destroot", NULL);
 
     if (tmpdir == NULL) {
         perror("Could not create temporary destination root");
