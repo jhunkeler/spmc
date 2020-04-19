@@ -576,19 +576,27 @@ char *human_readable_size(uint64_t n) {
 
 /**
  * Create a named temporary directory
- * @param name
+ * @param base path where temporary directory will be created
+ * @param name name of temporary directory
+ * @param extended_path a subdirectory to create beneath `base/name`, may be NULL
  * @return success=path, failure=NULL
  */
-char *spm_mkdtemp(const char *name, const char *extended_path) {
+char *spm_mkdtemp(const char *base, const char *name, const char *extended_path) {
     const char *template_unique = "XXXXXX";
     char *tmpdir = NULL;
     char template[PATH_MAX];
 
-    sprintf(template, "%s%s%s_%s", TMP_DIR, DIRSEPS, name, template_unique);
+    if (base == NULL || name == NULL) {  // extended_path is optional
+        return NULL;
+    }
+
+    sprintf(template, "%s%s%s_%s", base, DIRSEPS, name, template_unique);
     tmpdir = mkdtemp(template);
+
     if (tmpdir == NULL) {
         return NULL;
     }
+
     if (extended_path != NULL) {
         char extended[PATH_MAX] = {0,};
         strncpy(extended, tmpdir, PATH_MAX - 1);

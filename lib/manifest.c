@@ -75,7 +75,7 @@ Manifest *manifest_from(const char *package_dir) {
     strncpy(info->origin, package_dir, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
 
 
-    char *tmpdir = spm_mkdtemp("spm_manifest_from", NULL);
+    char *tmpdir = spm_mkdtemp(TMP_DIR, "spm_manifest_from", NULL);
     if (!tmpdir) {
         perror("failed to create temporary directory");
         fprintf(SYSERROR);
@@ -390,7 +390,7 @@ Manifest *manifest_read(char *file_or_url) {
         strcpy(path, SPM_GLOBAL.package_dir);
     }
     else {
-        tmpdir = spm_mkdtemp("spm_manifest_read_XXXXXX", SPM_GLOBAL.repo_target);
+        tmpdir = spm_mkdtemp(TMP_DIR, "spm_manifest_read_XXXXXX", SPM_GLOBAL.repo_target);
         if (exists(tmpdir) != 0) {
             fprintf(stderr, "Failed to create temporary storage directory\n");
             fprintf(SYSERROR);
