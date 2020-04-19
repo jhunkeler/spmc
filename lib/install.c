@@ -4,6 +4,37 @@
 #include <url.h>
 #include "spm.h"
 
+/**
+ * Check for the existence of `$ROOT/var/.spm_root`
+ * @param path
+ * @return yes=1, no=0
+ */
+int spm_hierarchy_is_root(SPM_Hierarchy *fs) {
+    if (exists(fs->rootrec) != 0) {
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * Initialize (not populate) a spm root directory.
+ * A "root record" is dropped into $ROOT/var
+ * @param fs `SPM_Hierarchy` structure
+ * @return success=0, error=-1
+ */
+int spm_hierarchy_make_root(SPM_Hierarchy *fs) {
+    // Create the root directory if it does not exist
+    if (mkdirs(fs->rootdir, 0755) != 0) {
+        return -1;
+    }
+
+    if (touch(fs->rootrec) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 void spm_install_show_package(ManifestPackage *package) {
     if (package == NULL) {
         fprintf(stderr, "ERROR: package was NULL\n");
@@ -25,17 +56,6 @@ int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
     if (!package) {
         fprintf(SYSERROR);
         return -1;
-    }
-
-    if (exists(fs->rootdir) != 0) {
-        if (SPM_GLOBAL.verbose) {
-            printf("Creating destination root: %s\n", fs->rootdir);
-        }
-        if (mkdirs(fs->rootdir, 0755) != 0) {
-            fprintf(SYSERROR);
-            free(package);
-            return -2;
-        }
     }
 
     if (SPM_GLOBAL.verbose) {
@@ -192,6 +212,11 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
         printf("Installation root: %s\n", fs->rootdir);
     }
 
+    if (spm_hierarchy_make_root(fs) < 0) {
+        spmerrno = SPM_ERR_ROOT_NO_RECORD;
+        return -1;
+    }
+
     // Produce a dependency tree from requested package(s)
     for (size_t i = 0; i < strlist_count(packages); i++) {
         char *item  = strlist_item(packages, i);
@@ -272,6 +297,12 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
         manifest_free(tmp_manifest);
     }
 
+    if (spm_hierarchy_is_root(fs) == 0) {
+        if (SPM_GLOBAL.verbose) {
+            printf("Creating destination root: %s\n", fs->rootdir);
+        }
+    }
+
     printf("Installing package(s):\n");
     size_t num_installed = 0;
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
@@ -288,7 +319,6 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
 
         // Relocate installation root
         relocate_root(fs->rootdir, tmpdir);
-
         spm_install_package_record(fs, tmpdir, requirements[i]->name);
         num_installed++;
         free(package_path);

@@ -16,6 +16,7 @@ typedef struct {
 } ConfigItem;
 
 typedef struct {
+    char *rootrec;
     char *rootdir;
     char *bindir;
     char *includedir;

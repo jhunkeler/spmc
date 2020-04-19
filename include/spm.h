@@ -28,6 +28,7 @@
 #endif
 
 #include "compat.h"
+#include "error_handler.h"
 #include "package.h"
 #include "str.h"
 #include "strlist.h"
