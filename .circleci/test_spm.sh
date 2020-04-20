@@ -1,4 +1,5 @@
 #!/bin/bash -e
+source $(dirname "${BASH_SOURCE[0]}")/runtime.sh
 
 export PREFIX=/tmp/root
 export SHELL=/bin/bash
@@ -6,7 +7,7 @@ cd build
 
 set -x
 
-ctest3 -V
+ctest -V
 
 spm --list
 
