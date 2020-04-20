@@ -27,6 +27,8 @@
 #include <utime.h>
 #endif
 
+#include "conf.h"
+extern spm_vars SPM_GLOBAL;
 #include "compat.h"
 #include "error_handler.h"
 #include "package.h"
@@ -44,7 +46,6 @@
 #include "resolve.h"
 #include "shell.h"
 #include "relocation.h"
-#include "conf.h"
 #include "archive.h"
 #include "find.h"
 #include "rpath.h"
@@ -96,7 +97,6 @@
 _1________________________________________________"
 
 // GLOBALS
-spm_vars SPM_GLOBAL;
 
 #ifdef __APPLE__
 extern char **environ;

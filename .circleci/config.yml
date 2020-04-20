@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  build:
+  build-centos7:
     docker:
       - image: centos:7
 
@@ -29,6 +29,36 @@ jobs:
           command: |
             .circleci/install_reloc.sh
 
+      - run:
+          name: "Install spm"
+          command: |
+            .circleci/install_spm.sh
+
+      - run:
+          name: "Run tests"
+          command: |
+            .circleci/test_spm.sh
+
+  build-macos:
+    macos:
+      xcode: 11.4.0
+
+    environment:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      DYLD_INSERT_LIBRARIES: /usr/lib/libgmalloc.dylib
+
+    steps:
+      - checkout
+
+      - run:
+          name: "Initialize"
+          command: |
+            .circleci/init.sh
+
+      - run:
+          name: "Install reloc"
+          command: |
+            .circleci/install_reloc.sh
 
       - run:
           name: "Install spm"
@@ -39,3 +69,11 @@ jobs:
           name: "Run tests"
           command: |
             .circleci/test_spm.sh
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - build-centos7
+      - build-macos
+

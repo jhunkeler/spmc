@@ -3,6 +3,10 @@
  */
 #include "spm.h"
 
+// GLOBAL
+spm_vars SPM_GLOBAL;
+
+
 /**
  * Get path to user's local configuration directory
  * (The path will be created if it doesn't exist)
@@ -125,7 +129,13 @@ void check_runtime_environment(void) {
     int bad_rt = 0;
     char *required[] = {
             "file",
+#if defined(__linux) || defined(__linux__)
             "patchelf",
+#elif defined(__APPLE__) && defined(__MACH__)
+            "install_name_tool",
+#elif defined(__WIN32__)
+            // TODO: Does windows provide some kind of equivalent?
+#endif
             "objdump",
             "rsync",
             "tar",

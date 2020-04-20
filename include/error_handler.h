@@ -14,20 +14,13 @@
 #define SPM_ERR_PKG_INVALID         _SPM_ERR(4)     // invalid package (wrong structure, missing data, etc)
 #define SPM_ERR_PKG_CHECKSUM        _SPM_ERR(5)     // bad checksum
 #define SPM_ERR_PKG_FETCH           _SPM_ERR(6)     // failed to download package
+#define SPM_ERR_MANIFEST_INVALID    _SPM_ERR(7)     // manifest file is invalid (no header)
+#define SPM_ERR_MANIFEST_EMPTY      _SPM_ERR(8)     // manifest file has no data
 
 extern int spmerrno;
+extern const char *SPM_ERR_STRING[];
 
-static const char *SPM_ERR_STRING[] = {
-        "Success",
-        "No root record",
-        "Dangerous root path",
-        "Package not found",
-        "Invalid package",
-        "Bad package checksum",
-        "Failed to fetch package",
-        NULL,
-};
-
+void spmerrno_cause(const char *reason);
 char *spm_strerror(int code);
 void spm_perror(const char *msg);
 

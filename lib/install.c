@@ -200,8 +200,32 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     size_t num_requirements = 0;
     ManifestPackage **requirements = NULL;
     char source[PATH_MAX];
-    char *tmpdir = spm_mkdtemp(TMP_DIR, "spm_destroot", NULL);
+    char *tmpdir = NULL;
 
+    // Produce a dependency tree from requested package(s)
+    for (size_t i = 0; i < strlist_count(packages); i++) {
+        char *item = strlist_item(packages, i);
+
+        // Does the package exist in the manifest?
+        if (manifestlist_search(mf, item) == NULL) {
+            spmerrno = SPM_ERR_PKG_NOT_FOUND;
+            spmerrno_cause(item);
+            break;
+        }
+
+        requirements = resolve_dependencies(mf, item);
+        if (requirements != NULL) {
+            for (size_t c = num_requirements; requirements[c] != NULL; c++) {
+                num_requirements++;
+            }
+        }
+    }
+
+    if (spmerrno) {
+        return -1;
+    }
+
+    tmpdir = spm_mkdtemp(TMP_DIR, "spm_destroot", NULL);
     if (tmpdir == NULL) {
         perror("Could not create temporary destination root");
         fprintf(SYSERROR);
@@ -214,18 +238,8 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
 
     if (spm_hierarchy_make_root(fs) < 0) {
         spmerrno = SPM_ERR_ROOT_NO_RECORD;
+        rmdirs(tmpdir);
         return -1;
-    }
-
-    // Produce a dependency tree from requested package(s)
-    for (size_t i = 0; i < strlist_count(packages); i++) {
-        char *item  = strlist_item(packages, i);
-        requirements = resolve_dependencies(mf, item);
-        if (requirements != NULL) {
-            for (size_t c = num_requirements; requirements[c] != NULL; c++) {
-                num_requirements++;
-            }
-        }
     }
 
     // Install packages
@@ -244,7 +258,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     char *package_dir = strdup(SPM_GLOBAL.package_dir);
     for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
         char *package_origin = calloc(PATH_MAX, sizeof(char));
-	strncpy(package_origin, requirements[i]->origin, PATH_MAX);
+        strncpy(package_origin, requirements[i]->origin, PATH_MAX);
 
         if (strstr(package_origin, SPM_GLOBAL.repo_target) == NULL) {
             if (!endswith(package_origin, DIRSEPS)) {

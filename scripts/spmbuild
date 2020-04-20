@@ -40,8 +40,16 @@ function msg_warn() {
     _msg "WARNING:" "$@"
 }
 
+function tar() {
+    local cmd=tar
+    if [[ $(uname -s) == Darwin ]]; then
+        cmd=gtar
+    fi
+    $cmd "$@"
+}
+
 function spm_build_initialize_stage1() {
-    export SPMDEV=$(readlink -f $(dirname ${BASH_SOURCE[0]})/../cmake-build-debug/src/spm)
+    export SPMDEV=$(python -c "import os; print(os.path.abspath('$(dirname ${BASH_SOURCE[0]})/../cmake-build-debug/src/spm'))")
     export SPM=$(which spm 2>/dev/null || echo ${SPMDEV})
 
     spm_build_check_rt_env
@@ -95,10 +103,24 @@ function spm_build_initialize_stage1() {
     fi
 }
 
+function spm_build_new_root() {
+    local path
+
+    path=$(mktemp)
+    if [[ ! -f "${path}" ]]; then
+        msg_error "spm_build_new_root: failed to create temporary file"
+        exit 1
+    fi
+    spm_build_mkruntime "$1" > "${path}"
+    source "${path}"
+    rm -f "${path}"
+}
+
 function spm_build_initialize_stage2() {
     # In order to get the SPM_* variables out spm, we need to give a path...
     # this is ugly but safe-ish
-    source <(spm_build_mkruntime "/usr")
+    spm_build_new_root "/usr"
+
     unset CFLAGS
     unset CPPFLAGS
     unset LDFLAGS
@@ -152,9 +174,15 @@ function spm_build_initialize_stage2() {
         _maxjobs=1
     fi
 
-    source <(spm_build_mkruntime "${SPM_BUILD_RUNTIME}")
+    spm_build_new_root "${SPM_BUILD_RUNTIME}"
     export LD_LIBRARY_PATH="${SPM_BUILD_RUNTIME}/lib:${SPM_BUILD_RUNTIME}/lib64"
     export LD_RUN_PATH="${LD_LIBRARY_PATH}"
+    if [[ $(uname -s) == Darwin ]]; then
+        DYLD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+        DYLD_RUN_PATH="${LD_RUN_PATH}"
+        unset LD_LIBRARY_PATH
+        unset LD_RUNPATH_PATH
+    fi
     export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
     export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 }
@@ -214,7 +242,7 @@ function spm_build_fetch() {
     local filename
     local tmpdir
 
-    if [[ $# < 2 ]]; then
+    if (( $# < 2 )); then
         msg_error "spm_build_fetch: {url} {destination}"
         spm_build_cleanup
         exit 1

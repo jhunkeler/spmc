@@ -2,7 +2,25 @@
 
 int spmerrno = 0;
 static char spmerrbuf[255];
+static char spmerrbuf_reason[255];
+const char *SPM_ERR_STRING[] = {
+        "Success",
+        "No root record",
+        "Dangerous root path",
+        "Package not found",
+        "Invalid package",
+        "Bad package checksum",
+        "Failed to fetch package",
+        "Manifest has no header",
+        "Manifest has no data",
+        NULL,
+};
 
+void spmerrno_cause(const char *reason) {
+    char *buf = spmerrbuf_reason;
+    sprintf(buf, " (%s)", reason);
+    return;
+}
 /**
  *
  * @param code
@@ -17,6 +35,10 @@ char *spm_strerror(int code) {
         strcpy(buf, strerror(code));
     } else {
         strcpy(buf, SPM_ERR_STRING[SPM_ERR_INDEX(code)]);
+    }
+
+    if (strlen(spmerrbuf_reason)) {
+        strcat(buf, spmerrbuf_reason);
     }
     return buf;
 }

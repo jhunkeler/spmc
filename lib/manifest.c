@@ -440,7 +440,16 @@ Manifest *manifest_read(char *file_or_url) {
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         total_records++;
     }
-    total_records--; // header does not count
+
+    if (total_records == 0) {
+        spmerrno = SPM_ERR_MANIFEST_INVALID;
+        return NULL;
+    }
+
+    // There's a header, but don't count it in the total
+    total_records--;
+
+    // Going to reprocess the file again, so rewind
     rewind(fp);
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
@@ -582,10 +591,13 @@ void manifestlist_free(ManifestList *pManifestList) {
  */
 void manifestlist_append(ManifestList *pManifestList, char *path) {
     Manifest *manifest = manifest_read(path);
-    if (manifest == NULL) {
+    if (manifest == NULL && spmerrno == 0) {
         fprintf(stderr, "Failed to create manifest in memory\n");
         fprintf(SYSERROR);
         exit(1);
+    } else if (spmerrno == SPM_ERR_MANIFEST_EMPTY || spmerrno == SPM_ERR_MANIFEST_INVALID) {
+        manifest = calloc(1, sizeof(Manifest));
+        manifest->packages = calloc(1, sizeof(ManifestPackage *));
     }
 
     Manifest **tmp = realloc(pManifestList->data, (pManifestList->num_alloc + 1) * sizeof(Manifest *));

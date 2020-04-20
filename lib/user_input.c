@@ -37,4 +37,5 @@ int spm_prompt_user(const char *msg, int empty_input_is_yes) {
         }
         input_count++;
     }
+    return -1;
 }
