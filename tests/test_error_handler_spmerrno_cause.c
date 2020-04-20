@@ -5,7 +5,7 @@ const char *testFmt = "translated error code '%d': returned '%s', expected '%s'\
 struct TestCase testCase[] = {
 #if defined(__APPLE__) && defined(__MACH__)
         {.caseValue.signed_integer = 0, .truthValue.sptr = "Undefined error: 0 (winning)", .arg[0].signed_integer = 0, .arg[1].sptr = "winning"},
-        {.caseValue.signed_integer = -1, .truthValue.sptr = "Unknown error -1 (not winning)", .arg[0].signed_integer = 0, .arg[1].sptr = "not winning"},
+        {.caseValue.signed_integer = -1, .truthValue.sptr = "Unknown error: -1 (not winning)", .arg[0].signed_integer = 0, .arg[1].sptr = "not winning"},
 #elif defined(__linux) || defined(__linux__)
         {.caseValue.signed_integer = 0, .truthValue.sptr = "Success (winning)", .arg[0].signed_integer = 0, .arg[1].sptr = "winning"},
         {.caseValue.signed_integer = -1, .truthValue.sptr = "Unknown error -1 (not winning)", .arg[0].signed_integer = 0, .arg[1].sptr = "not winning"},
