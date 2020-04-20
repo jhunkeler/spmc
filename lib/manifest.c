@@ -443,11 +443,6 @@ Manifest *manifest_read(char *file_or_url) {
 
     if (total_records == 0) {
         spmerrno = SPM_ERR_MANIFEST_INVALID;
-    }/* else if (total_records == 1) {
-        spmerrno = SPM_ERR_MANIFEST_EMPTY;
-    }*/
-
-    if (spmerrno) {
         return NULL;
     }
 
