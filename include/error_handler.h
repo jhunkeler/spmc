@@ -18,19 +18,7 @@
 #define SPM_ERR_MANIFEST_EMPTY      _SPM_ERR(8)     // manifest file has no data
 
 extern int spmerrno;
-
-static const char *SPM_ERR_STRING[] = {
-        "Success",
-        "No root record",
-        "Dangerous root path",
-        "Package not found",
-        "Invalid package",
-        "Bad package checksum",
-        "Failed to fetch package",
-        "Manifest has no header",
-        "Manifest has no data",
-        NULL,
-};
+extern const char *SPM_ERR_STRING[];
 
 void spmerrno_cause(const char *reason);
 char *spm_strerror(int code);

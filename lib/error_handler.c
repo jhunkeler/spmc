@@ -3,6 +3,18 @@
 int spmerrno = 0;
 static char spmerrbuf[255];
 static char spmerrbuf_reason[255];
+const char *SPM_ERR_STRING[] = {
+        "Success",
+        "No root record",
+        "Dangerous root path",
+        "Package not found",
+        "Invalid package",
+        "Bad package checksum",
+        "Failed to fetch package",
+        "Manifest has no header",
+        "Manifest has no data",
+        NULL,
+};
 
 void spmerrno_cause(const char *reason) {
     char *buf = spmerrbuf_reason;
