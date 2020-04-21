@@ -16,13 +16,19 @@ const char *SPM_ERR_STRING[] = {
         NULL,
 };
 
+/**
+ * Append error text to an existing spmerrno error string
+ * @param reason message text
+ */
 void spmerrno_cause(const char *reason) {
     char *buf = spmerrbuf_reason;
-    sprintf(buf, " (%s)", reason);
-    return;
+    if (reason != NULL) {
+        sprintf(buf, " (%s)", reason);
+    }
 }
+
 /**
- *
+ * Translate a spmerrno code to an error string
  * @param code
  * @return
  */
