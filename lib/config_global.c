@@ -129,11 +129,11 @@ void check_runtime_environment(void) {
     int bad_rt = 0;
     char *required[] = {
             "file",
-#if defined(__linux) || defined(__linux__)
+#if OS_LINUX
             "patchelf",
-#elif defined(__APPLE__) && defined(__MACH__)
+#elif OS_DARWIN
             "install_name_tool",
-#elif defined(__WIN32__)
+#elif OS_WINDOWS
             // TODO: Does windows provide some kind of equivalent?
 #endif
             "objdump",

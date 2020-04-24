@@ -16,6 +16,7 @@
 #define SPM_ERR_PKG_FETCH           _SPM_ERR(6)     // failed to download package
 #define SPM_ERR_MANIFEST_INVALID    _SPM_ERR(7)     // manifest file is invalid (no header)
 #define SPM_ERR_MANIFEST_EMPTY      _SPM_ERR(8)     // manifest file has no data
+#define SPM_ERR_PARSE               _SPM_ERR(9)     // general parsing error
 
 extern int spmerrno;
 extern const char *SPM_ERR_STRING[];

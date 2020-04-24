@@ -3,10 +3,10 @@
 
 const char *testFmt = "translated error code '%d': returned '%s', expected '%s'\n";
 struct TestCase testCase[] = {
-#if defined(__APPLE__) && defined(__MACH__)
+#if OS_DARWIN
         {.caseValue.signed_integer = 0, .truthValue.sptr = "Undefined error: 0", .arg[0].signed_integer = 0},
         {.caseValue.signed_integer = -1, .truthValue.sptr = "Unknown error: -1", .arg[0].signed_integer = 0},
-#elif defined(__linux) || defined(__linux__)
+#elif OS_LINUX
         {.caseValue.signed_integer = 0, .truthValue.sptr = "Success", .arg[0].signed_integer = 0},
         {.caseValue.signed_integer = -1, .truthValue.sptr = "Unknown error -1", .arg[0].signed_integer = 0},
 #endif

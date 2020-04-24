@@ -4,6 +4,22 @@
 #ifndef SPM_SPM_H
 #define SPM_SPM_H
 
+// Define some platform detection shortcuts
+#define OS_DARWIN 0
+#define OS_WINDOWS 0
+#define OS_LINUX 0
+
+#if defined(__APPLE__) && defined(__MACH__)
+#undef OS_DARWIN
+#define OS_DARWIN 1
+#elif defined(_WIN32)
+#undef OS_WINDOWS
+#define OS_WINDOWS 1
+#elif defined(__linux) || defined(__linux__)
+#undef OS_LINUX
+#define OS_LINUX 1
+#endif
+
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -19,7 +35,7 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-#if !defined(_WIN32)
+#if !OS_WINDOWS
 #include <fts.h>
 #include <glob.h>
 #include <unistd.h>
@@ -65,7 +81,7 @@ extern spm_vars SPM_GLOBAL;
 #define DIRSEPS_UNIX "/"
 #define PATHSEP_UNIX ';'
 #define PATHSEPS_UNIX ";"
-#if defined(_WIN32)
+#if OS_WINDOWS
 #define DIRSEP  DIRSEP_WIN32
 #define DIRSEPS  DIRSEPS_WIN32
 #define NOT_DIRSEP DIRSEP_UNIX
@@ -98,7 +114,7 @@ _1________________________________________________"
 
 // GLOBALS
 
-#ifdef __APPLE__
+#if OS_DARWIN
 extern char **environ;
 #define __environ environ
 #endif
