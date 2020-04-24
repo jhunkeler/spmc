@@ -12,7 +12,7 @@ size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numCases; i++) {
         StrList *result = shlib_deps(testCase[i].caseValue.sptr);
-        if (result == NULL && testCase[i].truthValue.signed_integer < 0 && spmerrno == EINVAL) {
+        if (result == NULL && testCase[i].truthValue.signed_integer < 0) {
             // expected failure
             continue;
         }
