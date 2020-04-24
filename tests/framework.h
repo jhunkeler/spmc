@@ -2,6 +2,7 @@
 #define SPM_FRAMEWORK_H
 #include <limits.h>
 #include <fcntl.h>
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 union TestValue {
     const char *sptr;
