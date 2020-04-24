@@ -137,7 +137,7 @@ static int fill_buffer(URL_FILE *file, size_t want) {
            curl_multi_fdset() doc. */
 
         if (maxfd == -1) {
-#ifdef _WIN32
+#ifdef _WIN32   // OS_WINDOWS not available at this level
             Sleep(100);
             rc = 0;
 #else

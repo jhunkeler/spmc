@@ -13,6 +13,7 @@ const char *SPM_ERR_STRING[] = {
         "Failed to fetch package",
         "Manifest has no header",
         "Manifest has no data",
+        "Parsing error",
         NULL,
 };
 

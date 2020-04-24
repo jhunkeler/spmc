@@ -14,7 +14,7 @@ Process *file_command(const char *_filename) {
     Process *proc_info = NULL;
     char sh_cmd[PATH_MAX];
     sh_cmd[0] = '\0';
-#ifdef __APPLE__
+#if OS_DARWIN
     const char *fmt_cmd = "file -I \"%s\" 2>&1";
 #else  // GNU
     const char *fmt_cmd = "file -i \"%s\" 2>&1";
