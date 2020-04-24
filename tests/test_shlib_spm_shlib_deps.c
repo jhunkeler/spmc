@@ -30,7 +30,7 @@ static char *find_library(const char *name) {
     }
 
     for (size_t i = 0; LIBRARY_SEARCH_PATH[i] != NULL; i++) {
-        path = join_ex(path, DIRSEPS, LIBRARY_SEARCH_PATH[i], name);
+        path = join_ex(DIRSEPS, LIBRARY_SEARCH_PATH[i], name, NULL);
         if (path != NULL && exists(path) == 0) {
             break;
         }
