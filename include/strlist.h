@@ -5,19 +5,11 @@
 #ifndef SPM_STRLIST_H
 #define SPM_STRLIST_H
 
-#if !defined(MAXFLOAT)
-#include <math.h>
-#endif
-
 typedef struct {
     size_t num_alloc;
     size_t num_inuse;
     char **data;
 } StrList;
-
-#define STRLIST_DEFAULT 1 << 0
-#define STRLIST_ASC 1 << 1
-#define STRLIST_DSC 1 << 2
 
 StrList *strlist_init();
 long double strlist_item_as_long_double(StrList *pStrList, size_t index);

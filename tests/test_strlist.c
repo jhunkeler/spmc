@@ -1,6 +1,10 @@
 #include "spm.h"
 #include "framework.h"
 
+#if !defined(MAXFLOAT)
+#define MAXFLOAT 3.40282347e+38F
+#endif
+
 static const char *story_truth = "The quick brown fox jumps over the lazy dog.";
 static const char *story_truth_rev = "dog. jumps over the lazy fox The quick brown";
 static const char *story_truth_sort_asc = "fox dog. The quick brown jumps over the lazy";
