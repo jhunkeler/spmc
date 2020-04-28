@@ -8,15 +8,20 @@ union TestValue {
     const char *sptr;
     char **slptr;
     const char **cslptr;
-    char character;
-    unsigned int unsigned_integer;
-    signed int signed_integer;
+    unsigned char unsigned_char;
+    char signed_char;
+    unsigned short unsigned_short;
+    signed short signed_short;
+    unsigned int unsigned_int;
+    signed int signed_int;
     unsigned long unsigned_long;
     signed long signed_long;
     unsigned long long unsigned_long_long;
     signed long long signed_long_long;
     float floating;
+    void *voidptr;
     char str[PATH_MAX];
+    char *strlptr[255];
 };
 
 struct TestCase {
