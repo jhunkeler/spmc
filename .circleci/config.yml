@@ -6,6 +6,7 @@ jobs:
       - image: centos:7
 
     environment:
+      TEST_RESULTS: /tmp/test-results
       MALLOC_CHECK_: 1
 
     working_directory: ~/build
@@ -39,6 +40,9 @@ jobs:
           command: |
             .circleci/test_spm.sh
 
+      - store_test_results:
+          path: /tmp/test-reports
+
   build-macos:
     macos:
       xcode: 11.4.0
@@ -46,6 +50,7 @@ jobs:
     environment:
       HOMEBREW_NO_AUTO_UPDATE: 1
       DYLD_INSERT_LIBRARIES: /usr/lib/libgmalloc.dylib
+      TEST_RESULTS: /tmp/test-results
 
     steps:
       - checkout
@@ -69,6 +74,9 @@ jobs:
           name: "Run tests"
           command: |
             .circleci/test_spm.sh
+
+      - store_test_results:
+          path: /tmp/test-reports
 
 workflows:
   version: 2

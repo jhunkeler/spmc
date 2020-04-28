@@ -1,13 +1,16 @@
 #!/bin/bash -e
 source $(dirname "${BASH_SOURCE[0]}")/runtime.sh
 
+export TEST_RESULTS=${TEST_RESULTS:-/tmp/test-results}
 export PREFIX=/tmp/root
 export SHELL=/bin/bash
+mkdir -p "${TEST_RESULTS}"
 cd build
 
 set -x
 
-ctest -V
+ctest -T test
+rsync -av Testing/*/*.xml "${TEST_RESULTS}"
 
 spm --list
 
