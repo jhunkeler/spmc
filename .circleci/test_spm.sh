@@ -10,7 +10,7 @@ cd build
 set -x
 
 ctest -T test
-rsync -av Testing/*/*.xml "${TEST_RESULTS}"
+rsync -av Testing/*/*.xml "${TEST_RESULTS}"/spm
 
 spm --list
 
