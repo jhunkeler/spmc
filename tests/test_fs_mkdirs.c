@@ -3,11 +3,11 @@
 
 const char *testFmt = "returned '%d', expected '%d'\n";
 struct TestCase testCase[] = {
-        {.arg[0].str = "one", .truthValue.signed_integer = 0},
-        {.arg[0].str = "one/two", .truthValue.signed_integer = 0},
-        {.arg[0].str = "one/two/three", .truthValue.signed_integer = 0},
-        {.arg[0].str = "one/two/three/four", .truthValue.signed_integer = 0},
-        {.arg[0].str = "one/two/three/four/five", .truthValue.signed_integer = 0},
+        {.arg[0].str = "one", .truthValue.signed_int = 0},
+        {.arg[0].str = "one/two", .truthValue.signed_int = 0},
+        {.arg[0].str = "one/two/three", .truthValue.signed_int = 0},
+        {.arg[0].str = "one/two/three/four", .truthValue.signed_int = 0},
+        {.arg[0].str = "one/two/three/four/five", .truthValue.signed_int = 0},
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
@@ -31,13 +31,13 @@ int main(int argc, char *argv[]) {
         }
         present = access(path, X_OK);
 
-        myassert(result == 0, testFmt, result, testCase[i].truthValue.signed_integer);
-        myassert(present == 0, testFmt, result, testCase[i].truthValue.signed_integer);
+        myassert(result == 0, testFmt, result, testCase[i].truthValue.signed_int);
+        myassert(present == 0, testFmt, result, testCase[i].truthValue.signed_int);
 
         rmdirs(path);
 
         present = access(path, X_OK);
-        myassert(present != 0, testFmt, result, testCase[i].truthValue.signed_integer);
+        myassert(present != 0, testFmt, result, testCase[i].truthValue.signed_int);
     }
     return 0;
 }

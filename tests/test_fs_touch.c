@@ -5,10 +5,10 @@
 
 const char *testFmt = "case: '%s': returned '%d', expected '%d'\n";
 struct TestCase testCase[] = {
-        {.caseValue.sptr = FILENAME, .truthValue.signed_integer = 0},   // create file
-        {.caseValue.sptr = FILENAME, .truthValue.signed_integer = 0},   // update file
-        {.caseValue.sptr = FILENAME, .truthValue.signed_integer = 0},   // update file
-        {.caseValue.sptr = ".", .truthValue.signed_integer = -1},
+        {.caseValue.sptr = FILENAME, .truthValue.signed_int = 0},   // create file
+        {.caseValue.sptr = FILENAME, .truthValue.signed_int = 0},   // update file
+        {.caseValue.sptr = FILENAME, .truthValue.signed_int = 0},   // update file
+        {.caseValue.sptr = ".", .truthValue.signed_int = -1},
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     for (size_t i = 0; i < numCases; i++) {
         int result = touch(testCase[i].caseValue.sptr);
-        myassert(result == testCase[i].truthValue.signed_integer, testFmt, testCase[i].caseValue.sptr, result, testCase[i].truthValue.signed_integer);
+        myassert(result == testCase[i].truthValue.signed_int, testFmt, testCase[i].caseValue.sptr, result, testCase[i].truthValue.signed_int);
     }
 
     cleanup();

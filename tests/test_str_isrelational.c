@@ -3,25 +3,25 @@
 
 const char *testFmt = "case: '%c': returned %d, expected %d\n";
 struct TestCase testCase[] = {
-        {.caseValue.character = '~', .truthValue.signed_integer = 1},
-        {.caseValue.character = '!', .truthValue.signed_integer = 1},
-        {.caseValue.character = '=', .truthValue.signed_integer = 1},
-        {.caseValue.character = '<', .truthValue.signed_integer = 1},
-        {.caseValue.character = '>', .truthValue.signed_integer = 1},
-        {.caseValue.character = 'u', .truthValue.signed_integer = 0},
-        {.caseValue.character = 'd', .truthValue.signed_integer = 0},
-        {.caseValue.character = 'l', .truthValue.signed_integer = 0},
-        {.caseValue.character = 'r', .truthValue.signed_integer = 0},
-        {.caseValue.character = 'b', .truthValue.signed_integer = 0},
-        {.caseValue.character = 'a', .truthValue.signed_integer = 0},
-        {.caseValue.character = '\n', .truthValue.signed_integer = 0},
+        {.caseValue.signed_char = '~', .truthValue.signed_int = 1},
+        {.caseValue.signed_char = '!', .truthValue.signed_int = 1},
+        {.caseValue.signed_char = '=', .truthValue.signed_int = 1},
+        {.caseValue.signed_char = '<', .truthValue.signed_int = 1},
+        {.caseValue.signed_char = '>', .truthValue.signed_int = 1},
+        {.caseValue.signed_char = 'u', .truthValue.signed_int = 0},
+        {.caseValue.signed_char = 'd', .truthValue.signed_int = 0},
+        {.caseValue.signed_char = 'l', .truthValue.signed_int = 0},
+        {.caseValue.signed_char = 'r', .truthValue.signed_int = 0},
+        {.caseValue.signed_char = 'b', .truthValue.signed_int = 0},
+        {.caseValue.signed_char = 'a', .truthValue.signed_int = 0},
+        {.caseValue.signed_char = '\n', .truthValue.signed_int = 0},
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
 int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numCases; i++) {
-        int result = isrelational(testCase[i].caseValue.character);
-        myassert(result == testCase[i].truthValue.signed_integer, testFmt, testCase[i].caseValue.character, result, testCase[i].truthValue.signed_integer);
+        int result = isrelational(testCase[i].caseValue.signed_char);
+        myassert(result == testCase[i].truthValue.signed_int, testFmt, testCase[i].caseValue.signed_char, result, testCase[i].truthValue.signed_int);
     }
     return 0;
 }
