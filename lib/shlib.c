@@ -104,7 +104,7 @@ StrList *shlib_deps(const char *filename) {
 
             // split on: "name /library/path"
             if ((field = split(data[offset_name], " ")) == NULL) {
-                sprintf(reason, "'%s' produced unreadable output", SPM_SHLIB_EXEC, i, offset_name);
+                sprintf(reason, "'%s' produced unreadable output at offset %zu", SPM_SHLIB_EXEC, offset_name);
                 spmerrno = SPM_ERR_PARSE;
                 spmerrno_cause(reason);
 
