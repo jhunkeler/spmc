@@ -5,6 +5,10 @@
 #ifndef SPM_STRLIST_H
 #define SPM_STRLIST_H
 
+#if !defined(MAXFLOAT)
+#include <math.h>
+#endif
+
 typedef struct {
     size_t num_alloc;
     size_t num_inuse;
