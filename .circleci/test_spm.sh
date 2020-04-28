@@ -4,13 +4,15 @@ source $(dirname "${BASH_SOURCE[0]}")/runtime.sh
 export TEST_RESULTS=${TEST_RESULTS:-/tmp/test-results}
 export PREFIX=/tmp/root
 export SHELL=/bin/bash
-mkdir -p "${TEST_RESULTS}"
+mkdir -p "${TEST_RESULTS}"/spm
 cd build
 
 set -x
 
 ctest -T test
-rsync -av Testing/*/*.xml "${TEST_RESULTS}"/spm
+xsltproc \
+    ../.circleci/ctest-to-junit.xsl \
+    Testing/$(head -n 1 < Testing/TAG)/Test.xml > "${TEST_RESULTS}"/spm/Test.xml
 
 spm --list
 
