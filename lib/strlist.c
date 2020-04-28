@@ -47,6 +47,23 @@ void strlist_append(StrList *pStrList, char *str) {
 }
 
 /**
+ * Produce a new copy of a `StrList`
+ * @param pStrList  `StrList`
+ * @return `StrList` copy
+ */
+StrList *strlist_copy(StrList *pStrList) {
+    StrList *result = strlist_init();
+    if (pStrList == NULL || result == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < strlist_count(pStrList); i++) {
+        strlist_append(result, strlist_item(pStrList, i));
+    }
+    return result;
+}
+
+/**
  * Append the contents of a `StrList` to another `StrList`
  * @param pStrList1 `StrList`
  * @param pStrList2 `StrList`
@@ -66,44 +83,35 @@ void strlist_append_strlist(StrList *pStrList1, StrList *pStrList2) {
 }
 
 /**
- *
- * @param a
- * @param b
- * @return
+ * Compare two `StrList`s
+ * @param a `StrList` structure
+ * @param b `StrList` structure
+ * @return same=0, different=1, error=-1 (a is NULL), -2 (b is NULL)
  */
-static int _strlist_cmpfn(const void *a, const void *b) {
-    const char *aa = *(const char**)a;
-    const char *bb = *(const char**)b;
-    int result = strcmp(aa, bb);
-    return result;
-}
+int strlist_cmp(StrList *a, StrList *b) {
+    if (a == NULL) {
+        return -1;
+    }
 
-/**
- *
- * @param a
- * @param b
- * @return
- */
-static int _strlist_asc_cmpfn(const void *a, const void *b) {
-    const char *aa = *(const char**)a;
-    const char *bb = *(const char**)b;
-    size_t len_a = strlen(aa);
-    size_t len_b = strlen(bb);
-    return len_a > len_b - strcmp(aa, bb);
-}
+    if (b == NULL) {
+        return -2;
+    }
 
-/**
- *
- * @param a
- * @param b
- * @return
- */
-static int _strlist_dsc_cmpfn(const void *a, const void *b) {
-    const char *aa = *(const char**)a;
-    const char *bb = *(const char**)b;
-    size_t len_a = strlen(aa);
-    size_t len_b = strlen(bb);
-    return len_a < len_b - strcmp(aa, bb);
+    if (a->num_alloc != b->num_alloc) {
+        return 1;
+    }
+
+    if (a->num_inuse != b->num_inuse) {
+        return 1;
+    }
+
+    for (size_t i = 0; i < strlist_count(a); i++) {
+        if (strcmp(strlist_item(a, i), strlist_item(b, i)) != 0) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -112,27 +120,13 @@ static int _strlist_dsc_cmpfn(const void *a, const void *b) {
  * @param mode Available modes: `STRLIST_DEFAULT` (alphabetic), `STRLIST_ASC` (ascending), `STRLIST_DSC` (descending)
  */
 void strlist_sort(StrList *pStrList, unsigned int mode) {
-    // TODO: use strsort_array() instead instead of duplicating effort
     void *fn = NULL;
 
     if (pStrList == NULL) {
         return;
     }
 
-    switch (mode) {
-        case STRLIST_ASC:
-            fn = _strlist_asc_cmpfn;
-            break;
-        case STRLIST_DSC:
-            fn = _strlist_dsc_cmpfn;
-            break;
-        case STRLIST_DEFAULT:
-        default:
-            fn = _strlist_cmpfn;
-            break;
-    }
-
-    qsort(pStrList->data, pStrList->num_inuse, sizeof(char *), fn);
+    strsort(pStrList->data, mode);
 }
 
 /**
@@ -225,7 +219,7 @@ char *strlist_item_as_str(StrList *pStrList, size_t index) {
  * @return `char`
  */
 char strlist_item_as_char(StrList *pStrList, size_t index) {
-    return (char) *(strlist_item(pStrList, index));
+    return (char) strtol(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -235,7 +229,7 @@ char strlist_item_as_char(StrList *pStrList, size_t index) {
  * @return `unsigned char`
  */
 unsigned char strlist_item_as_uchar(StrList *pStrList, size_t index) {
-    return (unsigned char) *(strlist_item(pStrList, index));
+    return (unsigned char) strtol(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -245,7 +239,7 @@ unsigned char strlist_item_as_uchar(StrList *pStrList, size_t index) {
  * @return `short`
  */
 short strlist_item_as_short(StrList *pStrList, size_t index) {
-    return (short)atoi(strlist_item(pStrList, index));
+    return (short)strtol(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -255,7 +249,7 @@ short strlist_item_as_short(StrList *pStrList, size_t index) {
  * @return `unsigned short`
  */
 unsigned short strlist_item_as_ushort(StrList *pStrList, size_t index) {
-    return (unsigned short)atoi(strlist_item(pStrList, index));
+    return (unsigned short)strtoul(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -265,7 +259,7 @@ unsigned short strlist_item_as_ushort(StrList *pStrList, size_t index) {
  * @return `int`
  */
 int strlist_item_as_int(StrList *pStrList, size_t index) {
-    return atoi(strlist_item(pStrList, index));
+    return (int)strtol(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -275,7 +269,7 @@ int strlist_item_as_int(StrList *pStrList, size_t index) {
  * @return `unsigned int`
  */
 unsigned int strlist_item_as_uint(StrList *pStrList, size_t index) {
-    return (unsigned int)atoi(strlist_item(pStrList, index));
+    return (unsigned int)strtoul(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -285,7 +279,7 @@ unsigned int strlist_item_as_uint(StrList *pStrList, size_t index) {
  * @return `long`
  */
 long strlist_item_as_long(StrList *pStrList, size_t index) {
-    return atol(strlist_item(pStrList, index));
+    return strtol(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -295,7 +289,7 @@ long strlist_item_as_long(StrList *pStrList, size_t index) {
  * @return `unsigned long`
  */
 unsigned long strlist_item_as_ulong(StrList *pStrList, size_t index) {
-    return (unsigned long)atol(strlist_item(pStrList, index));
+    return strtoul(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -305,7 +299,7 @@ unsigned long strlist_item_as_ulong(StrList *pStrList, size_t index) {
  * @return `long long`
  */
 long long strlist_item_as_long_long(StrList *pStrList, size_t index) {
-    return (long long)atoll(strlist_item(pStrList, index));
+    return strtoll(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**
@@ -315,7 +309,7 @@ long long strlist_item_as_long_long(StrList *pStrList, size_t index) {
  * @return `unsigned long long`
  */
 unsigned long long strlist_item_as_ulong_long(StrList *pStrList, size_t index) {
-    return (unsigned long long)atoll(strlist_item(pStrList, index));
+    return strtoull(strlist_item(pStrList, index), NULL, 10);
 }
 
 /**

@@ -41,10 +41,10 @@ static char *find_library(const char *name) {
 }
 
 struct TestCase testCase[] = {
-        {.caseValue.sptr = "/bin/sh", .truthValue.signed_integer = 0},
-        {.caseValue.sptr = "/usr/bin/tar", .truthValue.signed_integer = 0},
-        {.caseValue.sptr = "/dev/null", .truthValue.signed_integer = -1}, // not an object
-        {.caseValue.sptr = NULL, .truthValue.signed_integer = -1}, // invalid call
+        {.caseValue.sptr = "/bin/sh", .truthValue.signed_int = 0},
+        {.caseValue.sptr = "/usr/bin/tar", .truthValue.signed_int = 0},
+        {.caseValue.sptr = "/dev/null", .truthValue.signed_int = -1}, // not an object
+        {.caseValue.sptr = NULL, .truthValue.signed_int = -1}, // invalid call
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
@@ -52,7 +52,7 @@ size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numCases; i++) {
         StrList *result = shlib_deps(testCase[i].caseValue.sptr);
-        if (result == NULL && testCase[i].truthValue.signed_integer < 0) {
+        if (result == NULL && testCase[i].truthValue.signed_int < 0) {
             // expected failure
             fprintf(stderr, "case %zu: trapped expected failure (ignore any stderr text)\n", i);
             continue;

@@ -3,8 +3,8 @@
 
 const char *testFmt = "case %s: returned '%s', expected '%s'\n";
 struct TestCase testCase[] = {
-        {.caseValue.sptr = "oh no it broke", .truthValue.sptr = "oh no it broke: No such file or directory", .arg[0].signed_integer = ENOENT},
-        {.caseValue.sptr = "kaboom", .truthValue.sptr = "kaboom: Failed to fetch package", .arg[0].signed_integer = SPM_ERR_PKG_FETCH},
+        {.caseValue.sptr = "oh no it broke", .truthValue.sptr = "oh no it broke: No such file or directory", .arg[0].signed_int = ENOENT},
+        {.caseValue.sptr = "kaboom", .truthValue.sptr = "kaboom: Failed to fetch package", .arg[0].signed_int = SPM_ERR_PKG_FETCH},
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
         setvbuf(stderr, buffer, _IOLBF, sizeof(buf));
 
         // Do test
-        spmerrno = testCase[i].arg[0].signed_integer;
+        spmerrno = testCase[i].arg[0].signed_int;
         spm_perror(testCase[i].caseValue.sptr);
         fflush(stderr);
 

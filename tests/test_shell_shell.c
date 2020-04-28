@@ -4,7 +4,7 @@
 
 const char *testFmt = "returned '%s', expected '%s'\n";
 struct TestCase testCase[] = {
-        {.arg[0].unsigned_integer = SHELL_OUTPUT|SHELL_BENCHMARK, .arg[1].sptr = "echo hello; sleep 3", .arg[2].floating = 3, .arg[3].sptr = "hello"},
+        {.arg[0].unsigned_int = SHELL_OUTPUT | SHELL_BENCHMARK, .arg[1].sptr = "echo hello; sleep 1", .arg[2].floating = 1, .arg[3].sptr = "hello"},
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
         char elapsed[100] = {0,};
         Process *result = NULL;
 
-        shell(&result, testCase[i].arg[0].unsigned_integer, testCase[i].arg[1].sptr);
+        shell(&result, testCase[i].arg[0].unsigned_int, testCase[i].arg[1].sptr);
         sprintf(elapsed, "%0.8lf", result->time_elapsed);
         strip(result->output);
 

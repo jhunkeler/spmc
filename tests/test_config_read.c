@@ -22,8 +22,8 @@ const char *mockConfig[] = {
         NULL, // end
 };
 
-#define SETARG_UINT(ARGINDEX, VALUE) .arg[ARGINDEX].unsigned_integer = VALUE
-#define GETARG_UINT(CASE, ARGINDEX) CASE.arg[ARGINDEX].unsigned_integer
+#define SETARG_UINT(ARGINDEX, VALUE) .arg[ARGINDEX].unsigned_int = VALUE
+#define GETARG_UINT(CASE, ARGINDEX) CASE.arg[ARGINDEX].unsigned_int
 
 const char *testFmt = "case '%s': returned '%s', expected '%s'\n";
 const char *testSizesFmt = "case '%s': returned '%zu', expected '%zu'\n";
