@@ -14,7 +14,8 @@ if [[ $(uname -s) == Linux ]]; then
         gcc \
         gcc-c++ \
         gcc-gfortran \
-        glibc-devel
+        glibc-devel \
+        libxslt
 
     ln -s cmake3 /usr/bin/cmake
     ln -s ctest3 /usr/bin/ctest
