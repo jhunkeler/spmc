@@ -120,7 +120,6 @@ int strlist_cmp(StrList *a, StrList *b) {
  * @param mode Available modes: `STRLIST_DEFAULT` (alphabetic), `STRLIST_ASC` (ascending), `STRLIST_DSC` (descending)
  */
 void strlist_sort(StrList *pStrList, unsigned int mode) {
-    // TODO: use strsort_array() instead instead of duplicating effort
     void *fn = NULL;
 
     if (pStrList == NULL) {
