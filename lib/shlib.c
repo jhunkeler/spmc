@@ -75,7 +75,7 @@ char *shlib_rpath(const char *filename) {
             }
 
             // record library path
-            result = strdup(field[1]));
+            result = strdup(field[1]);
             split_free(field);
             break;
         }
