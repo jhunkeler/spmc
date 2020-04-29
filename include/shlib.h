@@ -18,6 +18,8 @@
 #define SPM_SHLIB_EXTENSION ".so"
 #endif
 
+char *objdump(const char *_filename, char *_args);
+char *shlib_rpath(const char *filename);
 StrList *shlib_deps(const char *_filename);
 
 #endif //SPM_SHLIB_H
