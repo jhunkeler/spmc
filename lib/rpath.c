@@ -5,7 +5,7 @@
 
 /**
  * Wrapper function to execute `patchelf` with arguments
- * @param _filename Path of file to modify
+ * @param _filename Path to file
  * @param _args Arguments to pass to `patchelf`
  * @return success=Process struct, failure=NULL
  */
@@ -32,6 +32,34 @@ Process *patchelf(const char *_filename, const char *_args) {
 }
 
 /**
+ * Wrapper function to execute `install_name_tool` with arguments
+ * @param _filename Path to file
+ * @param _args Arguments to pass to `install_name_tool`
+ * @return success=Process struct, failure=NULL
+ */
+Process *install_name_tool(const char *_filename, const char *_args) {
+    char *filename = strdup(_filename);
+    char *args = strdup(_args);
+    Process *proc_info = NULL;
+    char sh_cmd[PATH_MAX];
+    sh_cmd[0] = '\0';
+
+    strchrdel(args, SHELL_INVALID);
+    strchrdel(filename, SHELL_INVALID);
+    sprintf(sh_cmd, "install_name_tool %s %s 2>&1", args, filename);
+
+    if (SPM_GLOBAL.verbose > 1) {
+        printf("         EXEC : %s\n", sh_cmd);
+    }
+
+    shell(&proc_info, SHELL_OUTPUT, sh_cmd);
+
+    free(filename);
+    free(args);
+    return proc_info;
+}
+
+/**
  * Determine whether a RPATH or RUNPATH is present in file
  *
  * TODO: Replace with OS-native solution(s)
@@ -40,30 +68,18 @@ Process *patchelf(const char *_filename, const char *_args) {
  * @return -1=OS error, 0=has rpath, 1=not found
  */
 int has_rpath(const char *_filename) {
-    int result = 1;     // default: not found
+    char *rpath = NULL;
 
-    char *filename = strdup(_filename);
-    if (!filename) {
+    if (_filename == NULL) {
+        spmerrno = EINVAL;
         return -1;
     }
 
-    // sanitize input path
-    strchrdel(filename, SHELL_INVALID);
+    if ((rpath = shlib_rpath(_filename)) == NULL) {
+        return 1;
+    };
 
-    Process *pe = patchelf(filename, "--print-rpath");
-    strip(pe->output);
-    if (!isempty(pe->output)) {
-        result = 0;
-    }
-    else {
-        // something went wrong with patchelf other than
-        // what we're looking for
-        result = -1;
-    }
-
-    free(filename);
-    shell_free(pe);
-    return result;
+    return 0;
 }
 
 /**
@@ -78,42 +94,7 @@ char *rpath_get(const char *_filename) {
     if ((has_rpath(_filename)) != 0) {
         return strdup("");
     }
-    char *filename = strdup(_filename);
-    if (!filename) {
-        return NULL;
-    }
-    char *path = strdup(filename);
-    if (!path) {
-        free(filename);
-        return NULL;
-    }
-
-    char *rpath = NULL;
-
-    // sanitize input path
-    strchrdel(path, SHELL_INVALID);
-
-    Process *pe = patchelf(filename, "--print-rpath");
-    if (pe->returncode != 0) {
-        fprintf(stderr, "patchelf error: %s %s\n", path, strip(pe->output));
-        return NULL;
-    }
-
-    rpath = (char *)calloc(strlen(pe->output) + 1, sizeof(char));
-    if (!rpath) {
-        free(filename);
-        free(path);
-        shell_free(pe);
-        return NULL;
-    }
-
-    strncpy(rpath, pe->output, strlen(pe->output));
-    strip(rpath);
-
-    free(filename);
-    free(path);
-    shell_free(pe);
-    return rpath;
+    return shlib_rpath(_filename);
 }
 
 /**
@@ -256,7 +237,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         // Get the shared library name we are going to look for in the tree
         char *shared_library = strlist_item(libs_wanted, i);
 
-        // Is the the shared library in the tree?
+        // Is the shared library in the tree?
         char *match = NULL;
         if ((match = dirname(strstr_array(tree->files, shared_library))) != NULL) {
             // Begin generating the relative path string
