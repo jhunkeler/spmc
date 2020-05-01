@@ -8,7 +8,7 @@
 #define SPM_SHLIB_EXEC "dumpbin"
 #define SPM_SHLIB_EXEC_ARGS "/dependents"
 #define SPM_SHLIB_EXTENSION ".dll"
-#elif OS_APPLE
+#elif OS_DARWIN
 #define SPM_SHLIB_EXEC "/usr/bin/objdump"
 #define SPM_SHLIB_EXEC_ARGS "-macho -p"
 #define SPM_SHLIB_EXTENSION ".dylib"
