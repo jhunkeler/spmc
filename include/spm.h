@@ -8,16 +8,24 @@
 #define OS_DARWIN 0
 #define OS_WINDOWS 0
 #define OS_LINUX 0
+#define OS_SUPPORTED 0
 
 #if defined(__APPLE__) && defined(__MACH__)
-#undef OS_DARWIN
-#define OS_DARWIN 1
+#   undef OS_DARWIN
+#   define OS_DARWIN 1
+#   undef OS_SUPPORTED
+#   define OS_SUPPORTED 1
+
+//  TODO: Windows is not supported at all yet, so OS_SUPPORTED is untouched
 #elif defined(_WIN32)
-#undef OS_WINDOWS
-#define OS_WINDOWS 1
+#   undef OS_WINDOWS
+#   define OS_WINDOWS 1
+
 #elif defined(__linux) || defined(__linux__)
-#undef OS_LINUX
-#define OS_LINUX 1
+#   undef OS_LINUX
+#   define OS_LINUX 1
+#   undef OS_SUPPORTED
+#   define OS_SUPPORTED 1
 #endif
 
 #include <ctype.h>
