@@ -126,6 +126,118 @@ char *mock_size(size_t size, const char *fill_byte) {
     return strdup(filename);
 }
 
+#define AS_MOCK_LIB 0
+#define AS_MOCK_BIN 1
+/**
+ * Create a mock binary image (shared library, or executable)
+ *
+ * ~~~{.c}
+ * int retval;
+ *
+ * if ((retval = mock_image(AS_MOCK_LIB, "libwinning", NULL)) < 0) {
+ *     fprintf(stderr, "Failed to create shared library\n");
+ *     exit(retval);
+ * }
+ *
+ * if ((retval = mock_image(AS_MOCK_EXEC, "winning", (char *[]){"-L.", "-lwinning", NULL}) < 0) {
+ *     fprintf(stderr, "Failed to create shared library\n");
+ *     exit(retval);
+ * }
+ * ~~~
+ *
+ * @param img_type - AS_MOCK_LIB, AS_MOCK_EXEC
+ * @param img_name - library to create (e.g. "libexample" will generate "libexample.so")
+ * @param _extra_compiler_args - array of strings (may be NULL)
+ * @return
+ */
+char *mock_image(int img_type, const char *img_name, char **_extra_compiler_args, int *exit_code) {
+    char libsuffix[10] = {0,};
+    char code[255] = {0,};
+    char code_filename[FILENAME_MAX] = {0,};
+    char img_filename[FILENAME_MAX] = {0,};
+    char cmd[PATH_MAX] = {0,};
+    char *extra_compiler_args = NULL;
+    Process *proc = NULL;
+
+    if (img_name == NULL) {
+        return NULL;
+    }
+
+    if (_extra_compiler_args != NULL) {
+        extra_compiler_args = join(_extra_compiler_args, " ");
+    }
+
+    strcpy(libsuffix, SPM_SHLIB_EXTENSION);
+    sprintf(code_filename, "%s.c", img_name);
+
+    if (img_type == AS_MOCK_LIB) {
+        sprintf(code, "int %sMockFn(void) {\n    return 0;\n}\n", img_name);
+        sprintf(img_filename, "%s%s", img_name, libsuffix);
+#if OS_DARWIN
+        sprintf(cmd, "gcc -o %s -fPIC -dynamiclib %s -install_name @rpath/%s -Xlinker -rpath $(pwd) '%s'",
+                img_filename, extra_compiler_args, img_filename, code_filename);
+#elif OS_LINUX
+        sprintf(cmd, "gcc -o %s -fPIC -shared %s -Wl,-rpath=$(pwd) '%s'",
+            img_filename, extra_compiler_args, code_filename);
+#elif OS_WINDOWS  // TODO: UNTESTED
+#if defined (__MINGW32__)
+     sprintf(cmd, "gcc -shared -o %s -Wl,—out-implib,%s.a -Wl,—export-all-symbols -Wl,—enable-auto-image-base '%s',
+            img_filename, img_name, extra_compiler_args, code_filename);
+#elif defined (__MSC_VER)
+     sprintf(cmd, "CL /LD %s", img_filename);
+#endif // windows compiler ident
+#endif // OS_WINDOWS
+    } else if (img_type == AS_MOCK_BIN) {
+        sprintf(code, "int main(int argc, char *argv[]) {\n    return 0;\n}\n");
+        sprintf(img_filename, "%s", img_name);
+#if OS_DARWIN
+        sprintf(cmd, "gcc -o %s %s -Xlinker -rpath $(pwd) '%s'",
+                img_filename, extra_compiler_args, code_filename);
+#elif OS_LINUX
+        sprintf(cmd, "gcc -o %s %s -Wl,-rpath=$(pwd) '%s'",
+            img_filename, extra_compiler_args, code_filename);
+#elif OS_WINDOWS  // TODO: UNTESTED
+#if defined (__MINGW32__)
+     sprintf(cmd, "gcc -o %s %s '%s',
+            img_filename, extra_compiler_args, code_filename);
+#elif defined (__MSC_VER)
+     sprintf(cmd, "CL /Fe\"%s\" %s", img_name, img_filename);
+#endif // windows compiler ident
+#endif // OS_WINDOWS
+    } else {
+        fprintf(stderr, "Unknown image type: %d\n", img_type);
+        return NULL;
+    }
+
+    // Write sourcecode to file
+    if (mock(code_filename, code, sizeof(char), strlen(code)) == 0) {
+        return NULL;
+    }
+
+
+    if (extra_compiler_args != NULL) {
+        free(extra_compiler_args);
+        extra_compiler_args = NULL;
+    }
+
+    shell(&proc, SHELL_OUTPUT, cmd);
+    if (proc == NULL) {
+        return NULL;
+    }
+
+    if (proc->output != NULL) {
+        strip(proc->output);
+        if (isempty(proc->output) == 0) {
+            printf("%s\n", proc->output);
+        }
+    }
+    if (exit_code) {
+        *exit_code = proc->returncode;
+    }
+
+    return realpath(img_filename, NULL);
+}
+
 #define myassert(condition, ...) \
     do { \
         if (!(condition)) { \
