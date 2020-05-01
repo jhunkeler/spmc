@@ -5,6 +5,7 @@
 #define SPM_RPATH_H
 
 Process *patchelf(const char *_filename, const char *_args);
+Process *install_name_tool(const char *_filename, const char *_args);
 FSTree *rpath_libraries_available(const char *root);
 char *rpath_autodetect(const char *filename, FSTree *tree);
 int has_rpath(const char *_filename);

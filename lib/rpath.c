@@ -130,10 +130,19 @@ char *rpath_generate(const char *_filename, FSTree *tree) {
 int rpath_set(const char *filename, const char *rpath) {
     int returncode = 0;
     char args[PATH_MAX];
+    Process *pe = NULL;
 
     memset(args, '\0', PATH_MAX);
-    sprintf(args, "--set-rpath '%s'", rpath);   // note: rpath requires single-quotes
-    Process *pe = patchelf(filename, args);
+#if OS_LINUX
+    sprintf(args, "--set-rpath '%s'", rpath);
+    pe = patchelf(filename, args);
+#elif OS_DARWIN
+    sprintf(args, "-add-rpath '%s'", rpath);
+    pe = install_name_tool(filename, args);
+#elif OS_WINDOWS
+    // TODO: assuming windows has a mechanism for changing runtime paths, do it here.
+#endif
+
     if (pe != NULL) {
         returncode = pe->returncode;
     }
@@ -184,7 +193,7 @@ FSTree *rpath_libraries_available(const char *root) {
  * @return success=relative path from `filename` to nearest lib directory, failure=NULL
  */
 char *rpath_autodetect(const char *filename, FSTree *tree) {
-    const char *origin = "$ORIGIN";
+    const char *origin;
     char *rootdir = dirname(filename);
     char *start = realpath(rootdir, NULL);
     char *cwd = realpath(".", NULL);
@@ -194,6 +203,14 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
     char _relative[PATH_MAX] = {0,};    // Generated relative path to lib directory
     char *relative = _relative;         // Pointer to relative path
     size_t depth_to_root = 0;
+
+#if OS_DARWIN
+    origin = "@rpath";
+#elif OS_LINUX
+    origin = "$ORIGIN";
+#else
+    origin = NULL;
+#endif
 
     // BUG: Perl dumps its shared library in a strange place.
     // This function returns `$ORIGIN/../../../CORE` which is not what we want to see.
@@ -264,12 +281,14 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         }
     }
 
+#if OS_LINUX
     // Some programs do not require local libraries provided by SPM (i.e. libc)
     // Inject "likely" defaults here
     if (strlist_count(libs) == 0) {
         strlist_append(libs, "$ORIGIN/../lib");
         strlist_append(libs, "$ORIGIN/../lib64");
     }
+#endif
 
     // Populate result string
     result = join(libs->data, ":");
