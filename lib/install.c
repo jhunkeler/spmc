@@ -278,6 +278,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
             if (package_path == NULL) {
                 free(package_path);
                 free(package_localpath);
+                // TODO: set spmerrno here
                 exit(1);
             }
             fetched = 1;
