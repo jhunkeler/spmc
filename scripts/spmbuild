@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 trap spm_build_cleanup EXIT
+THIS_SCRIPT=$(dirname ${BASH_SOURCE[0]})
 
 function pushd() {
     command pushd "$@" >/dev/null
@@ -48,8 +49,32 @@ function tar() {
     $cmd "$@"
 }
 
+function spm_debug_shell() {
+    local where
+
+    where="${1}"
+    if [[ -z "${where}" ]] || [[ ! -d "${where}" ]]; then
+        where="$(pwd)"
+    fi
+
+    pushd "${where}" || exit 1
+
+    PS1="(SPMBUILD DEBUG)$ "
+    export PS1
+
+    echo "ENTERING DEBUG SHELL"
+    env bash
+
+    # Exiting here prevents the user from leaving debug calls in their build scripts
+    # (i.e. when this function is used, no package archives will be generated)
+    exit 1
+}
+
 function spm_build_initialize_stage1() {
-    export SPMDEV=$(python -c "import os; print(os.path.abspath('$(dirname ${BASH_SOURCE[0]})/../cmake-build-debug/src/spm'))")
+    rp=$(which realpath 2>/dev/null \
+        || which spm_realpath 2>/dev/null \
+        || echo ./spm_realpath)
+    export SPMDEV=$($rp "${THIS_SCRIPT}/../src/spm")
     export SPM=$(which spm 2>/dev/null || echo ${SPMDEV})
 
     spm_build_check_rt_env
