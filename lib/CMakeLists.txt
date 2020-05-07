@@ -1,6 +1,8 @@
 include_directories(
 	${CMAKE_SOURCE_DIR}/include
 	${CMAKE_BINARY_DIR}/include
+	${OpenSSL_INCLUDE_DIRS}
+	${CURL_INCLUDE_DIRS}
 )
 
 set(libspm_src
@@ -39,7 +41,8 @@ add_library(libspm SHARED $<TARGET_OBJECTS:libspm_obj>)
 add_library(libspm_static STATIC $<TARGET_OBJECTS:libspm_obj>)
 
 
-target_link_libraries(libspm crypto ssl curl)
+target_link_directories(libspm PUBLIC ${OpenSSL_LIBRARY_DIRS} ${CURL_LIBRARY_DIRS})
+target_link_libraries(libspm ${OpenSSL_LIBRARIES} ${CURL_LIBRARIES})
 if (LINUX)
 	target_link_libraries(libspm rt)
 endif()

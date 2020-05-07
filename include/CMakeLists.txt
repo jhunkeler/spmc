@@ -6,6 +6,7 @@ install(
 		compat.h
 		conf.h
 		environment.h
+		error_handler.h
 		find.h
 		fs.h
 		install.h

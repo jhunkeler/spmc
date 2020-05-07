@@ -1,7 +1,7 @@
 #include "spm.h"
 #include "shlib.h"
 
-char *shlib_deps_objdump(const char *_filename) {
+char *objdump(const char *_filename, char *_args) {
     // do not expose this function
     char *filename = NULL;
     char *result = NULL;
@@ -21,7 +21,7 @@ char *shlib_deps_objdump(const char *_filename) {
     }
 
     strchrdel(filename, SHELL_INVALID);
-    snprintf(cmd, sizeof(cmd), "%s %s '%s'", SPM_SHLIB_EXEC, SPM_SHLIB_EXEC_ARGS, filename);
+    snprintf(cmd, sizeof(cmd), "%s %s '%s'", SPM_SHLIB_EXEC, _args, filename);
     shell(&proc, SHELL_OUTPUT, cmd);
 
     if (proc->returncode != 0) {
@@ -33,6 +33,90 @@ char *shlib_deps_objdump(const char *_filename) {
 
     free(filename);
     shell_free(proc);
+    return result;
+}
+
+char *shlib_rpath(const char *filename) {
+    char **data = NULL;
+    char *raw_data = NULL;
+    char *result = NULL;
+
+    if (filename == NULL) {
+        spmerrno = EINVAL;
+        spmerrno_cause("filename was NULL");
+        return NULL;
+    }
+
+    if ((raw_data = objdump(filename, SPM_SHLIB_EXEC_ARGS)) == NULL) {
+        return NULL;
+    }
+
+    // Split output into individual lines
+    if ((data = split(raw_data, "\n")) == NULL) {
+        free(raw_data);
+        return NULL;
+    }
+
+    // Collapse all whitespace in each line
+    // i.e. "    stuff  things" -> "stuff  things"
+    for (size_t i = 0; data[i] != NULL; i++) {
+        data[i] = normalize_space(data[i]);
+    }
+
+    for (size_t i = 0; data[i] != NULL; i++) {
+        char **field = NULL;
+        char reason[255] = {0,};
+
+#if OS_LINUX
+        // Extract the RPATH record (second field)
+        if (startswith(data[i], "RPATH")) {
+            if ((field = split(data[i], " ")) == NULL) {
+                break;
+            }
+
+            // record library path
+            result = strdup(field[1]);
+            split_free(field);
+            break;
+        }
+#elif OS_DARWIN
+        size_t offset_name = i + 2;  // how many lines to look ahead after reaching LC_RPATH
+        size_t numLines;
+        for (numLines = 0; data[numLines] != NULL; numLines++); // get line count
+
+        // Find APPLE's equivalent to RPATH on Linux
+        if (startswith(data[i], "cmd LC_RPATH")) {
+            // Don't overrun the data buffer
+            if (offset_name > numLines || data[offset_name] == NULL) {
+                break;
+            }
+
+            // split on: "path /library/path"
+            if ((field = split(data[offset_name], " ")) == NULL) {
+                sprintf(reason, "'%s' produced unreadable output at offset %zu", SPM_SHLIB_EXEC, offset_name);
+                spmerrno = SPM_ERR_PARSE;
+                spmerrno_cause(reason);
+                break;
+            }
+
+            // verify it was actually "path ..."
+            if (strcmp(field[0], "path") != 0) {
+                sprintf(reason, "'%s' produced unexpected LC_RPATH format between lines %zu:%zu", SPM_SHLIB_EXEC, i, offset_name);
+                spmerrno = SPM_ERR_PARSE;
+                spmerrno_cause(reason);
+                break;
+            }
+
+            // record library path
+            result = strdup(field[1]);
+            split_free(field);
+            break;
+        }
+#endif
+    }
+
+    free(raw_data);
+    split_free(data);
     return result;
 }
 
@@ -48,8 +132,7 @@ StrList *shlib_deps(const char *filename) {
     }
 
     // Get output from objdump
-    // TODO: use preprocessor or another function to select the correct shlib_deps_*() in the future
-    if ((raw_data = shlib_deps_objdump(filename)) == NULL) {
+    if ((raw_data = objdump(filename, SPM_SHLIB_EXEC_ARGS)) == NULL) {
         return NULL;
     }
 

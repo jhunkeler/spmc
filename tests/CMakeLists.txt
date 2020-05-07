@@ -1,6 +1,8 @@
 include_directories(
 		${CMAKE_SOURCE_DIR}/include
 		${CMAKE_BINARY_DIR}/include
+		${OpenSSL_INCLUDE_DIRS}
+		${CURL_INCLUDE_DIRS}
 )
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/tests)
 set(CTEST_BINARY_DIRECTORY ${PROJECT_BINARY_DIR}/tests)

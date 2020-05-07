@@ -218,7 +218,11 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "SPM_MAN", fs->mandir);
     runtime_set(rt, "SPM_LOCALSTATE", fs->localstatedir);
     runtime_set(rt, "SPM_PKGCONFIG", spm_pkgconfigdir);
+#if OS_DARWIN
+    runtime_set(rt, "SPM_PKGCONFIG", "${SPM_PKGCONFIG}:${SPM_DATA}/pkgconfig");
+#elif OS_LINUX
     runtime_set(rt, "SPM_PKGCONFIG", "${SPM_PKGCONFIG}:${SPM_LIB64}/pkgconfig:${SPM_DATA}/pkgconfig");
+#endif
     runtime_set(rt, "SPM_META_DEPENDS", SPM_META_DEPENDS);
     runtime_set(rt, "SPM_META_PREFIX_BIN", SPM_META_PREFIX_BIN);
     runtime_set(rt, "SPM_META_PREFIX_TEXT", SPM_META_PREFIX_TEXT);
@@ -236,9 +240,10 @@ int mkruntime_interface(int argc, char **argv) {
         runtime_set(rt, "CC", "$SPM_BIN/gcc");
     }
 
-    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE $CFLAGS");
+    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE");
 #if OS_DARWIN
-    runtime_set(rt, "LDFLAGS", "-rpath $SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
+    // For now `reloc` can fix up the LC_ID_DYLIB on its own without install_name_tool
+    runtime_set(rt, "LDFLAGS", "-rpath $SPM_LIB -L$SPM_LIB");
 #elif OS_LINUX
     runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
 #else

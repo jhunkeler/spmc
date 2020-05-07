@@ -8,7 +8,7 @@
 #define SPM_SHLIB_EXEC "dumpbin"
 #define SPM_SHLIB_EXEC_ARGS "/dependents"
 #define SPM_SHLIB_EXTENSION ".dll"
-#elif OS_APPLE
+#elif OS_DARWIN
 #define SPM_SHLIB_EXEC "/usr/bin/objdump"
 #define SPM_SHLIB_EXEC_ARGS "-macho -p"
 #define SPM_SHLIB_EXTENSION ".dylib"
@@ -18,6 +18,8 @@
 #define SPM_SHLIB_EXTENSION ".so"
 #endif
 
+char *objdump(const char *_filename, char *_args);
+char *shlib_rpath(const char *filename);
 StrList *shlib_deps(const char *_filename);
 
 #endif //SPM_SHLIB_H

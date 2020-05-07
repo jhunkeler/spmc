@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 trap spm_build_cleanup EXIT
+THIS_SCRIPT=$(dirname ${BASH_SOURCE[0]})
 
 function pushd() {
     command pushd "$@" >/dev/null
 }
 
 function popd() {
-    command popd "$@" >/dev/null
+    command popd >/dev/null
 }
 
 function _msg() {
@@ -48,8 +49,32 @@ function tar() {
     $cmd "$@"
 }
 
+function spm_debug_shell() {
+    local where
+
+    where="${1}"
+    if [[ -z "${where}" ]] || [[ ! -d "${where}" ]]; then
+        where="$(pwd)"
+    fi
+
+    pushd "${where}" || exit 1
+
+    PS1="(SPMBUILD DEBUG)$ "
+    export PS1
+
+    echo "ENTERING DEBUG SHELL"
+    env bash
+
+    # Exiting here prevents the user from leaving debug calls in their build scripts
+    # (i.e. when this function is used, no package archives will be generated)
+    exit 1
+}
+
 function spm_build_initialize_stage1() {
-    export SPMDEV=$(python -c "import os; print(os.path.abspath('$(dirname ${BASH_SOURCE[0]})/../cmake-build-debug/src/spm'))")
+    rp=$(which realpath 2>/dev/null \
+        || which spm_realpath 2>/dev/null \
+        || echo ./spm_realpath)
+    export SPMDEV=$($rp "${THIS_SCRIPT}/../src/spm")
     export SPM=$(which spm 2>/dev/null || echo ${SPMDEV})
 
     spm_build_check_rt_env
@@ -127,11 +152,11 @@ function spm_build_initialize_stage2() {
     unset FCFLAGS
 
     # All templates strings MUST be the same length to allow for proper relocation
-    export _SPM_BUILD_ROOT_TEMPLATE="spmbuild_root_XXXXXXXXX"
-    export _SPM_BUILD_RUNTIME_TEMPLATE="spmbuild_runtime_XXXXXX"
-    export _SPM_BUILD_PKGDIR_TEMPLATE="spmbuild_pkgdir_XXXXXXX"
+    export _SPM_BUILD_ROOT_TEMPLATE="${TMPDIR}/spmbuild_root_XXXXXXXXX"
+    export _SPM_BUILD_RUNTIME_TEMPLATE="${TMPDIR}/spmbuild_runtime_XXXXXX"
+    export _SPM_BUILD_PKGDIR_TEMPLATE="${TMPDIR}/spmbuild_pkgdir_XXXXXXX"
 
-    export SPM_BUILD_ROOT_BASE=$(mktemp -d -t "${_SPM_BUILD_ROOT_TEMPLATE}")
+    export SPM_BUILD_ROOT_BASE=$(mktemp -d "${_SPM_BUILD_ROOT_TEMPLATE}")
     export SPM_BUILD_ROOT="${SPM_BUILD_ROOT_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
     export _srcdir="${SPM_BUILD_ROOT}"
     mkdir -p "${SPM_BUILD_ROOT}"
@@ -140,7 +165,7 @@ function spm_build_initialize_stage2() {
         exit 1
     fi
 
-    export SPM_BUILD_RUNTIME_BASE=$(mktemp -d -t "${_SPM_BUILD_RUNTIME_TEMPLATE}")
+    export SPM_BUILD_RUNTIME_BASE=$(mktemp -d "${_SPM_BUILD_RUNTIME_TEMPLATE}")
     export SPM_BUILD_RUNTIME="${SPM_BUILD_RUNTIME_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
     export _runtime="${SPM_BUILD_RUNTIME}"
 
@@ -150,7 +175,7 @@ function spm_build_initialize_stage2() {
         exit 1
     fi
 
-    export SPM_BUILD_PKGDIR_BASE=$(mktemp -d -t "${_SPM_BUILD_PKGDIR_TEMPLATE}")
+    export SPM_BUILD_PKGDIR_BASE=$(mktemp -d "${_SPM_BUILD_PKGDIR_TEMPLATE}")
     export SPM_BUILD_PKGDIR="${SPM_BUILD_PKGDIR_BASE}/${SPM_META_PREFIX_PLACEHOLDER}"
     export _pkgdir="${SPM_BUILD_PKGDIR}"
 
@@ -175,27 +200,43 @@ function spm_build_initialize_stage2() {
     fi
 
     spm_build_new_root "${SPM_BUILD_RUNTIME}"
-    export LD_LIBRARY_PATH="${SPM_BUILD_RUNTIME}/lib:${SPM_BUILD_RUNTIME}/lib64"
-    export LD_RUN_PATH="${LD_LIBRARY_PATH}"
-    if [[ $(uname -s) == Darwin ]]; then
-        DYLD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
-        DYLD_RUN_PATH="${LD_RUN_PATH}"
+    LD_LIBRARY_PATH="${SPM_BUILD_RUNTIME}/lib:${SPM_BUILD_RUNTIME}/lib64"
+    LD_RUN_PATH="${LD_LIBRARY_PATH}"
+
+    if [[ $(uname -s) == Linux ]]; then
+        export LD_LIBRARY_PATH
+        export LD_RUN_PATH
+    elif [[ $(uname -s) == Darwin ]]; then
+        # Darwin is ridiculous. Don't rely on DYLD_* anything.
+        unset DYLD_LIBRARY_PATH
         unset LD_LIBRARY_PATH
-        unset LD_RUNPATH_PATH
+        unset LD_RUN_PATH
+    #elif # ... another OS's equivalent variable here
     fi
+
     export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
     export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 }
 
+spm_build_cleaned=0
+export spm_build_cleaned
 function spm_build_cleanup() {
-    #:
+    # Don't clean up more than once
+    if (( spm_build_cleaned > 0)); then
+      return
+    fi
+
     if [[ ${keep} != 0 ]]; then
-        echo "Temporary storage not destroyed"
+        msg "Temporary storage not destroyed"
+        msg2 "${SPM_BUILD_ROOT_BASE}"
+        msg2 "${SPM_BUILD_RUNTIME_BASE}"
+        msg2 "${SPM_BUILD_PKGDIR_BASE}"
         return
     fi
     [[ -d ${SPM_BUILD_ROOT_BASE} ]] && rm -rf ${SPM_BUILD_ROOT_BASE}
     [[ -d ${SPM_BUILD_RUNTIME_BASE} ]] && rm -rf ${SPM_BUILD_RUNTIME_BASE}
     [[ -d ${SPM_BUILD_PKGDIR_BASE} ]] && rm -rf ${SPM_BUILD_PKGDIR_BASE}
+    spm_build_cleaned=1
 }
 
 function spm_build_install() {
@@ -413,6 +454,7 @@ ls -l "${SPM_BUILD_ROOT}"
 
 msg "Environment data"
 printenv | grep -E '^SPM_' | sort
+printenv | grep -E '^[A-Z]{0,3}FLAGS' | sort
 
 msg "Processing ${package_name}"
 

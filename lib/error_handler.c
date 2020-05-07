@@ -14,6 +14,7 @@ const char *SPM_ERR_STRING[] = {
         "Manifest has no header",
         "Manifest has no data",
         "Parsing error",
+        "Not implemented",
         NULL,
 };
 
