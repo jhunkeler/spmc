@@ -51,6 +51,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       DYLD_INSERT_LIBRARIES: /usr/lib/libgmalloc.dylib
       TEST_RESULTS: /tmp/test-results
+      PKG_CONFIG_PATH: /usr/local/opt/openssl/lib/pkgconfig:/usr/local/opt/curl/lib/pkgconfig
 
     steps:
       - checkout
