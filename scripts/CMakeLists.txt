@@ -9,12 +9,12 @@ if (APPLE)
 		realpath.c
 	)
 	install(
-			PROGRAMS spm_realpath
+			PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/spm_realpath
 			DESTINATION bin
 	)
 endif ()
 
 install(
-	PROGRAMS spmbuild
+	PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/spmbuild
 	DESTINATION bin
 )
