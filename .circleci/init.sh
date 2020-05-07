@@ -22,6 +22,7 @@ if [[ $(uname -s) == Linux ]]; then
 
 elif [[ $(uname -s) == Darwin ]]; then
     brew install cmake \
+        curl \
         gnu-tar \
         openssl@1.1
 fi
