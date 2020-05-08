@@ -6,7 +6,14 @@ include(CTest)
 include(CheckSymbolExists)
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_INSTALL_RPATH $ORIGIN/../lib)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
+if (APPLE)
+    set(CMAKE_INSTALL_NAME_DIR "@rpath")
+    set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+else()
+    set(CMAKE_INSTALL_RPATH $ORIGIN/../lib)
+endif()
 
 enable_testing()
 check_symbol_exists(strsep string.h HAVE_STRSEP)
