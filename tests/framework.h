@@ -181,7 +181,7 @@ char *mock_image(int img_type, const char *img_name, char **_extra_compiler_args
             img_filename, extra_compiler_args, code_filename);
 #elif OS_WINDOWS  // TODO: UNTESTED
 #if defined (__MINGW32__)
-     sprintf(cmd, "gcc -shared -o %s -Wl,—out-implib,%s.a -Wl,—export-all-symbols -Wl,—enable-auto-image-base '%s',
+     sprintf(cmd, "gcc -shared -o %s -Wl,—out-implib,%s.a -Wl,—export-all-symbols -Wl,—enable-auto-image-base '%s'",
             img_filename, img_name, extra_compiler_args, code_filename);
 #elif defined (__MSC_VER)
      sprintf(cmd, "CL /LD %s", img_filename);
@@ -198,7 +198,7 @@ char *mock_image(int img_type, const char *img_name, char **_extra_compiler_args
             img_filename, extra_compiler_args, code_filename);
 #elif OS_WINDOWS  // TODO: UNTESTED
 #if defined (__MINGW32__)
-     sprintf(cmd, "gcc -o %s %s '%s',
+     sprintf(cmd, "gcc -o %s %s '%s'",
             img_filename, extra_compiler_args, code_filename);
 #elif defined (__MSC_VER)
      sprintf(cmd, "CL /Fe\"%s\" %s", img_name, img_filename);
