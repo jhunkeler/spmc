@@ -11,6 +11,7 @@ add_executable(spm
 
 target_link_directories(spm PUBLIC ${OpenSSL_LIBRARY_DIRS} ${CURL_LIBRARY_DIRS})
 target_link_libraries(spm libspm ${OpenSSL_LIBRARIES} ${CURL_LIBRARIES})
+
 if (LINUX)
 	target_link_libraries(spm libspm rt)
 endif()

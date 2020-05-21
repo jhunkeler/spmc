@@ -51,25 +51,51 @@ Mime *file_mimetype(const char *filename) {
         shell_free(proc);
         return NULL;
     }
+
+#if OS_DARWIN
+    if (proc->output) {
+        // Universal binaries spit out multiple lines, but we only require the first
+        char *terminate_multi_part = strchr(proc->output, '\n');
+        if (terminate_multi_part != NULL) {
+            *(terminate_multi_part + 1) = '\0';
+        }
+    }
+#endif
+
     output = split(proc->output, ":");
     if (!output || output[1] == NULL) {
         shell_free(proc);
         return NULL;
     }
-    parts = split(output[1], ";");
-    if (!parts || !parts[0] || !parts[1]) {
-        shell_free(proc);
-        return NULL;
+
+    char *origin = NULL;
+    char *what = NULL;
+    char *charset = NULL;
+
+    if (strchr(output[1], ';')) {
+        parts = split(output[1], ";");
+        if (!parts || !parts[0] || !parts[1]) {
+            shell_free(proc);
+            return NULL;
+        }
+
+        what = strdup(parts[0]);
+        what = lstrip(what);
+
+        charset = strdup(strchr(parts[1], '=') + 1);
+        charset = lstrip(charset);
+        charset[strlen(charset) - 1] = '\0';
+    } else {
+        // this branch is for Darwin; the 'charset=' string is not guaranteed to exist using argument `-I`
+        what = strdup(output[1]);
+        what = lstrip(what);
+        what = strip(what);
+        if (strstr(output[1], "binary") != NULL) {
+            charset = strdup("binary");
+        }
     }
 
-    char *what = strdup(parts[0]);
-    what = lstrip(what);
-
-    char *charset = strdup(strchr(parts[1], '=') + 1);
-    charset = lstrip(charset);
-    charset[strlen(charset) - 1] = '\0';
-
-    char *origin = realpath(filename, NULL);
+    origin = realpath(filename, NULL);
 
     type = (Mime *)calloc(1, sizeof(Mime));
     type->origin = origin;
@@ -77,7 +103,9 @@ Mime *file_mimetype(const char *filename) {
     type->charset = charset;
 
     split_free(output);
-    split_free(parts);
+    if (parts != NULL) {
+        split_free(parts);
+    }
     shell_free(proc);
     return type;
 }

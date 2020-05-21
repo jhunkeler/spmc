@@ -12,6 +12,7 @@ typedef struct {
 } StrList;
 
 StrList *strlist_init();
+void strlist_remove(StrList *pStrList, size_t index);
 long double strlist_item_as_long_double(StrList *pStrList, size_t index);
 double strlist_item_as_double(StrList *pStrList, size_t index);
 float strlist_item_as_float(StrList *pStrList, size_t index);
