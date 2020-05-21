@@ -83,6 +83,28 @@ void strlist_append_strlist(StrList *pStrList1, StrList *pStrList2) {
 }
 
 /**
+ * Remove a record by index from a `StrList`
+ * @param pStrList
+ * @param index
+ */
+void strlist_remove(StrList *pStrList, size_t index) {
+    size_t count = strlist_count(pStrList);
+    if (count == 0) {
+        return;
+    }
+
+    for (size_t i = index; i < count; i++) {
+        char *next = pStrList->data[i + 1];
+        pStrList->data[i] = next;
+        if (next == NULL) {
+            break;
+        }
+    }
+
+    pStrList->num_inuse--;
+}
+
+/**
  * Compare two `StrList`s
  * @param a `StrList` structure
  * @param b `StrList` structure
