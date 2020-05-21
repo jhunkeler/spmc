@@ -74,7 +74,7 @@ function spm_build_initialize_stage1() {
     rp=$(which realpath 2>/dev/null \
         || which spm_realpath 2>/dev/null \
         || echo ./spm_realpath)
-    export SPMDEV=$($rp "${THIS_SCRIPT}/../src/spm")
+    export SPMDEV=$($rp "${THIS_SCRIPT}/../src/spm" 2>/dev/null)
     export SPM=$(which spm 2>/dev/null || echo ${SPMDEV})
 
     spm_build_check_rt_env
@@ -411,6 +411,18 @@ function spm_build_do_stage_archive() {
     popd
 }
 
+function spm_build_declare_metadata() {
+    # Declare package metadata we need at this level
+    package_name="${name}-${version}-${revision}"
+    package_archive="${package_name}$(spm_build_get_package_ext)"
+    package_target="${SPM_BUILD_STORE_PACKAGES}/${SPM_BUILD_SYS_TARGET}"
+    package_final="${package_target}/${package_archive}"
+}
+
+function spm_build_update_metadata() {
+    spm_build_declare_metadata
+}
+
 # -- main --
 export keep=${keep:-0}
 export SPM_BUILD_SCRIPT="build.sh"
@@ -431,16 +443,11 @@ spm_build_initialize_stage2  # post-runtime activation
 msg2 "Sourcing build script..."
 source "${SPM_BUILD_SCRIPT_ROOT}/${SPM_BUILD_SCRIPT}"
 
-# Declare package metadata we need at this level
-package_name="${name}-${version}-${revision}"
-package_archive="${package_name}$(spm_build_get_package_ext)"
-package_target="${SPM_BUILD_STORE_PACKAGES}/${SPM_BUILD_SYS_TARGET}"
-package_final="${package_target}/${package_archive}"
+spm_build_declare_metadata
 
 if [[ ! -d "${package_target}" ]]; then
     mkdir -p ${package_target}
     spm_build_mkmanifest "${package_target}" "${package_target}"
-
 fi
 
 msg2 "Downloading source files..."
