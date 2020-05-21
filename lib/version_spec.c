@@ -28,10 +28,11 @@ char *version_suffix_get_alpha(char *str) {
 char *version_suffix_get_modifier(char *str) {
     size_t i;
     char *modifiers[] = {
-            "rc",
-            "pre",
-            "dev",
-            "post",
+            "r",    // VCS revision
+            "rc",   // Release Candidate
+            "pre",  // Pre-Release
+            "dev",  // Development
+            "post", // Post-Release
             NULL,
     };
     for (i = 0; i < strlen(str); i++) {
@@ -132,19 +133,145 @@ int version_suffix_alpha_calc(char *str) {
             ch++;
             continue;
         }
-        x += atoi(ch);
+        x += (int)strtol(ch, NULL, 10);
         break;
     }
 
     return x;
 }
 
+static int isdigits(char *s) {
+    for (size_t i = 0; s[i] != '\0'; i++) {
+        if (isdigit(s[i]) == 0) {
+            return 0;   // non-digit found, fail
+        }
+    }
+    return 1;   // all digits, succeed
+}
+
+static int reindex(char c) {
+    int result = c - '0';
+    return result;
+}
+
+static char *tolower_s(char *s) {
+    for (size_t i = 0; s[i] != '\0'; i++) {
+        s[i] = tolower(s[i]);
+    }
+    return s;
+}
+
+/**
+ * Convert a string (`x.y.z.nnnn` or `1abcdefg2` - doesn't matter) to an integer
+ * @param s
+ * @return
+ */
+uint64_t version_from(const char *str) {
+    uint64_t result;
+    uint64_t addendum;
+    char *vstr;
+    char *result_tmp;
+    char **part;
+    StrList *vconv;
+
+    // Check input string isn't NULL
+    if (str == NULL) {
+        return 0;
+    }
+
+    // Make a copy of the input string
+    vstr = strdup(str);
+    if (vstr == NULL) {
+        spmerrno = errno;
+        return 0;
+    }
+
+    // Initialize StrList
+    vconv = strlist_init();
+    if (vconv == NULL) {
+        spmerrno = errno;
+        return 0;
+    }
+
+    // Convert any uppercase letters to lowercase
+    vstr = tolower_s(vstr);
+
+    // Pop local version suffix
+    char *local_version = strstr(vstr, VERSION_LOCAL);
+    if (local_version != NULL) {
+        *local_version = '\0';
+    }
+
+    // Split version string on periods, if any
+    part = split(vstr, VERSION_DELIM);
+    if (part == NULL) {
+        spmerrno = errno;
+        return 0;
+    }
+
+    // Populate our StrList with version information
+    for (size_t i = 0; part[i] != NULL; i++) {
+        char tmp[255] = {0};
+        memset(tmp, '\0', sizeof(tmp));
+
+        if (isdigits(part[i])) {
+            // Every character in the string is a digit, so append it as-is
+            strlist_append(vconv, part[i]);
+        } else {
+            // Not all characters were digits
+            char *data = part[i];
+            int digit = isdigit(*data);
+
+            // The first character is a digit. Try to consume the whole value
+            if (digit > 0) {
+                for (size_t ch = 0; *data != '\0' && isdigit(*data) > 0; ch++, data++) {
+                    tmp[ch] = *data;
+                }
+                strlist_append(vconv, tmp);
+            }
+
+            while (*data != '\0') {
+                // The "+" prefix below indicates the value shall be added to the addendum
+                // Not a digit so subtract its ASCII value from '0' with reindex
+                // Calculate character index + 1 (i.e. a=1, b=2, ..., z=25)
+                sprintf(tmp, "+%d", reindex(*data) + 1);
+
+                strlist_append(vconv, tmp);
+                data++;
+            }
+        }
+    }
+    split_free(part);
+
+    // Construct the suffix portion of the version. This value is added to the result to maximize
+    // the resolution between different versions (making (1.1.0a > 1.1.0 && 1.1.1 > 1.1.0a) possible)
+    addendum = 0L;
+    for (size_t i = 0; i < strlist_count(vconv); i++) {
+        char *item = strlist_item(vconv, i);
+        if (*item == '+') {
+            addendum += strtoull(&item[1], NULL, VERSION_BASE);
+            // Purge this record from the StrList now that it has fulfilled its purpose
+            strlist_remove(vconv, i);
+            i--;
+        }
+    }
+
+    result_tmp = join(vconv->data, "");
+
+    result = strtoull(result_tmp, NULL, VERSION_BASE);
+    result <<= VERSION_ADDENDUM_BITS;
+    result += addendum + strlen(result_tmp);
+
+    free(vstr);
+    strlist_free(vconv);
+    return result;
+}
 /**
  *
  * @param version_str
  * @return
  */
-int64_t version_from(const char *version_str) {
+int64_t version_from_old(const char *version_str) {
     const char *delim = ".";
     int64_t result = 0;
     if (version_str == NULL) {
@@ -172,6 +299,9 @@ int64_t version_from(const char *version_str) {
         int64_t tmp = 0;
 
         // populate the head (numeric characters)
+        int has_digit = isdigit(*x);
+        int has_alpha = isalpha(*x);
+
         strncpy(head, x, strlen(x));
         for (size_t i = 0; i < strlen(head); i++) {
             if (isalpha(head[i])) {
@@ -202,7 +332,7 @@ int64_t version_from(const char *version_str) {
         }
 
         // Convert the head to an integer
-        tmp = atoi(head);
+        tmp = strtoul(head, NULL, 10);
         // Update result. Each portion of the numeric version is its own byte
         // Version PARTS are limited to 255
         result = result << 8 | tmp;

@@ -4,6 +4,10 @@
 #ifndef SPM_VERSION_SPEC_H
 #define SPM_VERSION_SPEC_H
 
+#define VERSION_BASE 16
+#define VERSION_ADDENDUM_BITS 16
+#define VERSION_DELIM "."
+#define VERSION_LOCAL "="
 #define VERSION_OPERATORS " ~!=<>"
 #define VERSION_NOOP 1 << 0
 #define VERSION_EQ 1 << 1
@@ -17,8 +21,10 @@ char *version_suffix_get_alpha(char *str);
 char *version_suffix_get_modifier(char *str);
 int64_t version_suffix_modifier_calc(char *str);
 int version_suffix_alpha_calc(char *str);
-int64_t version_from(const char *version_str);
+uint64_t version_from(const char *str);
 int version_spec_from(const char *op);
 ManifestPackage **find_by_spec(const Manifest *manifest, const char *name, const char *op, const char *version_str);
+int pep440_match(const char *version);
+struct PEP440 *pep440_version(const char *version);
 
 #endif //SPM_VERSION_SPEC_H
