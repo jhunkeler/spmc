@@ -164,8 +164,8 @@ uint64_t version_from(const char *str) {
  * @param op
  * @return
  */
-int version_spec_from(const char *op) {
-    int flags = VERSION_NOOP;
+unsigned int version_spec_from(const char *op) {
+    unsigned int flags = VERSION_NOOP;
     size_t len = strlen(op);
     for (size_t i = 0; i < len; i++) {
         if (op[i] == '>') {
@@ -196,8 +196,8 @@ int version_spec_from(const char *op) {
 static int _find_by_spec_compare(const void *a, const void *b) {
     const ManifestPackage *aa = *(const ManifestPackage**)a;
     const ManifestPackage *bb = *(const ManifestPackage**)b;
-    int64_t version_a = version_from(aa->version);
-    int64_t version_b = version_from(bb->version);
+    uint64_t version_a = version_from(aa->version);
+    uint64_t version_b = version_from(bb->version);
     return version_a > version_b;
 }
 
@@ -220,9 +220,9 @@ ManifestPackage **find_by_spec(const Manifest *manifest, const char *name, const
 
     for (size_t i = 0; i < manifest->records; i++) {
         if (strcmp(manifest->packages[i]->name, name) == 0) {
-            int64_t version_a = version_from(manifest->packages[i]->version);
-            int64_t version_b = version_from(version_str);
-            int spec = version_spec_from(op);
+            uint64_t version_a = version_from(manifest->packages[i]->version);
+            uint64_t version_b = version_from(version_str);
+            unsigned int spec = version_spec_from(op);
 
             int res = 0;
             if (spec & VERSION_GT && spec & VERSION_EQ) {

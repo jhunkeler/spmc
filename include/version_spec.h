@@ -28,7 +28,7 @@ int version_read(struct Version **version, char *s);
 void version_info(struct Version *version);
 
 uint64_t version_from(const char *str);
-int version_spec_from(const char *op);
+unsigned int version_spec_from(const char *op);
 ManifestPackage **find_by_spec(const Manifest *manifest, const char *name, const char *op, const char *version_str);
 int pep440_match(const char *version);
 struct PEP440 *pep440_version(const char *version);
