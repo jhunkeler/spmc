@@ -34,5 +34,7 @@ int isquoted(char *sptr);
 char *normalize_space(char *s);
 char **strdup_array(char **array);
 int strcmp_array(const char **a, const char **b);
+int isdigit_s(char *s);
+char *tolower_s(char *s);
 
 #endif //SPM_STR_H
