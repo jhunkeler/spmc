@@ -817,3 +817,30 @@ int strcmp_array(const char **a, const char **b) {
     }
     return result;
 }
+
+/**
+ * Determine whether a string is comprised of digits
+ * @param s
+ * @return 0=no, 1=yes
+ */
+int isdigit_s(char *s) {
+    for (size_t i = 0; s[i] != '\0'; i++) {
+        if (isdigit(s[i]) == 0) {
+            return 0;   // non-digit found, fail
+        }
+    }
+    return 1;   // all digits, succeed
+}
+
+/**
+ * Convert input string to lowercase
+ * @param s
+ * @return pointer to input string
+ */
+char *tolower_s(char *s) {
+    for (size_t i = 0; s[i] != '\0'; i++) {
+        s[i] = (char)tolower(s[i]);
+    }
+    return s;
+}
+
