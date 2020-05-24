@@ -4,358 +4,157 @@
 #include "spm.h"
 
 /**
- *
- * @param str
+ * Get the ASCII index of a character from '0'
+ * @param c
  * @return
  */
-char *version_suffix_get_alpha(char *str) {
-    size_t i;
-    size_t len = strlen(str);
-    for (i = 0; i < len; i++) {
-        // return pointer to the first alphabetic character we find
-        if (isalpha(str[i])) {
-            return &str[i];
-        }
-    }
-    return NULL;
+static int version_reindex(char c) {
+    int result;
+    result = c - '0';
+    return result;
 }
 
 /**
- *
- * @param str
- * @return
+ * Initialize `struct Version` for use by other `version_` functions
+ * @return pointer to `struct Version`
  */
-char *version_suffix_get_modifier(char *str) {
-    size_t i;
-    char *modifiers[] = {
-            "r",    // VCS revision
-            "rc",   // Release Candidate
-            "pre",  // Pre-Release
-            "dev",  // Development
-            "post", // Post-Release
-            NULL,
-    };
-    for (i = 0; i < strlen(str); i++) {
-        for (int m = 0; modifiers[m] != NULL; m++) {
-            if (strncasecmp(&str[i], modifiers[m], strlen(modifiers[m])) == 0) {
-                return &str[i];
+struct Version *version_init() {
+    struct Version *result;
+
+    result = calloc(1, sizeof(struct Version));
+    result->local = calloc(VERSION_LOCAL_MAX, sizeof(char));
+
+    for (size_t i = 0; i < VERSION_MAX; i++) {
+        result->part[i] = 0;
+    }
+
+    return result;
+}
+
+/**
+ * Populate `Version` struct with information derived from input string `s`
+ * @param version `struct Version`
+ * @param s version string
+ * @return 0=success, <0=error
+ */
+int version_read(struct Version **version, char *s) {
+    char *str;
+    char **part;
+    char *local_version = NULL;
+    size_t num_parts;
+
+    if (s == NULL) {
+        return -1;
+    }
+
+    str = strdup(s);
+    if (str == NULL) {
+        return -1;
+    }
+
+    str = tolower_s(str);
+
+    // Store any local version data stored in the input string (unused)
+    if ((local_version = strstr(str, VERSION_DELIM_LOCAL)) != NULL) {
+        strncpy((*version)->local, local_version + 1, VERSION_LOCAL_MAX - 1);
+        *local_version = '\0';
+    }
+
+    // Split the input string
+    part = split(str, VERSION_DELIM);
+
+    // Count records split from the input string
+    for (num_parts = 0; part[num_parts] != NULL; num_parts++);
+
+    // Last record of version->part is reserved for additional information
+    uint32_t *addendum = &(*version)->part[VERSION_MAX - 1];
+
+    // Turn those numbers into... numbers
+    for (size_t i = 0; i < num_parts; i++) {
+        uint32_t value = 0;
+
+        if (isdigit_s(part[i])) {
+            // Store the value as-is
+            value = strtoul(part[i], NULL, VERSION_BASE);
+        } else {
+            char tmp[255] = {0};
+            char *other = part[i];
+            if (isdigit(part[i][0])) {
+                for (size_t c = 0; isdigit(part[i][c]); c++) {
+                    tmp[c] = part[i][c];
+                    other++;
+                }
+                value = strtoul(tmp, NULL, VERSION_BASE);
+            }
+            // Reindex all alphanumeric characters from ASCII '0'. Ignore everything else.
+            for (size_t c = 0; c < strlen(other); c++) {
+                if (isalnum(other[c])) {
+                    // Assign version addendum field
+                    *addendum += version_reindex(other[c]);
+                }
             }
         }
+        // Assign part with integer value
+        (*version)->part[i] = value;
     }
-    return NULL;
+
+    // Convert all of the individual parts into a single integer
+    for (size_t i = 0; i < VERSION_MAX; i++) {
+        (*version)->asInt = (*version)->asInt << 8 | (*version)->part[i];
+    }
+
+    split_free(part);
+    free(str);
+    return 0;
 }
 
 /**
- *
- * @param str
- * @return
+ * Free `struct Version` populated by `version_init`
+ * @param version
  */
-int64_t version_suffix_modifier_calc(char *str) {
-    int64_t result = 0;
-    char *tmp_s = str;
-
-    if (strncasecmp(str, "rc", 2) == 0) {
-        // do rc
-        tmp_s += strlen("rc");
-        if (isdigit(*tmp_s)) {
-            result -= atoi(tmp_s);
-        }
-        else {
-            result -= 1;
-        }
-    }
-    else if (strncasecmp(str, "pre", 3) == 0) {
-        // do pre
-        tmp_s += strlen("pre");
-        if (isdigit(*tmp_s)) {
-            result -= atoi(tmp_s);
-        }
-        else {
-            result -= 1;
-        }
-    }
-    else if (strncasecmp(str, "dev", 3) == 0) {
-        // do dev
-        tmp_s += strlen("dev");
-        if (isdigit(*tmp_s)) {
-            result -= atoi(tmp_s);
-        }
-        else {
-            result -= 1;
-        }
-    }
-    else if (strncasecmp(str, "post", 4) == 0) {
-        // do post
-        tmp_s += strlen("post");
-        if (isdigit(*tmp_s)) {
-            result += atoi(tmp_s);
-        }
-        else {
-            result += 1;
-        }
+void version_free(struct Version *version) {
+    if (version == NULL) {
+        return;
     }
 
-    return result;
+    free(version->local);
+    free(version);
 }
 
 /**
- *
- * @param str
- * @return
+ * Print information about a version (stdout)
+ * @param version `struct Version`
  */
-int version_suffix_alpha_calc(char *str) {
-    int x = 0;
-    char chs[255];
-    char *ch = chs;
-    memset(chs, '\0', sizeof(chs));
-    strncpy(chs, str, strlen(str));
-
-    // Handle cases where the two suffixes are not delimited by anything
-    // Start scanning one character ahead of the alphabetic suffix and terminate the string
-    // when/if we reach another alphabetic character (presumably a version modifer)
-    for (int i = 1; chs[i] != '\0'; i++) {
-        if (isalpha(chs[i])) {
-            chs[i] = '\0';
-        }
+void version_info(struct Version *version) {
+    printf("major: %d, ", version->part[0]);
+    printf("minor: %d, ", version->part[1]);
+    printf("patch: %d, ", version->part[2]);
+    for (size_t i = 3; i < VERSION_MAX; i++) {
+        printf("other[%zu]: %d, ", i, version->part[i]);
     }
-
-    // Convert character to hex-ish
-    x =  (*ch - 'a') + 0xa;
-
-    // Ensure the string ends with a digit
-    if (strlen(str) == 1) {
-        strcat(ch, "0");
-    }
-
-    // Convert trailing numerical value to an integer
-    while (*ch != '\0') {
-        if (!isdigit(*ch)) {
-            ch++;
-            continue;
-        }
-        x += (int)strtol(ch, NULL, 10);
-        break;
-    }
-
-    return x;
-}
-
-static int isdigits(char *s) {
-    for (size_t i = 0; s[i] != '\0'; i++) {
-        if (isdigit(s[i]) == 0) {
-            return 0;   // non-digit found, fail
-        }
-    }
-    return 1;   // all digits, succeed
-}
-
-static int reindex(char c) {
-    int result = c - '0';
-    return result;
-}
-
-static char *tolower_s(char *s) {
-    for (size_t i = 0; s[i] != '\0'; i++) {
-        s[i] = tolower(s[i]);
-    }
-    return s;
+    printf("local: '%s', ", version->local);
+    printf("int  : %#llx (%llu)\n", version->asInt, version->asInt);
 }
 
 /**
- * Convert a string (`x.y.z.nnnn` or `1abcdefg2` - doesn't matter) to an integer
- * @param s
- * @return
+ * Convert version string to an integer
+ * @param str version string
+ * @return version as integer
  */
 uint64_t version_from(const char *str) {
-    uint64_t result;
-    uint64_t addendum;
-    char *vstr;
-    char *result_tmp;
-    char **part;
-    StrList *vconv;
-
-    // Check input string isn't NULL
+    // Accept NULL as version "zero"
     if (str == NULL) {
         return 0;
     }
 
-    // Make a copy of the input string
-    vstr = strdup(str);
-    if (vstr == NULL) {
-        spmerrno = errno;
-        return 0;
-    }
+    uint64_t result = 0LL;
+    char *v = strdup(str);
+    struct Version *version = version_init();
 
-    // Initialize StrList
-    vconv = strlist_init();
-    if (vconv == NULL) {
-        spmerrno = errno;
-        return 0;
-    }
+    version_read(&version, v);
+    result = version->asInt;
 
-    // Convert any uppercase letters to lowercase
-    vstr = tolower_s(vstr);
-
-    // Pop local version suffix
-    char *local_version = strstr(vstr, VERSION_LOCAL);
-    if (local_version != NULL) {
-        *local_version = '\0';
-    }
-
-    // Split version string on periods, if any
-    part = split(vstr, VERSION_DELIM);
-    if (part == NULL) {
-        spmerrno = errno;
-        return 0;
-    }
-
-    // Populate our StrList with version information
-    for (size_t i = 0; part[i] != NULL; i++) {
-        char tmp[255] = {0};
-        memset(tmp, '\0', sizeof(tmp));
-
-        if (isdigits(part[i])) {
-            // Every character in the string is a digit, so append it as-is
-            strlist_append(vconv, part[i]);
-        } else {
-            // Not all characters were digits
-            char *data = part[i];
-            int digit = isdigit(*data);
-
-            // The first character is a digit. Try to consume the whole value
-            if (digit > 0) {
-                for (size_t ch = 0; *data != '\0' && isdigit(*data) > 0; ch++, data++) {
-                    tmp[ch] = *data;
-                }
-                strlist_append(vconv, tmp);
-            }
-
-            while (*data != '\0') {
-                // The "+" prefix below indicates the value shall be added to the addendum
-                // Not a digit so subtract its ASCII value from '0' with reindex
-                // Calculate character index + 1 (i.e. a=1, b=2, ..., z=25)
-                sprintf(tmp, "+%d", reindex(*data) + 1);
-
-                strlist_append(vconv, tmp);
-                data++;
-            }
-        }
-    }
-    split_free(part);
-
-    // Construct the suffix portion of the version. This value is added to the result to maximize
-    // the resolution between different versions (making (1.1.0a > 1.1.0 && 1.1.1 > 1.1.0a) possible)
-    addendum = 0L;
-    for (size_t i = 0; i < strlist_count(vconv); i++) {
-        char *item = strlist_item(vconv, i);
-        if (*item == '+') {
-            addendum += strtoull(&item[1], NULL, VERSION_BASE);
-            // Purge this record from the StrList now that it has fulfilled its purpose
-            strlist_remove(vconv, i);
-            i--;
-        }
-    }
-
-    result_tmp = join(vconv->data, "");
-
-    result = strtoull(result_tmp, NULL, VERSION_BASE);
-    result <<= VERSION_ADDENDUM_BITS;
-    result += addendum + strlen(result_tmp);
-
-    free(vstr);
-    strlist_free(vconv);
-    return result;
-}
-/**
- *
- * @param version_str
- * @return
- */
-int64_t version_from_old(const char *version_str) {
-    const char *delim = ".";
-    int64_t result = 0;
-    if (version_str == NULL) {
-        return 0;
-    }
-
-    int seen_alpha = 0;     // Does the tail contain a single character, but not a modifier?
-    int seen_modifier = 0;  // Does the tail contain "rc", "dev", "pre", and so forth?
-    char head[255];         // digits of the string
-    char tail[255];         // alphabetic characters of the string
-    char *suffix_alpha = NULL;      // pointer to location of the first character after the version
-    char *suffix_modifier = NULL;   // pointer to location of the modifier after the version
-    char *x = NULL;         // pointer to each string delimited by "."
-    char *vstr = strdup(version_str);
-    if (!vstr) {
-        perror("Version string copy");
-        return -1;
-    }
-
-    memset(head, '\0', sizeof(head));
-    memset(tail, '\0', sizeof(tail));
-
-    // Split the version into parts
-    while ((x = strsep(&vstr, delim)) != NULL) {
-        int64_t tmp = 0;
-
-        // populate the head (numeric characters)
-        int has_digit = isdigit(*x);
-        int has_alpha = isalpha(*x);
-
-        strncpy(head, x, strlen(x));
-        for (size_t i = 0; i < strlen(head); i++) {
-            if (isalpha(head[i])) {
-                // populate the tail (alphabetic characters)
-                strncpy(tail, &head[i], strlen(&head[i]));
-                head[i] = '\0';
-                break;
-            }
-        }
-
-        // Detect alphabetic suffix
-        if (!seen_alpha) {
-            if ((suffix_alpha = version_suffix_get_alpha(x)) != NULL) {
-                seen_alpha = 1;
-            }
-        }
-
-        // Detect modifier suffix
-        if (!seen_modifier) {
-            if ((suffix_modifier = version_suffix_get_modifier(x)) != NULL) {
-                seen_modifier = 1;
-            }
-        }
-
-        // Stop processing if the head starts with something other than numbers
-        if (!isdigit(head[0])) {
-            break;
-        }
-
-        // Convert the head to an integer
-        tmp = strtoul(head, NULL, 10);
-        // Update result. Each portion of the numeric version is its own byte
-        // Version PARTS are limited to 255
-        result = result << 8 | tmp;
-    }
-
-    if (suffix_alpha != NULL) {
-        // Convert the alphabetic suffix to an integer
-        int64_t sac = version_suffix_alpha_calc(suffix_alpha);
-        result += sac;
-    }
-
-    if (suffix_modifier != NULL) {
-        // Convert the modifier string to an integer
-        int64_t smc = version_suffix_modifier_calc(suffix_modifier);
-        if (smc < 0) {
-            result -= ~smc + 1;
-        }
-        else {
-            result += smc;
-        }
-    }
-
-    free(vstr);
+    version_free(version);
     return result;
 }
 
