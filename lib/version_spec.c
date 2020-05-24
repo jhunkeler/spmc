@@ -154,6 +154,7 @@ uint64_t version_from(const char *str) {
     version_read(&version, v);
     result = version->asInt;
 
+    free(v);
     version_free(version);
     return result;
 }
