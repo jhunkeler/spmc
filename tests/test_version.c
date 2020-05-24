@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
         myassert(spmerrno == 0, "Unexpected error: %s\n", spm_strerror(spmerrno));
 
         uint64_t result = version_from(versions[i]);
-        if (prev > 0) {
+        if (prev_i > 0) {
             myassert(result > prev_i,
                      testFmt, versions[i],
                      result, result,
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
         myassert(spmerrno == 0, "Unexpected error: %s\n", spm_strerror(spmerrno));
 
         uint64_t result = version_from(nonsense[i]);
-        if (prev > 0) {
+        if (prev_i > 0) {
             myassert(result > prev_i,
                      testFmt, nonsense[i],
                      result, result,
