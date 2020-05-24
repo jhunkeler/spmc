@@ -155,7 +155,7 @@ char *mock_image(int img_type, const char *img_name, char **_extra_compiler_args
     char code[255] = {0,};
     char code_filename[FILENAME_MAX] = {0,};
     char img_filename[FILENAME_MAX] = {0,};
-    char cmd[PATH_MAX] = {0,};
+    char cmd[PATH_MAX * (FILENAME_MAX * 2)] = {0,};
     char *extra_compiler_args = NULL;
     Process *proc = NULL;
 
