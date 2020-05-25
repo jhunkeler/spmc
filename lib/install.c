@@ -201,16 +201,24 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     ManifestPackage **requirements = NULL;
     char source[PATH_MAX];
     char *tmpdir = NULL;
+    size_t package_count;
+
+    package_count = strlist_count(packages);
+    if (package_count == 0) {
+        spmerrno = SPM_ERR_PKG_NOT_FOUND;
+        spmerrno_cause("EMPTY PACKAGE LIST");
+        return -1;
+    }
 
     // Produce a dependency tree from requested package(s)
-    for (size_t i = 0; i < strlist_count(packages); i++) {
+    for (size_t i = 0; i < package_count; i++) {
         char *item = strlist_item(packages, i);
 
         // Does the package exist in the manifest?
         if (manifestlist_search(mf, item) == NULL) {
             spmerrno = SPM_ERR_PKG_NOT_FOUND;
             spmerrno_cause(item);
-            break;
+            return -1;
         }
 
         requirements = resolve_dependencies(mf, item);
@@ -219,10 +227,6 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
                 num_requirements++;
             }
         }
-    }
-
-    if (spmerrno) {
-        return -1;
     }
 
     tmpdir = spm_mkdtemp(TMP_DIR, "spm_destroot", NULL);

@@ -30,6 +30,15 @@ void usage(const char *program_name) {
 }
 
 extern spm_vars SPM_GLOBAL;
+
+static int reader_from_file(size_t lineno, char **line) {
+    (*line) = strip((*line));
+    if (isempty((*line)) || startswith((*line), "#") || startswith((*line), ";") || startswith((*line), "//")) {
+        return 1; // indicate "continue"
+    }
+    return 0; // indicate "ok"
+}
+
 int main(int argc, char *argv[], char *arge[]) {
     char *program_name = strdup(argv[0]);
 
@@ -155,6 +164,39 @@ int main(int argc, char *argv[], char *arge[]) {
                     }
                     strlist_append(packages, argv[i]);
                 }
+            }
+            else if (strcmp(arg, "-F") == 0 || strcmp(arg, "--from-file") == 0) {
+                RUNTIME_INSTALL = 1;
+                i++;
+                char **from_file = NULL;
+                char *next = argv[i];
+                char *filename = calloc(PATH_MAX, sizeof(char));
+
+                if (next == NULL || (startswith(next, "-") || startswith(next, "--"))) {
+                    fprintf(stderr, "-F|--from-file requires a file path\n");
+                    usage(program_name);
+                    exit(1);
+                }
+
+                filename = expandpath(next);
+                if (exists(filename) != 0) {
+                    perror(filename);
+                    exit(1);
+                }
+
+                from_file = file_readlines(filename, 0, 0, reader_from_file);
+
+                if (from_file == NULL) {
+                    perror(filename);
+                    exit(1);
+                }
+
+                for (size_t record = 0; from_file[record] != NULL; record++) {
+                    strlist_append(packages, from_file[record]);
+                    free(from_file[record]);
+                }
+                free(from_file);
+                free(filename);
             }
             else if (strcmp(arg, "-I") == 0 || strcmp(arg, "--install") == 0) {
                 RUNTIME_INSTALL = 1;
