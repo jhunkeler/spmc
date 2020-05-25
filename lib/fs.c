@@ -641,3 +641,86 @@ char *spm_mkdtemp(const char *base, const char *name, const char *extended_path)
 
      return 0;
  }
+
+char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn *readerFn) {
+    FILE *fp = NULL;
+    char **result = NULL;
+    char *buffer = NULL;
+    size_t lines = 0;
+
+    if ((fp = fopen(filename, "r")) == NULL) {
+        perror(filename);
+        fprintf(SYSERROR);
+        return NULL;
+    }
+
+    // Allocate buffer
+    if ((buffer = calloc(BUFSIZ, sizeof(char))) == NULL) {
+        perror("line buffer");
+        fprintf(SYSERROR);
+        fclose(fp);
+        return NULL;
+    }
+
+    // count number the of lines in the file
+    while ((fgets(buffer, BUFSIZ - 1, fp)) != NULL) {
+        lines++;
+    }
+
+    if (!lines) {
+        free(buffer);
+        fclose(fp);
+        result = calloc(2, sizeof(char *));
+        result[0] = strdup("");
+        return result;
+    }
+
+    rewind(fp);
+
+    // Handle invalid start offset
+    if (start > lines) {
+        start = 0;
+    }
+
+    // Adjust line count when start offset is non-zero
+    if (start != 0 && start < lines) {
+        lines -= start;
+    }
+
+
+    // Handle minimum and maximum limits
+    if (limit == 0 || limit > lines) {
+        limit = lines;
+    }
+
+    // Populate results array
+    result = calloc(limit + 1, sizeof(char *));
+    for (size_t i = start; i < limit; i++) {
+        if (i < start) {
+            continue;
+        }
+
+        if (fgets(buffer, BUFSIZ - 1, fp) == NULL) {
+            break;
+        }
+
+        if (readerFn != NULL) {
+            int status = readerFn(i - start, &buffer);
+            // A status greater than zero indicates we should ignore this line entirely and "continue"
+            // A status less than zero indicates we should "break"
+            // A zero status proceeds normally
+            if (status > 0) {
+                i--;
+                continue;
+            } else if (status < 0) {
+                break;
+            }
+        }
+        result[i] = strdup(buffer);
+        memset(buffer, '\0', BUFSIZ);
+    }
+
+    free(buffer);
+    fclose(fp);
+    return result;
+}
