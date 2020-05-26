@@ -671,6 +671,7 @@ char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn
         free(buffer);
         fclose(fp);
         result = calloc(2, sizeof(char *));
+        result[0] = strdup("");
         return result;
     }
 
