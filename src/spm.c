@@ -180,7 +180,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 }
 
                 retval = strlist_append_file(packages, next, reader_install_strlist_append_file);
-                if (retval != 0) {
+                if (retval < 0) {
                     spm_die();
                 }
             }
