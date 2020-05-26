@@ -4,6 +4,7 @@
  */
 #include "spm.h"
 #include "strlist.h"
+#include "url.h"
 
 /**
  *
@@ -46,21 +47,98 @@ void strlist_append(StrList *pStrList, char *str) {
     pStrList->num_alloc++;
 }
 
+static int reader_strlist_append_file(size_t lineno, char **line) {
+    (void)(lineno);  // unused parameter
+    (void)(line);   // unused parameter
+    return 0;
+}
+
 /**
- * Produce a new copy of a `StrList`
- * @param pStrList  `StrList`
- * @return `StrList` copy
+ * Append lines from a local file or remote URL (HTTP/s only)
+ * @param pStrList
+ * @param path file path or HTTP/s address
+ * @param readerFn pointer to a reader function (use NULL to retrieve all data)
+ * @return 0=success 1=no data, -1=error (spmerrno set)
  */
-StrList *strlist_copy(StrList *pStrList) {
-    StrList *result = strlist_init();
-    if (pStrList == NULL || result == NULL) {
-        return NULL;
+int strlist_append_file(StrList *pStrList, char *_path, ReaderFn *readerFn) {
+    int retval = 0;
+    int is_remote = 0;
+    char *path = NULL;
+    char *filename = NULL;
+    char *from_file_tmpdir = NULL;
+    char **data = NULL;
+
+    if (readerFn == NULL) {
+        readerFn = reader_strlist_append_file;
     }
 
-    for (size_t i = 0; i < strlist_count(pStrList); i++) {
-        strlist_append(result, strlist_item(pStrList, i));
+    path = strdup(_path);
+    if (path == NULL) {
+        spmerrno = errno;
+        retval = -1;
+        goto fatal;
     }
-    return result;
+
+    is_remote = (startswith(path, "http") || startswith(path, "https"));
+    if (is_remote) {
+        long response = 0;
+        char *fetched = NULL;
+        from_file_tmpdir = spm_mkdtemp(TMP_DIR, __FUNCTION__, NULL);
+
+        if (from_file_tmpdir == NULL) {
+            spmerrno = errno;
+            spmerrno_cause("file_from temp directory");
+            retval = -1;
+            goto fatal;
+        }
+
+        fetched = join((char *[]){from_file_tmpdir, basename(path), NULL}, DIRSEPS);
+        if ((response = fetch(path, fetched)) >= 400) {
+            spmerrno = SPM_ERR_FETCH;
+            char cause[PATH_MAX];
+            sprintf(cause, "HTTP(%ld): %s: %s", response, http_response_str(response), path);
+            spmerrno_cause(cause);
+            retval = -1;
+            goto fatal;
+        }
+
+        filename = strdup(fetched);
+        free(fetched);
+    } else {
+        filename = expandpath(path);
+    }
+
+    if (filename == NULL) {
+        spmerrno = errno;
+        retval = -1;
+        goto fatal;
+    }
+
+    data = file_readlines(filename, 0, 0, readerFn);
+    if (data == NULL) {
+        retval = 1;
+        goto fatal;
+    }
+
+    for (size_t record = 0; data[record] != NULL; record++) {
+        strlist_append(pStrList, data[record]);
+        free(data[record]);
+    }
+    free(data);
+
+fatal:
+    if (from_file_tmpdir != NULL) {
+        rmdirs(from_file_tmpdir);
+        free(from_file_tmpdir);
+    }
+    if (filename != NULL) {
+        free(filename);
+    }
+    if (path != NULL) {
+        free(path);
+    }
+
+    return retval;
 }
 
 /**
@@ -80,6 +158,23 @@ void strlist_append_strlist(StrList *pStrList1, StrList *pStrList2) {
         char *item = strlist_item(pStrList2, i);
         strlist_append(pStrList1, item);
     }
+}
+
+/**
+ * Produce a new copy of a `StrList`
+ * @param pStrList  `StrList`
+ * @return `StrList` copy
+ */
+StrList *strlist_copy(StrList *pStrList) {
+    StrList *result = strlist_init();
+    if (pStrList == NULL || result == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < strlist_count(pStrList); i++) {
+        strlist_append(result, strlist_item(pStrList, i));
+    }
+    return result;
 }
 
 /**

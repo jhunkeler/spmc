@@ -41,6 +41,11 @@ enum truthValue {
     uint64_max,
 };
 
+char *testfile_truth[] = {
+        "a", "b", "c", "d", "e", "f", "g", "h",
+        NULL,
+};
+
 
 int main(int argc, char *argv[]) {
     const char *storyFmt = "expected story: '%s', but got '%s'\n";
@@ -48,13 +53,15 @@ int main(int argc, char *argv[]) {
     union TestValue testValue = {0,};
     StrList *strList = NULL;
     StrList *strListCopy = NULL;
-    StrList *strListNumbers = NULL;
     StrList truthInit = {1, 0, NULL};
     size_t used = 0;
     size_t allocated = 0;
     char intStr[255];
     const int DATA_SIZE = (sizeof(DATA) / sizeof(char *)) - 1;
 
+    StrList *testfile_list = NULL;
+    char testfile[PATH_MAX];
+    char *testfile_data;
 
     // Initialize string list and check initial state
     strList = strlist_init();
@@ -101,13 +108,13 @@ int main(int argc, char *argv[]) {
     myassert(strListCopy != NULL, "strlist_copy failed\n");
 
     // Now compare the arrays to make sure they're identical
-    myassert(strlist_cmp(strList, strListCopy) == 0, "strlist_copy result does not match original StrList contents");
+    myassert(strlist_cmp(strList, strListCopy) == 0, "strlist_copy result does not match original StrList contents\n");
 
     // Sort the array to see if it works.
     strlist_sort(strListCopy, SPM_SORT_LEN_ASCENDING);
 
     // The array just got modified, so check to make sure they are NOT identical
-    myassert(strlist_cmp(strList, strListCopy) == 1, "StrList data matches original StrList contents (after modification)");
+    myassert(strlist_cmp(strList, strListCopy) == 1, "StrList data matches original StrList contents (after modification)\n");
 
     story = join(strListCopy->data, " ");
     myassert(strcmp(story, story_truth_sort_asc) == 0, storyFmt, story_truth_sort_asc, story);
@@ -145,38 +152,63 @@ int main(int argc, char *argv[]) {
     // NOTE: My focus is on 64-bit, so if you're compiling this on a 32-bit computer
     //       and these tests fail for you... That's a shame.
     testValue.signed_char = strlist_item_as_char(strList, DATA_SIZE + int8_max);
-    myassert(testValue.signed_char == INT8_MAX, "int8_max incorrect: %d", testValue.signed_char);
+    myassert(testValue.signed_char == INT8_MAX, "int8_max incorrect: %d\n", testValue.signed_char);
 
     testValue.unsigned_char = strlist_item_as_uchar(strList, DATA_SIZE + uint8_max);
-    myassert(testValue.unsigned_char == UINT8_MAX, "uint8_max incorrect: %d", testValue.unsigned_char);
+    myassert(testValue.unsigned_char == UINT8_MAX, "uint8_max incorrect: %d\n", testValue.unsigned_char);
 
     testValue.signed_short = strlist_item_as_short(strList, DATA_SIZE + int16_max);
-    myassert(testValue.signed_short == INT16_MAX, "int16_max incorrect: %d", testValue.signed_short);
+    myassert(testValue.signed_short == INT16_MAX, "int16_max incorrect: %d\n", testValue.signed_short);
 
     testValue.unsigned_short = strlist_item_as_ushort(strList, DATA_SIZE + uint16_max);
-    myassert(testValue.unsigned_short == UINT16_MAX, "uint16_max incorrect: %d", testValue.unsigned_short);
+    myassert(testValue.unsigned_short == UINT16_MAX, "uint16_max incorrect: %d\n", testValue.unsigned_short);
 
     testValue.signed_int = strlist_item_as_int(strList, DATA_SIZE + int32_max);
-    myassert(testValue.signed_int == INT32_MAX, "int32_max incorrect: %d", testValue.signed_int);
+    myassert(testValue.signed_int == INT32_MAX, "int32_max incorrect: %d\n", testValue.signed_int);
 
     testValue.unsigned_int = strlist_item_as_uint(strList, DATA_SIZE + uint32_max);
-    myassert(testValue.unsigned_int == UINT32_MAX, "uint32_max incorrect: %d", testValue.unsigned_int);
+    myassert(testValue.unsigned_int == UINT32_MAX, "uint32_max incorrect: %d\n", testValue.unsigned_int);
 
     testValue.signed_long = strlist_item_as_long(strList, DATA_SIZE + int64_max);
-    myassert(testValue.signed_long == INT64_MAX, "int64_max (long) incorrect: %ld", testValue.signed_long);
+    myassert(testValue.signed_long == INT64_MAX, "int64_max (long) incorrect: %ld\n", testValue.signed_long);
 
     testValue.unsigned_long = strlist_item_as_ulong(strList, DATA_SIZE + uint64_max);
-    myassert(testValue.unsigned_long == UINT64_MAX, "uint64_max (long) incorrect: %lu", testValue.unsigned_long);
+    myassert(testValue.unsigned_long == UINT64_MAX, "uint64_max (long) incorrect: %lu\n", testValue.unsigned_long);
 
     testValue.signed_long_long = strlist_item_as_long_long(strList, DATA_SIZE + int64_max);
-    myassert(testValue.signed_long_long == INT64_MAX, "int64_max (long long) incorrect: %lld", testValue.signed_long_long);
+    myassert(testValue.signed_long_long == INT64_MAX, "int64_max (long long) incorrect: %lld\n", testValue.signed_long_long);
 
     testValue.unsigned_long_long = strlist_item_as_ulong_long(strList, DATA_SIZE + uint64_max);
-    myassert(testValue.unsigned_long_long == UINT64_MAX, "uint64_max (long long) incorrect: %llu", testValue.unsigned_long_long);
+    myassert(testValue.unsigned_long_long == UINT64_MAX, "uint64_max (long long) incorrect: %llu\n", testValue.unsigned_long_long);
 
     testValue.floating = strlist_item_as_float(strList, DATA_SIZE + uint64_max + 1);
-    myassert(testValue.floating == MAXFLOAT, "floating point maximum incorrect: %f", testValue.floating);
+    myassert(testValue.floating == MAXFLOAT, "floating point maximum incorrect: %f\n", testValue.floating);
 
+    // Read a text file into a StrList
+    testfile_data = join(testfile_truth, "\n");
+    testfile_list = strlist_init();
+    char *base = strdup(basename(__FILE__));
+    sprintf(testfile, "%s.txt", base);
+    free(base);
+
+    if (exists(testfile)) {
+        unlink(testfile);
+    }
+
+    mock(testfile, testfile_data, sizeof(char), strlen(testfile_data));
+    strlist_append_file(testfile_list, testfile, NULL);
+
+    myassert(testfile_list != NULL, "testfile_list was not initialized\n");
+    size_t testfile_record_count = strlist_count(testfile_list);
+
+    for (size_t record = 0; record < testfile_record_count; record++) {
+        char *item = strlist_item(testfile_list, record);
+        char *orig = testfile_truth[record];
+        strip(item);
+        myassert(strcmp(orig, item) == 0, "item is '%s', expected '%s'", item, orig);
+    }
+
+    strlist_free(testfile_list);
     strlist_free(strList);
     return 0;
 }

@@ -41,6 +41,5 @@ char *human_readable_size(uint64_t n);
 char *expandpath(const char *_path);
 char *spm_mkdtemp(const char *base, const char *name, const char *extended_path);
 int touch(const char *path);
-
-
+char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn *readerFn);
 #endif //SPM_FSTREE_H

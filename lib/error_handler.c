@@ -15,6 +15,7 @@ const char *SPM_ERR_STRING[] = {
         "Manifest has no data",
         "Parsing error",
         "Not implemented",
+        "Failed to fetch data",
         NULL,
 };
 
@@ -55,3 +56,7 @@ void spm_perror(const char *msg) {
     fprintf(stderr, "%s: %s\n", msg ? msg : "", spm_strerror(spmerrno));
 }
 
+void spm_die(void) {
+    spm_perror("FATAL");
+    exit(1);
+}

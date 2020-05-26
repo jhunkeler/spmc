@@ -18,6 +18,7 @@
 #define SPM_ERR_MANIFEST_EMPTY      _SPM_ERR(8)     // manifest file has no data
 #define SPM_ERR_PARSE               _SPM_ERR(9)     // general parsing error
 #define SPM_ERR_NOT_IMPLEMENTED     _SPM_ERR(10)    // not implemented (does exist on this platform)
+#define SPM_ERR_FETCH               _SPM_ERR(11)    // failed to download data (non-package)
 
 extern int spmerrno;
 extern const char *SPM_ERR_STRING[];
@@ -25,5 +26,6 @@ extern const char *SPM_ERR_STRING[];
 void spmerrno_cause(const char *reason);
 char *spm_strerror(int code);
 void spm_perror(const char *msg);
+void spm_die(void);
 
 #endif //SPM_ERROR_HANDLER_H
