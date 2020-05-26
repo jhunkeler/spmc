@@ -10,8 +10,9 @@ int RUNTIME_INSTALL = 0;
 int RUNTIME_ROOTDIR = 0;
 int RUNTIME_LIST = 0;
 int RUNTIME_SEARCH = 0;
+char *program_name = NULL;
 
-void usage(const char *program_name) {
+void usage(void) {
     printf("usage: %s [-hVvBIRrmMLS]\n"
            "  -h,  --help                show this help message\n"
            "  -V,  --version             show version\n"
@@ -31,7 +32,8 @@ void usage(const char *program_name) {
 
 extern spm_vars SPM_GLOBAL;
 
-static int reader_from_file(size_t lineno, char **line) {
+static int reader_install_strlist_append_file(size_t lineno, char **line) {
+    (void)(lineno); // unused parameter
     (*line) = strip((*line));
     if (isempty((*line)) || startswith((*line), "#") || startswith((*line), ";") || startswith((*line), "//")) {
         return 1; // indicate "continue"
@@ -40,7 +42,7 @@ static int reader_from_file(size_t lineno, char **line) {
 }
 
 int main(int argc, char *argv[], char *arge[]) {
-    char *program_name = strdup(argv[0]);
+    program_name = strdup(argv[0]);
 
     // not much to see here yet
     // at the moment this will all be random tests, for better or worse
@@ -62,7 +64,7 @@ int main(int argc, char *argv[], char *arge[]) {
     memset(package_search_str, '\0', PATH_MAX);
 
     if (argc < 2) {
-        usage(program_name);
+        usage();
         exit(1);
     }
 
@@ -75,7 +77,7 @@ int main(int argc, char *argv[], char *arge[]) {
         // options
         if (*arg == '-' || strncmp(arg, "--", 2) == 0) {
             if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0) {
-                usage(program_name);
+                usage();
                 exit(0);
             }
             else if (strcmp(arg, "-V") == 0 || strcmp(arg, "--version") == 0) {
@@ -94,7 +96,7 @@ int main(int argc, char *argv[], char *arge[]) {
             else if (strcmp(arg, "-m") == 0 || strcmp(arg, "--manifest") == 0) {
                 if (arg_next == NULL) {
                     fprintf(stderr, "-m|--manifest requires a directory path\n");
-                    usage(program_name);
+                    usage();
                     exit(1);
                 }
                 manifestlist_append(mf, arg_next);
@@ -125,7 +127,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 RUNTIME_SEARCH = 1;
                 if (arg_next == NULL) {
                     fprintf(stderr, "--search requires a package name\n");
-                    usage(program_name);
+                    usage();
                     exit(1);
                 }
                 strncpy(package_search_str, arg_next, strlen(arg_next));
@@ -135,7 +137,7 @@ int main(int argc, char *argv[], char *arge[]) {
                 RUNTIME_ROOTDIR = 1;
                 if (!arg_next) {
                     fprintf(stderr, "-r|--root requires a path\n");
-                    usage(program_name);
+                    usage();
                     exit(1);
                 }
 
@@ -159,7 +161,7 @@ int main(int argc, char *argv[], char *arge[]) {
                     }
                     if ((argc - i) == 0) {
                         fprintf(stderr, "-R|--remove requires at least one package\n");
-                        usage(program_name);
+                        usage();
                         exit(1);
                     }
                     strlist_append(packages, argv[i]);
@@ -168,35 +170,19 @@ int main(int argc, char *argv[], char *arge[]) {
             else if (strcmp(arg, "-F") == 0 || strcmp(arg, "--from-file") == 0) {
                 RUNTIME_INSTALL = 1;
                 i++;
-                char **from_file = NULL;
                 char *next = argv[i];
-                char *filename = calloc(PATH_MAX, sizeof(char));
+                int retval = 0;
 
-                if (next == NULL || (startswith(next, "-") || startswith(next, "--"))) {
+                if (next == NULL || startswith(next, "--")) { // do not trap '-' (stdin)
                     fprintf(stderr, "-F|--from-file requires a file path\n");
-                    usage(program_name);
+                    usage();
                     exit(1);
                 }
 
-                filename = expandpath(next);
-                if (exists(filename) != 0) {
-                    perror(filename);
-                    exit(1);
+                retval = strlist_append_file(packages, next, reader_install_strlist_append_file);
+                if (retval != 0) {
+                    spm_die();
                 }
-
-                from_file = file_readlines(filename, 0, 0, reader_from_file);
-
-                if (from_file == NULL) {
-                    perror(filename);
-                    exit(1);
-                }
-
-                for (size_t record = 0; from_file[record] != NULL; record++) {
-                    strlist_append(packages, from_file[record]);
-                    free(from_file[record]);
-                }
-                free(from_file);
-                free(filename);
             }
             else if (strcmp(arg, "-I") == 0 || strcmp(arg, "--install") == 0) {
                 RUNTIME_INSTALL = 1;
@@ -209,7 +195,7 @@ int main(int argc, char *argv[], char *arge[]) {
                     }
                     if ((argc - i) == 0) {
                         fprintf(stderr, "-I|--install requires at least one package\n");
-                        usage(program_name);
+                        usage();
                         exit(1);
                     }
                     strlist_append(packages, next);
@@ -218,9 +204,13 @@ int main(int argc, char *argv[], char *arge[]) {
         }
         else {
             printf("Unknown option: %s\n", arg);
-            usage(program_name);
+            usage();
             exit(1);
         }
+    }
+
+    if (spmerrno) {
+        spm_die();
     }
 
     // Apply some default manifest locations; unless the user passes -M|--override-manifests
@@ -238,11 +228,11 @@ int main(int argc, char *argv[], char *arge[]) {
 
     if (!RUNTIME_ROOTDIR && RUNTIME_INSTALL) {
         fprintf(stderr, "-r|--root requires -I|--install\n");
-        usage(program_name);
+        usage();
         exit(1);
     } else if (!RUNTIME_ROOTDIR && RUNTIME_REMOVE) {
         fprintf(stderr, "-r|--root requires -R|--remove\n");
-        usage(program_name);
+        usage();
         exit(1);
     }
 
