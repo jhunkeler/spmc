@@ -60,8 +60,9 @@ static int reader_strlist_append_file(size_t lineno, char **line) {
  * @param readerFn pointer to a reader function (use NULL to retrieve all data)
  * @return 0=success -1=error (spmerrno set)
  */
-int strlist_append_file(StrList *pStrList, char *path, ReaderFn *readerFn) {
+int strlist_append_file(StrList *pStrList, char *_path, ReaderFn *readerFn) {
     int is_remote = 0;
+    char *path = NULL;
     char *filename = NULL;
     char *from_file_tmpdir = NULL;
     char **from_file = NULL;
@@ -69,6 +70,12 @@ int strlist_append_file(StrList *pStrList, char *path, ReaderFn *readerFn) {
 
     if (readerFn == NULL) {
         readerFn = reader_strlist_append_file;
+    }
+
+    path = strdup(_path);
+    if (path == NULL) {
+        spmerrno = errno;
+        return -1;
     }
 
     filename = calloc(PATH_MAX, sizeof(char));
@@ -99,7 +106,7 @@ int strlist_append_file(StrList *pStrList, char *path, ReaderFn *readerFn) {
             return -1;
         }
 
-        strcpy(filename, fetched);
+        strncpy(filename, fetched, PATH_MAX - 1);
     }
 
     if (exists(filename) != 0) {
