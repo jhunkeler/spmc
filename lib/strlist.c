@@ -58,15 +58,15 @@ static int reader_strlist_append_file(size_t lineno, char **line) {
  * @param pStrList
  * @param path file path or HTTP/s address
  * @param readerFn pointer to a reader function (use NULL to retrieve all data)
- * @return 0=success -1=error (spmerrno set)
+ * @return 0=success 1=no data, -1=error (spmerrno set)
  */
 int strlist_append_file(StrList *pStrList, char *_path, ReaderFn *readerFn) {
+    int retval = 0;
     int is_remote = 0;
     char *path = NULL;
     char *filename = NULL;
     char *from_file_tmpdir = NULL;
-    char **from_file = NULL;
-    char *fetched = NULL;
+    char **data = NULL;
 
     if (readerFn == NULL) {
         readerFn = reader_strlist_append_file;
@@ -75,26 +75,21 @@ int strlist_append_file(StrList *pStrList, char *_path, ReaderFn *readerFn) {
     path = strdup(_path);
     if (path == NULL) {
         spmerrno = errno;
-        return -1;
+        retval = -1;
+        goto fatal;
     }
-
-    filename = calloc(PATH_MAX, sizeof(char));
-    if (filename == NULL) {
-        spmerrno = errno;
-        return -1;
-    }
-
-    filename = expandpath(path);
 
     is_remote = (startswith(path, "http") || startswith(path, "https"));
     if (is_remote) {
         long response = 0;
+        char *fetched = NULL;
         from_file_tmpdir = spm_mkdtemp(TMP_DIR, __FUNCTION__, NULL);
 
         if (from_file_tmpdir == NULL) {
             spmerrno = errno;
             spmerrno_cause("file_from temp directory");
-            return -1;
+            retval = -1;
+            goto fatal;
         }
 
         fetched = join((char *[]){from_file_tmpdir, basename(path), NULL}, DIRSEPS);
@@ -103,38 +98,47 @@ int strlist_append_file(StrList *pStrList, char *_path, ReaderFn *readerFn) {
             char cause[PATH_MAX];
             sprintf(cause, "HTTP(%ld): %s: %s", response, http_response_str(response), path);
             spmerrno_cause(cause);
-            return -1;
+            retval = -1;
+            goto fatal;
         }
 
-        strncpy(filename, fetched, PATH_MAX - 1);
+        filename = strdup(fetched);
+        free(fetched);
+    } else {
+        filename = expandpath(path);
     }
 
-    if (exists(filename) != 0) {
+    if (filename == NULL) {
         spmerrno = errno;
-        spmerrno_cause(filename);
-        return -1;
+        retval = -1;
+        goto fatal;
     }
 
-    from_file = file_readlines(filename, 0, 0, readerFn);
-    if (from_file == NULL) {
-        spmerrno = errno;
-        spmerrno_cause(filename);
-        return -1;
+    data = file_readlines(filename, 0, 0, readerFn);
+    if (data == NULL) {
+        retval = 1;
+        goto fatal;
     }
 
-    for (size_t record = 0; from_file[record] != NULL; record++) {
-        strlist_append(pStrList, from_file[record]);
-        free(from_file[record]);
+    for (size_t record = 0; data[record] != NULL; record++) {
+        strlist_append(pStrList, data[record]);
+        free(data[record]);
     }
-    free(from_file);
+    free(data);
 
-    if (from_file_tmpdir) {
+fatal:
+    if (from_file_tmpdir != NULL) {
         rmdirs(from_file_tmpdir);
+        free(from_file_tmpdir);
     }
-    free(from_file_tmpdir);
-    free(filename);
+    if (filename != NULL) {
+        free(filename);
+    }
+    if (path != NULL) {
+        free(path);
+    }
 
-    return 0;
+    return retval;
 }
 
 /**

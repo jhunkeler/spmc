@@ -13,7 +13,6 @@ typedef struct {
 } StrList;
 
 StrList *strlist_init();
-int strlist_append_file(StrList *pStrList, char *path, ReaderFn *readerFn);
 void strlist_remove(StrList *pStrList, size_t index);
 long double strlist_item_as_long_double(StrList *pStrList, size_t index);
 double strlist_item_as_double(StrList *pStrList, size_t index);
@@ -28,13 +27,13 @@ unsigned short strlist_item_as_ushort(StrList *pStrList, size_t index);
 short strlist_item_as_short(StrList *pStrList, size_t index);
 unsigned char strlist_item_as_uchar(StrList *pStrList, size_t index);
 char strlist_item_as_char(StrList *pStrList, size_t index);
-unsigned char strlist_item_as_uchar(StrList *pStrList, size_t index);
 char *strlist_item_as_str(StrList *pStrList, size_t index);
 char *strlist_item(StrList *pStrList, size_t index);
 void strlist_set(StrList *pStrList, size_t index, char *value);
 size_t strlist_count(StrList *pStrList);
 void strlist_reverse(StrList *pStrList);
 void strlist_sort(StrList *pStrList, unsigned int mode);
+int strlist_append_file(StrList *pStrList, char *path, ReaderFn *readerFn);
 void strlist_append_strlist(StrList *pStrList1, StrList *pStrList2);
 void strlist_append(StrList *pStrList, char *str);
 StrList *strlist_copy(StrList *pStrList);
