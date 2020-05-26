@@ -4,6 +4,7 @@
  */
 #ifndef SPM_STRLIST_H
 #define SPM_STRLIST_H
+#include "metadata.h"
 
 typedef struct {
     size_t num_alloc;
@@ -12,6 +13,7 @@ typedef struct {
 } StrList;
 
 StrList *strlist_init();
+int strlist_append_file(StrList *pStrList, char *path, ReaderFn *readerFn);
 void strlist_remove(StrList *pStrList, size_t index);
 long double strlist_item_as_long_double(StrList *pStrList, size_t index);
 double strlist_item_as_double(StrList *pStrList, size_t index);
