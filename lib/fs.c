@@ -647,8 +647,19 @@ char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn
     char **result = NULL;
     char *buffer = NULL;
     size_t lines = 0;
+    int use_stdin = 0;
 
-    if ((fp = fopen(filename, "r")) == NULL) {
+    if (strcmp(filename, "-") == 0) {
+        use_stdin = 1;
+    }
+
+    if (use_stdin) {
+        fp = stdin;
+    } else {
+        fp = fopen(filename, "r");
+    }
+
+    if (fp == NULL) {
         perror(filename);
         fprintf(SYSERROR);
         return NULL;
@@ -658,7 +669,9 @@ char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn
     if ((buffer = calloc(BUFSIZ, sizeof(char))) == NULL) {
         perror("line buffer");
         fprintf(SYSERROR);
-        fclose(fp);
+        if (!use_stdin) {
+            fclose(fp);
+        }
         return NULL;
     }
 
@@ -669,10 +682,10 @@ char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn
 
     if (!lines) {
         free(buffer);
-        fclose(fp);
-        result = calloc(2, sizeof(char *));
-        result[0] = strdup("");
-        return result;
+        if (!use_stdin) {
+            fclose(fp);
+        }
+        return NULL;
     }
 
     rewind(fp);
@@ -721,6 +734,8 @@ char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn
     }
 
     free(buffer);
-    fclose(fp);
+    if (!use_stdin) {
+        fclose(fp);
+    }
     return result;
 }
