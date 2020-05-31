@@ -11,6 +11,18 @@
 #define SPM_FSTREE_FLT_RELATIVE 1 << 4
 
 typedef struct {
+    char *name;
+    struct stat *st;
+} FSRec;
+
+typedef struct {
+    char *root;
+    FSRec **record;
+    size_t num_records;
+    size_t _num_alloc;
+} FSTreeEx;
+
+typedef struct {
     char *root;
     char **dirs;
     size_t dirs_length;
@@ -26,6 +38,8 @@ typedef struct {
 } FSList;
 
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
+FSTreeEx *fstree_ex(const char *_path, char **filter_by, unsigned int filter_mode);
+void fstree_ex_free(FSTreeEx *fsdata);
 FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode);
 void fstree_free(FSTree *fsdata);
 FSList *fslist(const char *path);
