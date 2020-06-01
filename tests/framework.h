@@ -104,7 +104,7 @@ char *mock_size(size_t size, const char *fill_byte) {
     }
 
     if ((mkstemp(filename)) < 0) {
-        perror("mktemp failed to create temporary file");
+        perror("mkstemp failed to create temporary file");
         exit(errno);
     }
 
