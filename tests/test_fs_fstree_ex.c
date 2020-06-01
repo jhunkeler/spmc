@@ -7,7 +7,7 @@ struct TestCase testCase[] = {
 };
 size_t numCases = sizeof(testCase) / sizeof(struct TestCase);
 
-static int fsrec_ino_cmp(const void *a, const void *b) {
+static int sortby_inode(const void *a, const void *b) {
     FSRec **ia = (FSRec **)a;
     FSRec **ib = (FSRec **)b;
     return (*ia)->st->st_ino > (*ib)->st->st_ino;
@@ -18,12 +18,13 @@ int main(int argc, char *argv[]) {
         // myassert()
     }
 
-    FSTreeEx *fsdata = fstree_ex(".", (char *[]){"", NULL}, SPM_FSTREE_FLT_ENDSWITH);
+
+    FSTree *fsdata = fstree(".", (char *[]){"", NULL}, SPM_FSTREE_FLT_ENDSWITH);
     if (fsdata == NULL) {
         spm_perror("fstree");
         exit(1);
     }
-    qsort(fsdata->record, fsdata->num_records, sizeof(FSRec *), fsrec_ino_cmp);
+    qsort(fsdata->record, fsdata->num_records, sizeof(FSRec *), sortby_inode);
 
     printf("root: %s\n", fsdata->root);
     /*
@@ -61,6 +62,7 @@ int main(int argc, char *argv[]) {
         printf("item[%zu]: %s\n", i, item);
     }
 
-    fstree_ex_free(fsdata);
+    fstree_free(fsdata);
+    strlist_free(list);
     return 0;
 }

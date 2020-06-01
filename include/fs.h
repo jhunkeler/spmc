@@ -20,8 +20,9 @@ typedef struct {
     FSRec **record;
     size_t num_records;
     size_t _num_alloc;
-} FSTreeEx;
+} FSTree;
 
+/*
 typedef struct {
     char *root;
     char **dirs;
@@ -29,6 +30,7 @@ typedef struct {
     char **files;
     size_t files_length;
 } FSTree;
+ */
 
 typedef struct {
     char *root;
@@ -38,10 +40,9 @@ typedef struct {
 } FSList;
 
 int _fstree_compare(const FTSENT **a, const FTSENT **b);
-FSTreeEx *fstree_ex(const char *_path, char **filter_by, unsigned int filter_mode);
-void fstree_ex_free(FSTreeEx *fsdata);
 FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode);
 void fstree_free(FSTree *fsdata);
+char *fstree_search(FSTree *fsdata, char *path);
 FSList *fslist(const char *path);
 void fslist_free(FSList *fsdata);
 int exists(const char *filename);
