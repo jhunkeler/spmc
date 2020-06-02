@@ -22,16 +22,6 @@ typedef struct {
     size_t _num_alloc;
 } FSTree;
 
-/*
-typedef struct {
-    char *root;
-    char **dirs;
-    size_t dirs_length;
-    char **files;
-    size_t files_length;
-} FSTree;
- */
-
 typedef struct {
     char *root;
     struct dirent **record;

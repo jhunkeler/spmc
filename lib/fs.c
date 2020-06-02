@@ -37,7 +37,7 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
         strcpy(filter_by[0], "");
     }
 
-    size_t size = 2;
+    size_t size = 1;
     size_t records = 0;
 
     fsdata = (FSTree *)calloc(1, sizeof(FSTree));
