@@ -175,7 +175,7 @@ void manifest_free(Manifest *info) {
  * @param info `ManifestPackage`
  */
 void manifest_package_free(ManifestPackage *info) {
-    if (info->requirements == NULL) {
+    if (info == NULL) {
         return;
     }
 
