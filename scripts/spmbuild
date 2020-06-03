@@ -42,10 +42,7 @@ function msg_warn() {
 }
 
 function tar() {
-    local cmd=tar
-    if [[ $(uname -s) == Darwin ]]; then
-        cmd=gtar
-    fi
+    local cmd=bsdtar
     $cmd "$@"
 }
 
