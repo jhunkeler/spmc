@@ -344,8 +344,11 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     }
 
     // free requirements array
-    for (size_t i = 0; requirements != NULL && requirements[i] != NULL; i++) {
-        manifest_package_free(requirements[i]);
+    for (size_t i = 0; i < num_requirements; i++) {
+        if (requirements[i] != NULL) {
+            manifest_package_free(requirements[i]);
+            requirements[i] = NULL;
+        }
     }
     free(package_dir);
 

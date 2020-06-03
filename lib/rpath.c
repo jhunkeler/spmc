@@ -256,7 +256,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
 
         // Is the shared library in the tree?
         char *match = NULL;
-        if ((match = dirname(strstr_array(tree->files, shared_library))) != NULL) {
+        if ((match = dirname(fstree_search(tree, shared_library))) != NULL) {
             // Begin generating the relative path string
             strcat(relative, origin);
             strcat(relative, DIRSEPS);

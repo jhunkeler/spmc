@@ -314,17 +314,20 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
             fprintf(SYSERROR);
             return -1;
         }
-        for (size_t i = 0; i < fsdata->files_length; i++) {
-            if (file_is_metadata(fsdata->files[i])) {
+        for (size_t i = 0; i < fsdata->record; i++) {
+            if (S_ISDIR(fsdata->record[i]->st->st_mode)) {
+                continue;
+            }
+            if (file_is_metadata(fsdata->record[i]->name)) {
                 continue;
             }
             for (int p = 0; prefix[p] != NULL; p++) {
-                if (find_in_file(fsdata->files[i], prefix[p]) == 0) {
+                if (find_in_file(fsdata->record[i]->name, prefix[p]) == 0) {
                     int proceed = 0;
                     if (mode == PREFIX_WRITE_BIN) {
-                        proceed = file_is_binary(fsdata->files[i]);
+                        proceed = file_is_binary(fsdata->record[i]->name);
                     } else if (mode == PREFIX_WRITE_TEXT) {
-                        proceed = file_is_text(fsdata->files[i]);
+                        proceed = file_is_text(fsdata->record[i]->name);
                     }
 
                     // file_is_* functions return NULL when they encounter anything but a regular file
@@ -332,7 +335,7 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
                         continue;
                     }
                     // Record in file
-                    fprintf(fp, "#%s\n%s\n", prefix[p], fsdata->files[i]);
+                    fprintf(fp, "#%s\n%s\n", prefix[p], fsdata->record[i]->name);
                 }
             }
         }

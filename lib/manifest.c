@@ -59,7 +59,7 @@ Manifest *manifest_from(const char *package_dir) {
     fsdata = fstree(package_dir, package_filter, SPM_FSTREE_FLT_ENDSWITH);
 
     Manifest *info = (Manifest *)calloc(1, sizeof(Manifest));
-    info->records = fsdata->files_length;
+    info->records = fsdata->num_records;
     info->packages = (ManifestPackage **) calloc(info->records + 1, sizeof(ManifestPackage *));
     if (info->packages == NULL) {
         perror("Failed to allocate package array");
@@ -84,11 +84,15 @@ Manifest *manifest_from(const char *package_dir) {
         return NULL;
     }
 
-    for (size_t i = 0; i < fsdata->files_length; i++) {
-        float percent = (((float)i + 1) / fsdata->files_length) * 100;
+    for (size_t i = 0; i < fsdata->num_records; i++) {
+        if (S_ISDIR(fsdata->record[i]->st->st_mode)) {
+            continue;
+        }
+
+        float percent = (((float)i + 1) / fsdata->num_records) * 100;
 
         if (SPM_GLOBAL.verbose) {
-            printf("[%3.0f%%] %s\n", percent, basename(fsdata->files[i]));
+            printf("[%3.0f%%] %s\n", percent, basename(fsdata->record[i]->name));
         }
 
         // Initialize package record
@@ -103,21 +107,21 @@ Manifest *manifest_from(const char *package_dir) {
         }
 
         // Swap extra package separators with a bogus character
-        manifest_package_separator_swap(&fsdata->files[i]);
+        manifest_package_separator_swap(&fsdata->record[i]->name);
 
         // Split the package name into parts
         char psep[2];
         snprintf(psep, sizeof(psep), "%c", SPM_PACKAGE_MEMBER_SEPARATOR);
-        char **parts = split(fsdata->files[i], psep);
+        char **parts = split(fsdata->record[i]->name, psep);
 
         // Restore package separator
         manifest_package_separator_restore(&parts[0]);
-        manifest_package_separator_restore(&fsdata->files[i]);
+        manifest_package_separator_restore(&fsdata->record[i]->name);
 
         // Populate `ManifestPackage` record
-        info->packages[i]->size = (size_t) get_file_size(fsdata->files[i]);
+        info->packages[i]->size = (size_t) get_file_size(fsdata->record[i]->name);
         strncpy(info->packages[i]->origin, info->origin, SPM_PACKAGE_MEMBER_ORIGIN_SIZE);
-        strncpy(info->packages[i]->archive, basename(fsdata->files[i]), SPM_PACKAGE_MEMBER_SIZE);
+        strncpy(info->packages[i]->archive, basename(fsdata->record[i]->name), SPM_PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->name, basename(parts[0]), SPM_PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->version, parts[1], SPM_PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->revision, parts[2], SPM_PACKAGE_MEMBER_SIZE);
@@ -171,7 +175,7 @@ void manifest_free(Manifest *info) {
  * @param info `ManifestPackage`
  */
 void manifest_package_free(ManifestPackage *info) {
-    if (info->requirements == NULL) {
+    if (info == NULL) {
         return;
     }
 

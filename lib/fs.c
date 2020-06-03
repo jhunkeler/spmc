@@ -23,8 +23,8 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
     }
 
     if (path == NULL) {
-        perror(_path);
-        fprintf(SYSERROR);
+        spmerrno = errno;
+        spmerrno_cause(_path);
         return NULL;
     }
     char *root[2] = { path, NULL };
@@ -37,15 +37,12 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
         strcpy(filter_by[0], "");
     }
 
-    size_t dirs_size = 2;
-    size_t dirs_records = 0;
-    size_t files_size = 2;
-    size_t files_records = 0;
+    size_t size = 1;
+    size_t records = 0;
 
     fsdata = (FSTree *)calloc(1, sizeof(FSTree));
-    fsdata->root = (char *)calloc(PATH_MAX, sizeof(char));
-    fsdata->dirs = (char **)calloc(dirs_size, sizeof(char *));
-    fsdata->files = (char **)calloc(files_size, sizeof(char *));
+    fsdata->root = calloc(PATH_MAX, sizeof(char));
+    fsdata->record = calloc(size, sizeof(FSRec *));
 
     if (filter_mode & SPM_FSTREE_FLT_RELATIVE) {
         // Return an absolute path regardless
@@ -56,55 +53,83 @@ FSTree *fstree(const char *_path, char **filter_by, unsigned int filter_mode) {
 
     parent = fts_open(root, FTS_PHYSICAL | FTS_NOCHDIR, &_fstree_compare);
 
+    size_t last_size = size;
     if (parent != NULL) {
         while ((node = fts_read(parent)) != NULL) {
             for (size_t i = 0; filter_by[i] != NULL; i++) {
                 // Drop paths containing filter string(s) according to the requested mode
-                if (filter_mode & SPM_FSTREE_FLT_CONTAINS && strstr(node->fts_path, filter_by[i]) == NULL) {
+                if ((filter_mode & SPM_FSTREE_FLT_CONTAINS) && strstr(node->fts_path, filter_by[i]) == NULL) {
                     continue;
                 }
-                else if (filter_mode & SPM_FSTREE_FLT_ENDSWITH && !endswith(node->fts_path, filter_by[i])) {
+                else if ((filter_mode & SPM_FSTREE_FLT_ENDSWITH) && !endswith(node->fts_path, filter_by[i])) {
                     continue;
                 }
-                else if (filter_mode & SPM_FSTREE_FLT_STARTSWITH && !startswith(node->fts_path, filter_by[i])) {
+                else if ((filter_mode & SPM_FSTREE_FLT_STARTSWITH) && !startswith(node->fts_path, filter_by[i])) {
                     continue;
                 }
-                switch (node->fts_info) {
-                    case FTS_D:
-                        if (strcmp(node->fts_path, "..") == 0 || strcmp(node->fts_path, ".") == 0) {
-                            continue;
-                        }
-                        fsdata->dirs = (char **) realloc(fsdata->dirs, sizeof(char *) * dirs_size);
-                        fsdata->dirs[dirs_size - 1] = NULL;
-                        fsdata->dirs[dirs_records] = (char *) calloc(strlen(node->fts_path) + 1, sizeof(char));
-                        strncpy(fsdata->dirs[dirs_records], node->fts_path, strlen(node->fts_path));
-                        dirs_size++;
-                        dirs_records++;
-                        break;
-                    case FTS_F:
-                    case FTS_SL:
-                        fsdata->files = (char **) realloc(fsdata->files, sizeof(char *) * files_size);
-                        fsdata->files[files_size - 1] = NULL;
-                        fsdata->files[files_records] = (char *) calloc(strlen(node->fts_path) + 1, sizeof(char));
-                        strncpy(fsdata->files[files_records], node->fts_path, strlen(node->fts_path));
-                        files_size++;
-                        files_records++;
-                        break;
-                    default:
-                        break;
+                if (strcmp(node->fts_path, "..") == 0 || strcmp(node->fts_path, ".") == 0) {
+                    continue;
                 }
+
+                FSRec **tmp = realloc(fsdata->record, sizeof(FSRec *) * (size + 1) );
+                if (tmp == NULL) {
+                    spmerrno = errno;
+                    spmerrno_cause("Realloc of fsdata failed");
+                    return NULL;
+                }
+                fsdata->record = tmp;
+                fsdata->record[last_size] = NULL;
+                last_size = size;
+
+                fsdata->record[records] = calloc(1, sizeof(FSRec));
+                fsdata->record[records]->name = strdup(node->fts_path);
+                if (node->fts_statp) {
+                    fsdata->record[records]->st = calloc(1, sizeof(struct stat));
+                    memcpy(fsdata->record[records]->st, node->fts_statp, sizeof(struct stat));
+                }
+                size++;
+                records++;
             }
         }
         fts_close(parent);
     }
-    fsdata->dirs_length = dirs_records;
-    fsdata->files_length = files_records;
+    fsdata->num_records = records;
+    fsdata->_num_alloc = size;
     free(path);
     if (no_filter) {
         free(filter_by[0]);
         free(filter_by);
     }
     return fsdata;
+}
+
+/**
+ * Free a `FSTree` structure
+ * @param fsdata
+ */
+void fstree_free(FSTree *fsdata) {
+    if (fsdata != NULL) {
+        if (fsdata->root != NULL) {
+            free(fsdata->root);
+        }
+        if (fsdata->record != NULL) {
+            for (int i = 0; i < fsdata->num_records; i++) {
+                free(fsdata->record[i]->name);
+                free(fsdata->record[i]->st);
+            }
+            free(fsdata->record);
+        }
+        free(fsdata);
+    }
+}
+
+char *fstree_search(FSTree *fsdata, char *path) {
+    for (size_t i = 0; i < fsdata->num_records; i++) {
+        if (strstr(fsdata->record[i]->name, path) != NULL) {
+            return fsdata->record[i]->name;
+        }
+    }
+    return NULL;
 }
 
 /**
@@ -191,58 +216,26 @@ failed: // label
     return tree;
 }
 
+
 /**
  *
- * @param _path
+ * @param fsdata
+ * @param path
  * @return
  */
-int rmdirs(const char *_path) {
-    if (access(_path, F_OK) != 0) {
-        return -1;
-    }
-
-    FSTree *data = fstree(_path, NULL, SPM_FSTREE_FLT_NONE);
-    if (data->files) {
-        for (size_t i = 0; data->files[i] != NULL; i++) {
-            remove(data->files[i]);
+char *fslist_search(FSList *fsdata, char *path) {
+    for (size_t i = 0; i < fsdata->records; i++) {
+        if (strstr(fsdata->record[i]->d_name, path) != NULL) {
+            return fsdata->record[i]->d_name;
         }
     }
-    if (data->dirs) {
-        for (size_t i = data->dirs_length - 1; i != 0; i--) {
-            remove(data->dirs[i]);
-        }
-    }
-    remove(data->root);
-
-    fstree_free(data);
-    return 0;
+    return NULL;
 }
 
 /**
- * Free a `FSTree` structure
+ *
  * @param fsdata
  */
-void fstree_free(FSTree *fsdata) {
-    if (fsdata != NULL) {
-        if (fsdata->root != NULL) {
-            free(fsdata->root);
-        }
-        if (fsdata->files != NULL) {
-            for (int i = 0; fsdata->files[i] != NULL; i++) {
-                free(fsdata->files[i]);
-            }
-            free(fsdata->files);
-        }
-        if (fsdata->dirs != NULL) {
-            for (int i = 0; fsdata->dirs[i] != NULL; i++) {
-                free(fsdata->dirs[i]);
-            }
-            free(fsdata->dirs);
-        }
-        free(fsdata);
-    }
-}
-
 void fslist_free(FSList *fsdata) {
     if (fsdata == NULL) {
         return;
@@ -258,6 +251,39 @@ void fslist_free(FSList *fsdata) {
     }
     free(fsdata->record);
     free(fsdata);
+}
+
+/**
+ *
+ * @param _path
+ * @return
+ */
+int rmdirs(const char *_path) {
+    if (access(_path, F_OK) != 0) {
+        return -1;
+    }
+
+    FSTree *data = fstree(_path, NULL, SPM_FSTREE_FLT_NONE);
+    if (data->record == NULL) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < data->num_records; i++) {
+        if (!S_ISDIR(data->record[i]->st->st_mode)) {
+            remove(data->record[i]->name);
+        }
+    }
+
+    for (size_t i = 0; i < data->num_records; i++) {
+        if (S_ISDIR(data->record[i]->st->st_mode)) {
+            remove(data->record[i]->name);
+        }
+    }
+
+    remove(data->root);
+    fstree_free(data);
+
+    return 0;
 }
 
 /**

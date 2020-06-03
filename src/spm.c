@@ -356,7 +356,6 @@ int main(int argc, char *argv[], char *arge[]) {
         }
     }
 
-    //resolve_free();   // TODO: fix invalid free()
     runtime_free(rt);
     free_global_config();
     strlist_free(packages);
