@@ -258,8 +258,8 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         char *match = NULL;
         if ((match = dirname(fstree_search(tree, shared_library))) != NULL) {
             // Begin generating the relative path string
-            strcat(relative, origin);
-            strcat(relative, DIRSEPS);
+            //strcat(relative, origin);
+            //strcat(relative, DIRSEPS);
 
             // Append the number of relative levels to the relative path string
             if (depth_to_root) {
@@ -276,7 +276,9 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
 
             // Append relative path to array of libraries (if it isn't already in there)
             if (strstr_array(libs->data, relative) == NULL) {
-                strlist_append(libs, relative);
+                char *final = realpath(relative, NULL);
+                strlist_append(libs, final);
+                free(final);
             }
         }
     }
@@ -284,10 +286,12 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
 #if OS_LINUX
     // Some programs do not require local libraries provided by SPM (i.e. libc)
     // Inject "likely" defaults here
+    /*
     if (strlist_count(libs) == 0) {
         strlist_append(libs, "$ORIGIN/../lib");
         strlist_append(libs, "$ORIGIN/../lib64");
     }
+     */
 #endif
 
     // Populate result string
