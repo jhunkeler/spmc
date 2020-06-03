@@ -314,7 +314,7 @@ int prefixes_write(const char *output_file, int mode, char **prefix, const char 
             fprintf(SYSERROR);
             return -1;
         }
-        for (size_t i = 0; i < fsdata->record; i++) {
+        for (size_t i = 0; i < fsdata->num_records; i++) {
             if (S_ISDIR(fsdata->record[i]->st->st_mode)) {
                 continue;
             }
