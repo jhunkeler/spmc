@@ -249,6 +249,19 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
     }
 
     for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
+        char *shared_library = strlist_item(libs_wanted, i);
+        char *match = NULL;
+        match = dirname(fstree_search(tree, shared_library));
+        if (match != NULL) {
+            // Ignore duplicates
+            if (strstr_array(libs->data, match) == NULL) {
+                strlist_append(libs, match);
+            }
+        }
+    }
+
+    /*
+    for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
         // zero out relative path string
         memset(_relative, '\0', sizeof(_relative));
         // Get the shared library name we are going to look for in the tree
@@ -282,6 +295,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
             }
         }
     }
+     */
 
 #if OS_LINUX
     // Some programs do not require local libraries provided by SPM (i.e. libc)
