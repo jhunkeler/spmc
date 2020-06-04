@@ -177,7 +177,7 @@ int rpath_autoset(const char *filename, FSTree *tree, const char *destroot) {
  * @return `FSTree`
  */
 FSTree *rpath_libraries_available(const char *root) {
-    FSTree *tree = fstree(root, (char *[]) {SPM_SHLIB_EXTENSION, NULL}, SPM_FSTREE_FLT_CONTAINS);
+    FSTree *tree = fstree(root, (char *[]) {SPM_SHLIB_EXTENSION, NULL}, SPM_FSTREE_FLT_CONTAINS | SPM_FSTREE_FLT_RELATIVE);
     if (tree == NULL) {
         perror(root);
         fprintf(SYSERROR);
@@ -216,6 +216,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot)
     // This function returns `$ORIGIN/../../../CORE` which is not what we want to see.
     // TODO: We WANT to see this: `$ORIGIN/../lib/perl5/xx.xx.xx/<arch>/CORE` not just the basename()
 
+    /*
     // Change directory to the requested root
     chdir(start);
 
@@ -233,6 +234,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot)
 
     // return to calling directory
     chdir(cwd);
+     */
 
     StrList *libs = strlist_init();
     if (libs == NULL) {
@@ -251,13 +253,22 @@ char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot)
     for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
         char *shared_library = strlist_item(libs_wanted, i);
         char *match = NULL;
+
         match = dirname(fstree_search(tree, shared_library));
-        replace_text(match, tree->root, destroot);
+
         if (match != NULL) {
-            // Ignore duplicates
-            if (strstr_array(libs->data, match) == NULL) {
-                strlist_append(libs, match);
+            char *repl = NULL;
+            char *libpath = match;
+            if (startswith(match, "./")) {
+                libpath = &match[2];
             }
+
+            repl = join((char *[]){destroot, libpath, NULL}, DIRSEPS);
+            // Ignore duplicates
+            if (strstr_array(libs->data, repl) == NULL) {
+                strlist_append(libs, repl);
+            }
+            free(repl);
         }
     }
 
