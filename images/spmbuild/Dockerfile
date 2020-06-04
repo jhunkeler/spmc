@@ -4,6 +4,11 @@ ARG SPM_COMMIT=${SPM_COMMIT:-}
 ENV PATH /opt/spm/bin:/usr/bin:/usr/sbin:/bin:/sbin
 ENV SHELL /bin/bash
 
+RUN yum install -y \
+	perl-Data-Dumper \
+	perl-Thread-Queue \
+	perl-ExtUtils-ParseXS
+
 RUN ln -s cmake3 /usr/bin/cmake \
 	&& git clone https://github.com/jhunkeler/spmc \
 	&& git clone https://github.com/jhunkeler/reloc \
