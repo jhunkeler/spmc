@@ -253,23 +253,24 @@ char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot)
     for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
         char *shared_library = strlist_item(libs_wanted, i);
         char *match = NULL;
+        char *repl = NULL;
 
         match = dirname(fstree_search(tree, shared_library));
 
         if (match != NULL) {
-            char *repl = NULL;
             char *libpath = match;
             if (startswith(match, "./")) {
                 libpath = &match[2];
             }
-
             repl = join((char *[]){destroot, libpath, NULL}, DIRSEPS);
-            // Ignore duplicates
-            if (strstr_array(libs->data, repl) == NULL) {
-                strlist_append(libs, repl);
-            }
-            free(repl);
+        } else {
+            repl = join((char *[]){destroot, "lib", NULL}, DIRSEPS);
         }
+
+        if (strstr_array(libs->data, repl) == NULL) {
+            strlist_append(libs, repl);
+        }
+        free(repl);
     }
 
     /*
