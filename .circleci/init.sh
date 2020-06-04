@@ -9,6 +9,8 @@ if [[ $(uname -s) == Linux ]]; then
         file \
         which \
         rsync \
+        bsdtar \
+        libarchive-devel \
         tar \
         cmake3 \
         gcc \
