@@ -323,7 +323,7 @@ int rpath_set_interface(int argc, char **argv) {
  *
  */
 void rpath_autoset_interface_usage(void) {
-    printf("usage: rpath_autoset {file} {topdir}\n");
+    printf("usage: rpath_autoset {file} {topdir} {destroot}\n");
 }
 
 /**
@@ -333,12 +333,13 @@ void rpath_autoset_interface_usage(void) {
  * @return return value of `rpath_autoset`
  */
 int rpath_autoset_interface(int argc, char **argv) {
-    if (argc < 3) {
+    if (argc < 4) {
         rpath_autoset_interface_usage();
         return -1;
     }
     char *filename = argv[1];
     const char *topdir = argv[2];
+    const char *destroot = argv[3];
 
     if (exists(filename) != 0) {
         perror(filename);
@@ -351,7 +352,7 @@ int rpath_autoset_interface(int argc, char **argv) {
     }
 
     FSTree *libs = rpath_libraries_available(topdir);
-    int result = rpath_autoset(filename, libs);
+    int result = rpath_autoset(filename, libs, destroot);
 
     if (result < 0) {
         fprintf(SYSERROR);

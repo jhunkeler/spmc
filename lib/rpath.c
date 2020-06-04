@@ -105,13 +105,13 @@ char *rpath_get(const char *_filename) {
  * @param _filename
  * @return
  */
-char *rpath_generate(const char *_filename, FSTree *tree) {
+char *rpath_generate(const char *_filename, FSTree *tree, const char *destroot) {
     char *filename = realpath(_filename, NULL);
     if (!filename) {
         return NULL;
     }
 
-    char *result = rpath_autodetect(filename, tree);
+    char *result = rpath_autodetect(filename, tree, destroot);
     if (!result) {
         free(filename);
         return NULL;
@@ -134,7 +134,7 @@ int rpath_set(const char *filename, const char *rpath) {
 
     memset(args, '\0', PATH_MAX);
 #if OS_LINUX
-    sprintf(args, "--set-rpath '%s'", rpath);
+    sprintf(args, "--force-rpath --set-rpath '%s'", rpath);
     pe = patchelf(filename, args);
 #elif OS_DARWIN
     sprintf(args, "-add-rpath '%s'", rpath);
@@ -156,10 +156,10 @@ int rpath_set(const char *filename, const char *rpath) {
  * @param _rpath
  * @return
  */
-int rpath_autoset(const char *filename, FSTree *tree) {
+int rpath_autoset(const char *filename, FSTree *tree, const char *destroot) {
     int returncode = 0;
 
-    char *rpath_new = rpath_generate(filename, tree);
+    char *rpath_new = rpath_generate(filename, tree, destroot);
     if (!rpath_new) {
         return -1;
     }
@@ -192,7 +192,7 @@ FSTree *rpath_libraries_available(const char *root) {
  * @param filename path to file (or a directory)
  * @return success=relative path from `filename` to nearest lib directory, failure=NULL
  */
-char *rpath_autodetect(const char *filename, FSTree *tree) {
+char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot) {
     const char *origin;
     char *rootdir = dirname(filename);
     char *start = realpath(rootdir, NULL);
@@ -216,6 +216,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
     // This function returns `$ORIGIN/../../../CORE` which is not what we want to see.
     // TODO: We WANT to see this: `$ORIGIN/../lib/perl5/xx.xx.xx/<arch>/CORE` not just the basename()
 
+    /*
     // Change directory to the requested root
     chdir(start);
 
@@ -233,6 +234,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
 
     // return to calling directory
     chdir(cwd);
+     */
 
     StrList *libs = strlist_init();
     if (libs == NULL) {
@@ -249,6 +251,30 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
     }
 
     for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
+        char *shared_library = strlist_item(libs_wanted, i);
+        char *match = NULL;
+        char *repl = NULL;
+
+        match = dirname(fstree_search(tree, shared_library));
+
+        if (match != NULL) {
+            char *libpath = match;
+            if (startswith(match, "./")) {
+                libpath = &match[2];
+            }
+            repl = join((char *[]){destroot, libpath, NULL}, DIRSEPS);
+        } else {
+            repl = join((char *[]){destroot, "lib", NULL}, DIRSEPS);
+        }
+
+        if (strstr_array(libs->data, repl) == NULL) {
+            strlist_append(libs, repl);
+        }
+        free(repl);
+    }
+
+    /*
+    for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
         // zero out relative path string
         memset(_relative, '\0', sizeof(_relative));
         // Get the shared library name we are going to look for in the tree
@@ -258,8 +284,8 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         char *match = NULL;
         if ((match = dirname(fstree_search(tree, shared_library))) != NULL) {
             // Begin generating the relative path string
-            strcat(relative, origin);
-            strcat(relative, DIRSEPS);
+            //strcat(relative, origin);
+            //strcat(relative, DIRSEPS);
 
             // Append the number of relative levels to the relative path string
             if (depth_to_root) {
@@ -276,18 +302,23 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
 
             // Append relative path to array of libraries (if it isn't already in there)
             if (strstr_array(libs->data, relative) == NULL) {
-                strlist_append(libs, relative);
+                char *final = realpath(relative, NULL);
+                strlist_append(libs, final);
+                free(final);
             }
         }
     }
+     */
 
 #if OS_LINUX
     // Some programs do not require local libraries provided by SPM (i.e. libc)
     // Inject "likely" defaults here
+    /*
     if (strlist_count(libs) == 0) {
         strlist_append(libs, "$ORIGIN/../lib");
         strlist_append(libs, "$ORIGIN/../lib64");
     }
+     */
 #endif
 
     // Populate result string

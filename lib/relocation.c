@@ -423,7 +423,7 @@ void relocate_root(const char *destroot, const char *baseroot) {
                     if (SPM_GLOBAL.verbose) {
                         printf("Relocate RPATH: %s\n", b_record[i]->path);
                     }
-                    rpath_autoset(b_record[i]->path, libs);
+                    rpath_autoset(b_record[i]->path, libs, destroot);
                 }
                 if (SPM_GLOBAL.verbose) {
                     printf("Relocate DATA : %s\n", b_record[i]->path);

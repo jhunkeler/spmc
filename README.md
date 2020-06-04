@@ -16,7 +16,7 @@ A basic userland package management system with a few humble goals:
 - gcc (https://gcc.gnu.org)
 - make (https://www.gnu.org/software/make)
 - openssl (https://www.openssl.org)
-- tar (https://www.gnu.org/software/tar)
+- bsdtar (https://www.libarchive.org)
 - which (https://carlowood.github.io/which)
 
 ## Runtime Requirements
@@ -26,7 +26,7 @@ A basic userland package management system with a few humble goals:
 - objdump (https://www.gnu.org/software/binutils)
 - reloc (https://github.com/jhunkeler/reloc)
 - rsync (https://rsync.samba.org)
-- tar (https://www.gnu.org/software/tar)
+- bsdtar (https://www.libarchive.org)
 - which (https://carlowood.github.io/which)
 
 ## Installation
@@ -38,14 +38,14 @@ A basic userland package management system with a few humble goals:
 ```bash
 $ yum install epel-release
 $ yum install -y binutils cmake3 curl-devel file gcc gcc-c++ gcc-gfortran glibc-devel \
-    make openssl-devel patchelf rsync tar which
+    make openssl-devel patchelf rsync bsdtar which
 ```
 
 #### Arch
 
 ```bash
 $ pacman -S binutils cmake curl file gcc gcc-c++ gcc-gfortran openssl make patchelf \
-    rsync tar which
+    rsync libarchive which
 ```
 
 ### Install reloc
@@ -132,8 +132,8 @@ $ spm --root ~/spmenv123 --install "python" # [...]
 #### Export environment variables
 
 ```bash
-$ source <(spm --mkruntime ~/spmenv123)
-$ hash -r  # or "rehash" if your shell supports it
+$ spm --mkruntime ~/spmenv123 > ~/spmenv123/bin/activate
+$ source ~/spmenv123/bin/activate
 ```
 
 #### Use package

@@ -138,7 +138,7 @@ void check_runtime_environment(void) {
 #endif
             "objdump",
             "rsync",
-            "tar",
+            "bsdtar",
             "bash",
             "reloc",
             NULL,

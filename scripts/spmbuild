@@ -42,10 +42,7 @@ function msg_warn() {
 }
 
 function tar() {
-    local cmd=tar
-    if [[ $(uname -s) == Darwin ]]; then
-        cmd=gtar
-    fi
+    local cmd=bsdtar
     $cmd "$@"
 }
 
@@ -348,15 +345,14 @@ summary=${summary:-*}
 
 function spm_build_mkfilelist() {
     local filename="${1}"
+
     if [[ -z ${filename} ]]; then
         msg_error "spmbuild_mkfilelist requires an output filename"
         exit 1
     fi
 
-    pushd "${pathname}"
-        echo "# SPM PACKAGE FILE LIST" > "${filename}"
-        find . -type f -not -name ".SPM_*" >> "${filename}"
-    popd
+    echo "# SPM PACKAGE FILE LIST" > "${filename}"
+    find . -type f -not -name ".SPM_*" >> "${filename}"
 }
 
 function prepare() {
@@ -389,6 +385,14 @@ function spm_build_do_stage_package() {
     set +x
 }
 
+function spm_build_tar() {
+    local archive="${1}"
+    bsdtar -c -z -f "${archive}" \
+    --exclude '..' \
+    --exclude '.' \
+    .* *
+}
+
 function spm_build_do_stage_archive() {
     local archive="${1}"
 
@@ -406,7 +410,7 @@ function spm_build_do_stage_archive() {
             msg2 "Recording paths..."
             spm_build_mkfilelist "${SPM_META_FILELIST}"
             msg2 "Archiving files..."
-            tar --hard-dereference --create --gzip --file "${archive}" --exclude '..' --exclude '.' .* *
+            spm_build_tar "${archive}"
         popd
     popd
 }
@@ -436,9 +440,6 @@ fi
 msg "Initializing..."
 spm_build_initialize_stage1
 spm_build_initialize_stage2  # post-runtime activation
-
-#msg2 "Installing build toolchain..."
-#spm_build_install binutils gcc
 
 msg2 "Sourcing build script..."
 source "${SPM_BUILD_SCRIPT_ROOT}/${SPM_BUILD_SCRIPT}"
