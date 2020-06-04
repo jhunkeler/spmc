@@ -105,13 +105,13 @@ char *rpath_get(const char *_filename) {
  * @param _filename
  * @return
  */
-char *rpath_generate(const char *_filename, FSTree *tree) {
+char *rpath_generate(const char *_filename, FSTree *tree, const char *destroot) {
     char *filename = realpath(_filename, NULL);
     if (!filename) {
         return NULL;
     }
 
-    char *result = rpath_autodetect(filename, tree);
+    char *result = rpath_autodetect(filename, tree, destroot);
     if (!result) {
         free(filename);
         return NULL;
@@ -156,10 +156,10 @@ int rpath_set(const char *filename, const char *rpath) {
  * @param _rpath
  * @return
  */
-int rpath_autoset(const char *filename, FSTree *tree) {
+int rpath_autoset(const char *filename, FSTree *tree, const char *destroot) {
     int returncode = 0;
 
-    char *rpath_new = rpath_generate(filename, tree);
+    char *rpath_new = rpath_generate(filename, tree, destroot);
     if (!rpath_new) {
         return -1;
     }
@@ -192,7 +192,7 @@ FSTree *rpath_libraries_available(const char *root) {
  * @param filename path to file (or a directory)
  * @return success=relative path from `filename` to nearest lib directory, failure=NULL
  */
-char *rpath_autodetect(const char *filename, FSTree *tree) {
+char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot) {
     const char *origin;
     char *rootdir = dirname(filename);
     char *start = realpath(rootdir, NULL);
@@ -252,6 +252,7 @@ char *rpath_autodetect(const char *filename, FSTree *tree) {
         char *shared_library = strlist_item(libs_wanted, i);
         char *match = NULL;
         match = dirname(fstree_search(tree, shared_library));
+        replace_text(match, tree->root, destroot);
         if (match != NULL) {
             // Ignore duplicates
             if (strstr_array(libs->data, match) == NULL) {
