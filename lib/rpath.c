@@ -134,7 +134,7 @@ int rpath_set(const char *filename, const char *rpath) {
 
     memset(args, '\0', PATH_MAX);
 #if OS_LINUX
-    sprintf(args, "--set-rpath '%s'", rpath);
+    sprintf(args, "--force-rpath --set-rpath '%s'", rpath);
     pe = patchelf(filename, args);
 #elif OS_DARWIN
     sprintf(args, "-add-rpath '%s'", rpath);
