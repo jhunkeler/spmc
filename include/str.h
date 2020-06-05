@@ -22,7 +22,6 @@ char *join(char **arr, const char *separator);
 char *join_ex(char *separator, ...);
 char *substring_between(char *sptr, const char *delims);
 void strsort(char **arr, unsigned int sort_mode);
-int find_in_file(const char *filename, const char *pattern);
 int isrelational(char ch);
 void print_banner(const char *s, int len);
 char *strstr_array(char **arr, const char *str);

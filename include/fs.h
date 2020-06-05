@@ -47,4 +47,6 @@ char *expandpath(const char *_path);
 char *spm_mkdtemp(const char *base, const char *name, const char *extended_path);
 int touch(const char *path);
 char **file_readlines(const char *filename, size_t start, size_t limit, ReaderFn *readerFn);
+char *find_executable(const char *program);
+int find_in_file(const char *filename, const char *pattern);
 #endif //SPM_FSTREE_H
