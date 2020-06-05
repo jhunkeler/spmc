@@ -11,7 +11,6 @@ set(libspm_src
 	resolve.c
 	fs.c
 	rpath.c
-	find.c
 	shell.c
 	archive.c
 	str.c

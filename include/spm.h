@@ -70,7 +70,6 @@ extern spm_vars SPM_GLOBAL;
 #include "shell.h"
 #include "relocation.h"
 #include "archive.h"
-#include "find.h"
 #include "rpath.h"
 #include "mime.h"
 #include "mirrors.h"
