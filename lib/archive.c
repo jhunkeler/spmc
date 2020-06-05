@@ -35,7 +35,7 @@ int tar_extract_file(const char *_archive, const char* _filename, const char *_d
     strchrdel(destination, SHELL_INVALID);
     strchrdel(filename, SHELL_INVALID);
 
-    sprintf(cmd, "tar xf \"%s\" -C \"%s\" \"%s\" 2>&1", archive, destination, filename);
+    sprintf(cmd, "bsdtar -x -f \"%s\" -C \"%s\" \"%s\" 2>&1", archive, destination, filename);
     if (exists(archive) != 0) {
         fprintf(stderr, "unable to find archive: %s\n", archive);
         fprintf(SYSERROR);
@@ -92,7 +92,7 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     // sanitize destination
     strchrdel(destination, SHELL_INVALID);
 
-    sprintf(cmd, "tar xf %s -C %s 2>&1", archive, destination);
+    sprintf(cmd, "bsdtar -x -f %s -C %s 2>&1", archive, destination);
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
