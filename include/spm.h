@@ -44,7 +44,6 @@
 
 #if !OS_WINDOWS
 #include <fts.h>
-#include <glob.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <utime.h>
