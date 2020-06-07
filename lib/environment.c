@@ -102,13 +102,13 @@ void runtime_export(RuntimeEnv *env, char **keys) {
         if (keys != NULL) {
             for (size_t j = 0; keys[j] != NULL; j++) {
                 if (strcmp(keys[j], key) == 0) {
-                    sprintf(output, "%s %s=\"%s\"", export_command, key, value ? value : "");
+                    sprintf(output, "%s=\"%s\"\n%s %s", key, value ? value : "", export_command, key);
                     puts(output);
                 }
             }
         }
         else {
-            sprintf(output, "%s %s=\"%s\"", export_command, key, value ? value : "");
+            sprintf(output, "%s=\"%s\"\n%s %s", key, value ? value : "", export_command, key);
             puts(output);
         }
         free(value);
@@ -249,7 +249,6 @@ char *runtime_get(RuntimeEnv *env, const char *key) {
 char *runtime_expand_var(RuntimeEnv *env, const char *input) {
     const char delim = '$';
     const char *delim_literal = "$$";
-    const char *escape = "\\";
     char *expanded = NULL;
 
     // If there's no environment variables to process return a copy of the input string
@@ -271,9 +270,8 @@ char *runtime_expand_var(RuntimeEnv *env, const char *input) {
         memset(var, '\0', MAXNAMLEN);   // zero out name
 
         // Handle literal statement "$$var"
-        // Value becomes "\$var"
+        // Value becomes "$var" (unexpanded)
         if (strncmp(&input[i], delim_literal, strlen(delim_literal)) == 0) {
-            strncat(expanded, escape, strlen(escape));
             strncat(expanded, &delim, 1);
             i += strlen(delim_literal);
             // Ignore opening brace
