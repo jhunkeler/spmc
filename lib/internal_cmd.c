@@ -292,18 +292,29 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "ACLOCAL_PATH", "${SPM_DATA}/aclocal:$$ACLOCAL_PATH");
 
     char *spm_ccpath = join((char *[]) {fs->bindir, "gcc", NULL}, DIRSEPS);
+    char *spm_cxxpath = join((char *[]) {fs->bindir, "g++", NULL}, DIRSEPS);
+    char *spm_fcpath = join((char *[]) {fs->bindir, "gfortran", NULL}, DIRSEPS);
+
     if (exists(spm_ccpath) == 0) {
         runtime_set(rt, "CC", "$SPM_BIN/gcc");
     }
 
-    runtime_set(rt, "CFLAGS", "$$CFLAGS -I$SPM_INCLUDE");
-    runtime_set(rt, "CPPFLAGS", "$CFLAGS");
-    runtime_set(rt, "CXXFLAGS", "$$CXXFLAGS -I$SPM_INCLUDE");
+    if (exists(spm_cxxpath) == 0) {
+        runtime_set(rt, "CXX", "$SPM_BIN/g++");
+    }
+
+    if (exists(spm_fcpath) == 0) {
+        runtime_set(rt, "FC", "$SPM_BIN/gfortran");
+    }
+
+    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE");
+    runtime_set(rt, "CPPFLAGS", "-I$SPM_INCLUDE");
+    runtime_set(rt, "CXXFLAGS", "-I$SPM_INCLUDE");
 #if OS_DARWIN
     // For now `reloc` can fix up the LC_ID_DYLIB on its own without install_name_tool
-    runtime_set(rt, "LDFLAGS", "$$LDFLAGS -rpath,$SPM_LIB -L$SPM_LIB");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath,$SPM_LIB -L$SPM_LIB");
 #elif OS_LINUX
-    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
+    runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64");
 #else
     // TODO: Windows?
 #endif
@@ -316,6 +327,8 @@ int mkruntime_interface(int argc, char **argv) {
 
     free(spm_pkgconfigdir);
     free(spm_ccpath);
+    free(spm_cxxpath);
+    free(spm_fcpath);
     spm_hierarchy_free(fs);
     return 0;
 }
