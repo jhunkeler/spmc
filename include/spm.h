@@ -44,7 +44,6 @@
 
 #if !OS_WINDOWS
 #include <fts.h>
-#include <glob.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <utime.h>
@@ -70,7 +69,6 @@ extern spm_vars SPM_GLOBAL;
 #include "shell.h"
 #include "relocation.h"
 #include "archive.h"
-#include "find.h"
 #include "rpath.h"
 #include "mime.h"
 #include "mirrors.h"

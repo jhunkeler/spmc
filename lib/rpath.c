@@ -193,48 +193,10 @@ FSTree *rpath_libraries_available(const char *root) {
  * @return success=relative path from `filename` to nearest lib directory, failure=NULL
  */
 char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot) {
-    const char *origin;
     char *rootdir = dirname(filename);
     char *start = realpath(rootdir, NULL);
     char *cwd = realpath(".", NULL);
     char *result = NULL;
-
-    char *visit = NULL;                 // Current directory
-    char _relative[PATH_MAX] = {0,};    // Generated relative path to lib directory
-    char *relative = _relative;         // Pointer to relative path
-    size_t depth_to_root = 0;
-
-#if OS_DARWIN
-    origin = "@rpath";
-#elif OS_LINUX
-    origin = "$ORIGIN";
-#else
-    origin = NULL;
-#endif
-
-    // BUG: Perl dumps its shared library in a strange place.
-    // This function returns `$ORIGIN/../../../CORE` which is not what we want to see.
-    // TODO: We WANT to see this: `$ORIGIN/../lib/perl5/xx.xx.xx/<arch>/CORE` not just the basename()
-
-    /*
-    // Change directory to the requested root
-    chdir(start);
-
-    // Count the relative path distance between the location of the binary, and the top of the root
-    visit = strdup(start);
-    for (depth_to_root = 0; strcmp(tree->root, visit) != 0; depth_to_root++) {
-        // Copy the current visit pointer
-        char *prev = visit;
-        // Walk back another directory level
-        visit = dirname(visit);
-        // Free previous visit pointer
-        if (prev) free(prev);
-    }
-    free(visit);
-
-    // return to calling directory
-    chdir(cwd);
-     */
 
     StrList *libs = strlist_init();
     if (libs == NULL) {
@@ -272,54 +234,6 @@ char *rpath_autodetect(const char *filename, FSTree *tree, const char *destroot)
         }
         free(repl);
     }
-
-    /*
-    for (size_t i = 0; i < strlist_count(libs_wanted); i++) {
-        // zero out relative path string
-        memset(_relative, '\0', sizeof(_relative));
-        // Get the shared library name we are going to look for in the tree
-        char *shared_library = strlist_item(libs_wanted, i);
-
-        // Is the shared library in the tree?
-        char *match = NULL;
-        if ((match = dirname(fstree_search(tree, shared_library))) != NULL) {
-            // Begin generating the relative path string
-            //strcat(relative, origin);
-            //strcat(relative, DIRSEPS);
-
-            // Append the number of relative levels to the relative path string
-            if (depth_to_root) {
-                for (size_t d = 0; d < depth_to_root; d++) {
-                    strcat(relative, "..");
-                    strcat(relative, DIRSEPS);
-                }
-            } else {
-                strcat(relative, "..");
-                strcat(relative, DIRSEPS);
-            }
-            // Append the match to the relative path string
-            strcat(relative, basename(match));
-
-            // Append relative path to array of libraries (if it isn't already in there)
-            if (strstr_array(libs->data, relative) == NULL) {
-                char *final = realpath(relative, NULL);
-                strlist_append(libs, final);
-                free(final);
-            }
-        }
-    }
-     */
-
-#if OS_LINUX
-    // Some programs do not require local libraries provided by SPM (i.e. libc)
-    // Inject "likely" defaults here
-    /*
-    if (strlist_count(libs) == 0) {
-        strlist_append(libs, "$ORIGIN/../lib");
-        strlist_append(libs, "$ORIGIN/../lib64");
-    }
-     */
-#endif
 
     // Populate result string
     result = join(libs->data, ":");
