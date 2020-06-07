@@ -90,7 +90,7 @@ int mkprefix_interface(int argc, char **argv) {
  *
  */
 void mkmanifest_interface_usage(void) {
-    printf("usage: mkmanifest [package_dir] [output_dir]\n");
+    printf("usage: mkmanifest [-p target ...] [package_dir ...]\n");
 }
 
 /**
@@ -103,37 +103,90 @@ int mkmanifest_interface(int argc, char **argv) {
     Manifest *manifest = NULL;
     int result = 0;
     char *pkgdir = NULL;
+    char *path = NULL;
+    char *target = NULL;
+    StrList *paths = NULL;
+    StrList *targets = NULL;
 
     if (argc < 2) {
         mkmanifest_interface_usage();
         return -1;
     }
 
-    if ((pkgdir = expandpath(argv[1])) == NULL) {
-        fprintf(stderr, "bad path\n");
-        return -2;
+    paths = strlist_init();
+    targets = strlist_init();
+
+    char *pth = NULL;
+    for (size_t i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--platform") == 0) {
+            i++;
+            strlist_append(targets, argv[i]);
+            continue;
+        }
+
+        pth = expandpath(argv[i]);
+        if (pth == NULL || exists(pth) != 0) {
+            fprintf(stderr, "%s does not exist\n", argv[i]);
+            return -2;
+        }
+
+        strlist_append(paths, pth);
+        free(pth);
     }
 
-    if (exists(pkgdir) != 0) {
-        fprintf(stderr, "'%s': does not exist\n", pkgdir);
-        return -3;
+    size_t target_count = strlist_count(targets);
+    size_t path_count = strlist_count(paths);
+
+    if (target_count < 1) {
+        strlist_append(targets, SPM_GLOBAL.repo_target);
+        target_count = strlist_count(targets);
     }
 
-    manifest = manifest_from(pkgdir);
-    if (manifest == NULL) {
-        fprintf(stderr, "no packages\n");
-        return -4;
+    for (size_t t = 0; t < target_count; t++) {
+        target = strlist_item(targets, t);
+        for (size_t i = 0; i < path_count; i++) {
+            path = strlist_item(paths, i);
+
+            if (endswith(path, target)) {
+                pkgdir = strdup(path);
+            } else {
+                pkgdir = join((char *[]) {path, target, NULL}, DIRSEPS);
+            }
+
+            if (SPM_GLOBAL.verbose) {
+                printf("Indexing: %s\n", pkgdir);
+            }
+
+            if (exists(pkgdir) != 0) {
+                fprintf(stderr, "WARNING: target directory does not exist: '%s'\n", pkgdir);
+                continue;
+            }
+
+            manifest = manifest_from(pkgdir);
+            if (manifest == NULL) {
+                fprintf(stderr, "No packages\n");
+                return -4;
+            }
+
+            result = manifest_write(manifest, pkgdir);
+            if (result != 0) {
+                fprintf(stderr, "ERROR:  while writing manifest data: '%s'\n", pkgdir);
+                manifest_free(manifest);
+                return -5;
+            }
+            free(pkgdir);
+        }
     }
 
-    result = manifest_write(manifest, pkgdir);
-    if (result != 0) {
-        fprintf(stderr, "an error occurred while writing manifest data\n");
+    if (targets != NULL)
+        strlist_free(targets);
+
+    if (paths != NULL)
+        strlist_free(paths);
+
+    if (manifest != NULL)
         manifest_free(manifest);
-        return -5;
-    }
 
-    free(pkgdir);
-    manifest_free(manifest);
     return result;
 }
 
@@ -197,6 +250,8 @@ int mkruntime_interface(int argc, char **argv) {
             getenv_pair("PKG_CONFIG_PATH"),
             getenv_pair("ACLOCAL_PATH"),
             getenv_pair("CFLAGS"),
+            getenv_pair("CPPFLAGS"),
+            getenv_pair("CXXFLAGS"),
             getenv_pair("LDFLAGS"),
             NULL,
     };
@@ -210,6 +265,7 @@ int mkruntime_interface(int argc, char **argv) {
     SPM_Hierarchy *fs = spm_hierarchy_init(root);
     char *spm_pkgconfigdir = join((char *[]) {fs->libdir, "pkgconfig", NULL}, DIRSEPS);
 
+    runtime_set(rt, "SPM_ROOT", root);
     runtime_set(rt, "SPM_BIN", fs->bindir);
     runtime_set(rt, "SPM_INCLUDE", fs->includedir);
     runtime_set(rt, "SPM_LIB", fs->libdir);
@@ -230,20 +286,22 @@ int mkruntime_interface(int argc, char **argv) {
     runtime_set(rt, "SPM_META_FILELIST", SPM_META_FILELIST);
     runtime_set(rt, "SPM_META_PREFIX_PLACEHOLDER", SPM_META_PREFIX_PLACEHOLDER);
 
-    runtime_set(rt, "PATH", "$SPM_BIN:$PATH");
-    runtime_set(rt, "MANPATH", "$SPM_MAN:$MANPATH");
-    runtime_set(rt, "PKG_CONFIG_PATH", "$SPM_PKGCONFIG:$PKG_CONFIG_PATH");
-    runtime_set(rt, "ACLOCAL_PATH", "${SPM_DATA}/aclocal");
+    runtime_set(rt, "PATH", "$SPM_BIN:$$PATH");
+    runtime_set(rt, "MANPATH", "$SPM_MAN:$$MANPATH");
+    runtime_set(rt, "PKG_CONFIG_PATH", "$SPM_PKGCONFIG:$$PKG_CONFIG_PATH");
+    runtime_set(rt, "ACLOCAL_PATH", "${SPM_DATA}/aclocal:$$ACLOCAL_PATH");
 
     char *spm_ccpath = join((char *[]) {fs->bindir, "gcc", NULL}, DIRSEPS);
     if (exists(spm_ccpath) == 0) {
         runtime_set(rt, "CC", "$SPM_BIN/gcc");
     }
 
-    runtime_set(rt, "CFLAGS", "-I$SPM_INCLUDE");
+    runtime_set(rt, "CFLAGS", "$$CFLAGS -I$SPM_INCLUDE");
+    runtime_set(rt, "CPPFLAGS", "$CFLAGS");
+    runtime_set(rt, "CXXFLAGS", "$$CXXFLAGS -I$SPM_INCLUDE");
 #if OS_DARWIN
     // For now `reloc` can fix up the LC_ID_DYLIB on its own without install_name_tool
-    runtime_set(rt, "LDFLAGS", "-rpath $SPM_LIB -L$SPM_LIB");
+    runtime_set(rt, "LDFLAGS", "$$LDFLAGS -rpath,$SPM_LIB -L$SPM_LIB");
 #elif OS_LINUX
     runtime_set(rt, "LDFLAGS", "-Wl,-rpath=$SPM_LIB:$SPM_LIB64 -L$SPM_LIB -L$SPM_LIB64 $LDFLAGS");
 #else
