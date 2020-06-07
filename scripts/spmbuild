@@ -249,7 +249,7 @@ function spm_build_mkprefixtext() {
 }
 
 function spm_build_mkmanifest() {
-    ${SPM} --yes --cmd mkmanifest "$1" "$2"
+    ${SPM} --yes --cmd mkmanifest $@
 }
 
 function spm_build_mkruntime() {
@@ -448,7 +448,7 @@ spm_build_declare_metadata
 
 if [[ ! -d "${package_target}" ]]; then
     mkdir -p ${package_target}
-    spm_build_mkmanifest "${package_target}" "${package_target}"
+    spm_build_mkmanifest "${package_target}"
 fi
 
 msg2 "Downloading source files..."
@@ -494,7 +494,7 @@ msg "Create package: ${package_final}"
 spm_build_do_stage_archive "${package_final}"
 
 msg "Update manifest"
-spm_build_mkmanifest "${package_target}" "${package_target}"
+spm_build_mkmanifest "${package_target}"
 
 msg "Clean"
 spm_build_cleanup
