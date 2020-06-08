@@ -35,12 +35,191 @@ int spm_hierarchy_make_root(SPM_Hierarchy *fs) {
     return 0;
 }
 
-void spm_install_show_package(ManifestPackage *package) {
+/**
+ * Generates a formatted string containing package information
+ *
+ * `%n` = Package name
+ * `%v` = Package version
+ * `%V` = Package version and revision (separated by a hyphen (`-`))
+ * `%r` = Package revision
+ * `%o` = Package origin
+ * `%a` = Package filename on disk
+ * `%c` = Package checksum (sha256)
+ * `%s` = Package size (byte)
+ * `%S` = Package size (human readable)
+ *
+ * @param package Pointer to `ManifestPackage`
+ * @param fmt Format string
+ * @return `malloc()`ed string
+ */
+char *spm_get_package_info_str(ManifestPackage *package, const char *fmt) {
+    // Allocate at least enough space for the character arrays in ManifestPackage (there are several)
+    char *output = calloc(1, sizeof(ManifestPackage));
+
+    // Stores raw record data
+    char tmp[SPM_PACKAGE_MEMBER_SIZE];
+
+    // Stores width string (i.e. '%-12n' is parsed as '12')
+    char str_width[10];
+
+    // Record the maximum number of bytes to read
+    size_t len_fmt = strlen(fmt);
+
+    // Begin reading format string
+    for (size_t i = 0; i < len_fmt; i++) {
+        size_t width = 0;  // Default string padding amount
+        int when = -1;  // When string padding is applied (-1 = none, 0 = before, 1 = after)
+        char *hrs = NULL;  // Buffer for human_readable_size
+
+        // Truncate temporary strings
+        tmp[0] = '\0';
+        str_width[0] = '\0';
+
+        // Begin parsing formatter
+        if (fmt[i] == '%') {
+            // Advance to next character
+            i++;
+
+            // When the next character is a hyphen write string padding after the requested value
+            if (fmt[i] == '-') {
+                when = 1;
+                i++;
+            }
+
+            // Is the next character a number?
+            if (isdigit(fmt[i])) {
+                if (when != 1) { // read as: "if padding not altered already"
+                    when = 0;  // got no '-' but landed on some digits, so pad "before"
+                }
+
+                // Consume the numerical string and convert it to an integer
+                int j = 0;
+                while (isdigit(fmt[i])) {
+                    memcpy(&str_width[j], &fmt[i], 1);
+                    j++;
+                    i++;
+                }
+                str_width[j] = 0;
+                width = strtoul(str_width, NULL, 10);
+            }
+
+            // Retrieve information based on requested format character'
+            switch (fmt[i]) {
+                case 'n':
+                    strcpy(tmp, package->name);
+                    break;
+                case 'v':
+                    strcpy(tmp, package->version);
+                    break;
+                case 'V':
+                    strcpy(tmp, package->version);
+                    strcat(tmp, "-");
+                    strcat(tmp, package->revision);
+                    break;
+                case 'r':
+                    strcpy(tmp, package->revision);
+                    break;
+                case 'o':
+                    strcpy(tmp, package->origin);
+                    break;
+                case 'a':
+                    strcpy(tmp, package->archive);
+                    break;
+                case 'c':
+                    strcpy(tmp, package->checksum_sha256);
+                    break;
+                case 's':
+                    sprintf(tmp, "%zu", package->size);
+                    break;
+                case 'S':
+                    hrs = human_readable_size(package->size);
+                    strcpy(tmp, hrs);
+                    free(hrs);
+                    break;
+                default:
+                    // Formatter is not registered above. Oh well.
+                    continue;
+            }
+
+            // Pad the string up to the length of the length of `tmp`
+            int width_final = ((int)width - (int)strlen(tmp));
+
+            // When `tmp` is longer than the requested width, use the original width
+            if (width_final < 0) {
+                width_final = width;
+            }
+
+            // Write padding "before" appending `tmp` to the output string
+            if (when == 0) {
+                for (size_t m = 0; m < width_final; m++) {
+                    strcat(output, " ");
+                }
+            }
+
+            // Append data to output string
+            strcat(output, tmp);
+
+            // Write padding "after" appending `tmp` to the output string
+            if (when == 1) {
+                for (size_t m = 0; m < width_final; m++) {
+                    strcat(output, " ");
+                }
+            }
+        } else {
+            // Data was not parsed as a formatter, so append it to the output string as-is
+            strncat(output, &fmt[i], 1);
+        }
+    }
+
+    return output;
+}
+
+void spm_show_package(ManifestPackage *package) {
+    char *output = NULL;
+
     if (package == NULL) {
-        fprintf(stderr, "ERROR: package was NULL\n");
+        spmerrno = SPM_ERR_MANIFEST_INVALID;
+        spmerrno_cause("ManifestPackage was NULL\n");
         return;
     }
-    printf("  -> %-20s %-10s (origin: %s)\n", package->name, package->version, package->origin);
+
+    output = spm_get_package_info_str(package, "%-20n %-10V %8S %4o");
+
+    if (output == NULL) {
+        spmerrno = SPM_ERR_PKG_INVALID;
+        spmerrno_cause("spm_get_package_info_str did not succeed");
+        return;
+    }
+    puts(output);
+    free(output);
+}
+
+void spm_show_package_manifest(Manifest *info) {
+    char *output = NULL;
+
+    if (info == NULL) {
+        spmerrno = SPM_ERR_MANIFEST_INVALID;
+        spmerrno_cause("Manifest was NULL\n");
+        return;
+    }
+
+    for (size_t m = 0; m < info->records; m++) {
+        spm_show_package(info->packages[m]);
+    }
+
+}
+void spm_show_packages(ManifestList *info) {
+    char *output = NULL;
+
+    if (info == NULL) {
+        spmerrno = SPM_ERR_MANIFEST_INVALID;
+        spmerrno_cause("ManifestList was NULL");
+        return;
+    }
+
+    for (size_t i = 0; i < manifestlist_count(info); i++) {
+        spm_show_package_manifest(manifestlist_item(info, i));
+    }
 }
 
 /**
@@ -249,7 +428,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
     // Install packages
     printf("Requested package(s):\n");
     for (size_t i = 0; requirements !=NULL && requirements[i] != NULL; i++) {
-        spm_install_show_package(requirements[i]);
+        spm_show_package(requirements[i]);
     }
 
     if (SPM_GLOBAL.prompt_user) {
@@ -333,7 +512,7 @@ int spm_do_install(SPM_Hierarchy *fs, ManifestList *mf, StrList *packages) {
             continue;
         }
 
-        spm_install_show_package(requirements[i]);
+        spm_show_package(requirements[i]);
         spm_install(fs, tmpdir, package_path);
 
         // Relocate installation root

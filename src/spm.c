@@ -288,72 +288,28 @@ int main(int argc, char *argv[], char *arge[]) {
     }
 
     if (RUNTIME_SEARCH || RUNTIME_LIST) {
-        char name[255];
-        char op[25];
-        char ver[255];
-        memset(name, '\0', sizeof(name));
-        memset(op, '\0', sizeof(op));
-        memset(ver, '\0', sizeof(ver));
-
-        // Parse the argument string
-        int c = 0;
-
-        // Populate name
-        for (int j = 0; package_search_str[c] != '\0'; j++, c++) {
-            if (isrelational(package_search_str[c])) {
-                break;
-            }
-            name[j] = package_search_str[c];
-        }
-
-        if (RUNTIME_SEARCH) {
-            // Populate op
-            for (int j = 0; package_search_str[c] != '\0'; j++, c++) {
-                if (!isrelational(package_search_str[c])) {
-                    break;
-                }
-                op[j] = package_search_str[c];
-            }
-
-            if (strlen(op)) {
-                // Populate version
-                for (int j = 0; package_search_str[c] != '\0'; j++, c++) {
-                    ver[j] = package_search_str[c];
-                }
-            } else {
-                // No operator, so find all versions instead
-                strcpy(op, ">=");
-                ver[0] = '0';
-            }
-
-        }
-
         int banner_size = 79;
         putchar('#');
         print_banner("-", banner_size);
-        printf("# %-20s %-10s %-10s %-10s %-20s\n", "name", "version", "revision", "size", "origin");
+        printf("# %-18s %s %11s %10s\n", "name", "version", "size", "origin");
         putchar('#');
         print_banner("-", banner_size);
 
-        for (size_t m = 0; m < manifestlist_count(mf); m++) {
-            Manifest *info = manifestlist_item(mf, m);
-            if (RUNTIME_SEARCH) {
-                ManifestPackage **package = find_by_spec(info, name, op, ver);
-                for (int p = 0; package[p] != NULL; p++) {
-                    char *package_hsize = human_readable_size(package[p]->size);
-                    printf("  %-20s %-10s %-10s %-10s %20s\n", package[p]->name, package[p]->version, package[p]->revision,
-                           package_hsize, info->packages[p]->origin);
-                    free(package_hsize);
-                }
-            } else if (RUNTIME_LIST) {
-                for (size_t p = 0; p < info->records; p++) {
-                    char *package_hsize = human_readable_size(info->packages[p]->size);
-                    printf("  %-20s %-10s %-10s %-10s %20s\n", info->packages[p]->name, info->packages[p]->version,
-                           info->packages[p]->revision, package_hsize, info->packages[p]->origin);
-                    free(package_hsize);
-                }
+        if (RUNTIME_SEARCH) {
+            // Search all known packages
+            for (size_t m = 0; m < manifestlist_count(mf); m++) {
+                Manifest *info = manifestlist_item(mf, m);
+                ManifestPackage *package = find_by_strspec(info, package_search_str);
+                spm_show_package(package);
             }
+        } else if (RUNTIME_LIST) {
+            // List all known packages
+            spm_show_packages(mf);
         }
+    }
+
+    if (spmerrno != 0) {
+        spm_perror("Last error");
     }
 
     runtime_free(rt);
