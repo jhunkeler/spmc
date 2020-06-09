@@ -203,12 +203,6 @@ int manifest_write(Manifest *info, const char *pkgdir) {
     memset(path_manifest, '\0', sizeof(path));
 
     strcpy(path, pkgdir);
-
-    // Append the repo target if its missing
-    if (strstr(path, SPM_GLOBAL.repo_target) == NULL) {
-        strcat(path, DIRSEPS);
-        strcat(path, SPM_GLOBAL.repo_target);
-    }
     strcpy(path_manifest, path);
 
     // Append the manifest filename if its missing
