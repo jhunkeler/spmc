@@ -352,15 +352,52 @@ int mirror_clone_interface(int argc, char **argv) {
         return -1;
     }
     char *url = argv[1];
-    char *path = argv[2];
+    char *_path = argv[2];
+    char *path;
+    StrList *targets;
+    char *target_file;
+    size_t target_count;
+    int no_mirroring;
 
-    Manifest *manifest = manifest_read(url);
-    if (manifest == NULL) {
-        return -2;
+    path = NULL;
+    no_mirroring = 0;
+    targets = strlist_init();
+    target_file = join((char *[]) {url, "spm_mirror.targets", NULL}, DIRSEPS);
+
+    if (strlist_append_file(targets, target_file, NULL) != 0) {
+        no_mirroring = 1;
     }
 
-    mirror_clone(manifest, path);
-    manifest_free(manifest);
+    if (targets != NULL) {
+        target_count = strlist_count(targets);
+        if (target_count == 0) {
+            no_mirroring = 1;
+        }
+    }
+
+    if (no_mirroring) {
+        fprintf(stderr, "Mirroring is disabled by the server.");
+        return 1;
+    }
+
+    for (size_t tgt = 0; tgt < target_count; tgt++) {
+        char *manifest_location;
+        char *target;
+
+        target = strlist_item(targets, tgt);
+        strip(target);
+
+        manifest_location = join((char *[]) {url, target, NULL}, DIRSEPS);
+        Manifest *manifest = manifest_read(manifest_location);
+        if (manifest == NULL) {
+            return -2;
+        }
+
+        path = join((char *[]) {_path, target, NULL}, DIRSEPS);
+        mirror_clone(manifest, path);
+        manifest_free(manifest);
+    }
+
     return 0;
 }
 /**

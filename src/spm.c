@@ -94,12 +94,14 @@ int main(int argc, char *argv[], char *arge[]) {
                 override_manifests = 1;
             }
             else if (strcmp(arg, "-m") == 0 || strcmp(arg, "--manifest") == 0) {
+                char *target;
                 if (arg_next == NULL) {
                     fprintf(stderr, "-m|--manifest requires a directory path\n");
                     usage();
                     exit(1);
                 }
-                manifestlist_append(mf, arg_next);
+                target = join((char *[]) {arg_next, SPM_GLOBAL.repo_target, NULL}, DIRSEPS);
+                manifestlist_append(mf, target);
                 i++;
             }
             else if (strcmp(arg, "--reindex") == 0) {
@@ -215,8 +217,12 @@ int main(int argc, char *argv[], char *arge[]) {
 
     // Apply some default manifest locations; unless the user passes -M|--override-manifests
     if (override_manifests == 0) {
+        char *target;
         // Remote package manifests have priority over the local package store
-        manifestlist_append(mf, "https://astroconda.org/spm");
+        target = join((char *[]) {"https://astroconda.org/spm", SPM_GLOBAL.repo_target, NULL}, DIRSEPS);
+        manifestlist_append(mf, target);
+        free(target);
+
         // Add the local package store to the bottom
         manifestlist_append(mf, SPM_GLOBAL.package_dir);
     }

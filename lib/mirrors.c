@@ -48,27 +48,28 @@ void mirror_list_free(char **m) {
     free(m);
 }
 
-void mirror_clone(Manifest *info, char *_dest) {
-    char *dest = NULL;
-    if (endswith(_dest, SPM_GLOBAL.repo_target) != 0) {
-        dest = strdup(_dest);
-    }
-    else {
-        dest = join((char *[]) {_dest, SPM_GLOBAL.repo_target, NULL}, DIRSEPS);
+int mirror_clone(Manifest *info, char *_dest) {
+    char *dest;
+    long response;
+
+    response = 0;
+    dest = strdup(_dest);
+    if (dest == NULL) {
+        perror("allocate dest string");
+        return 1;
     }
 
     if (exists(dest) != 0 && mkdirs(dest, 0755) != 0) {
         perror("Unable to create mirror directory");
         fprintf(SYSERROR);
-        exit(1);
+        return 1;
     }
 
     printf("Remote: %s\n", info->origin);
     printf("Local: %s\n", dest);
 
     for (size_t i = 0; i < info->records; i++) {
-        long response = 0;
-        char *archive = join((char *[]) {info->packages[i]->origin, SPM_GLOBAL.repo_target, info->packages[i]->archive, NULL}, DIRSEPS);
+        char *archive = join((char *[]) {dirname(info->origin), info->packages[i]->archive, NULL}, DIRSEPS);
         char *path = join((char *[]) {dest, info->packages[i]->archive, NULL}, DIRSEPS);
         if (exists(path) == 0) {
             char *checksum = sha256sum(path);
@@ -90,11 +91,11 @@ void mirror_clone(Manifest *info, char *_dest) {
 
     // Now fetch a copy of the physical manifest
     char *datafile = join((char *[]) {dest, basename(info->origin), NULL}, DIRSEPS);
-    long response = 0;
     if ((response = fetch(info->origin, datafile) >= 400)) {
         fprintf(stderr, "WARNING: HTTP(%ld, %s): %s\n", response, http_response_str(response), info->origin);
     }
+
     free(dest);
     free(datafile);
-    printf("done!\n");
+    return 0;
 }
