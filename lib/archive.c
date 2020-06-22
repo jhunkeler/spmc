@@ -102,6 +102,10 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     }
 
     status = proc->returncode;
+    if (status != 0 && SPM_GLOBAL.verbose) {
+        fprintf(stderr, "%s", proc->output);
+    }
+
     shell_free(proc);
     free(archive);
     free(destination);
