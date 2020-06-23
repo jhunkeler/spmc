@@ -9,6 +9,6 @@
 
 char **mirror_list(const char *filename);
 void mirror_list_free(char **m);
-void mirror_clone(Manifest *info, char *dest);
+int mirror_clone(Manifest *info, char *_dest);
 
 #endif //SPM_MIRRORS_H

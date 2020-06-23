@@ -388,25 +388,17 @@ Manifest *manifest_read(char *file_or_url) {
         strcpy(path, SPM_GLOBAL.package_dir);
     }
     else {
-        tmpdir = spm_mkdtemp(TMP_DIR, "spm_manifest_read_XXXXXX", SPM_GLOBAL.repo_target);
+        tmpdir = spm_mkdtemp(TMP_DIR, "spm_manifest_read_XXXXXX", NULL);
         if (exists(tmpdir) != 0) {
             fprintf(stderr, "Failed to create temporary storage directory\n");
             fprintf(SYSERROR);
             return NULL;
         }
 
-        snprintf(pathptr, PATH_MAX - 1, "%s%s%s%s%s", tmpdir, DIRSEPS, SPM_GLOBAL.repo_target, DIRSEPS, filename);
+        pathptr = join((char *[]) {tmpdir, filename, NULL}, DIRSEPS);
     }
 
-    const char *target_is;
-    if (strstr(file_or_url, SPM_GLOBAL.repo_target) != NULL) {
-        target_is = "";
-    }
-    else {
-        target_is = SPM_GLOBAL.repo_target;
-    }
-
-    char *remote_manifest = join_ex(DIRSEPS, file_or_url, target_is, filename, NULL);
+    char *remote_manifest = join_ex(DIRSEPS, file_or_url, filename, NULL);
 
     if (exists(pathptr) != 0) {
         // TODO: Move this out

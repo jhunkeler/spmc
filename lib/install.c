@@ -230,6 +230,7 @@ void spm_show_packages(ManifestList *info) {
  * @return success=0, exists=1, error=-1 (general), -2 (unable to create `destroot`)
  */
 int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
+    int status_tar;
     char *package = strdup(_package);
 
     if (!package) {
@@ -241,8 +242,9 @@ int spm_install(SPM_Hierarchy *fs, const char *tmpdir, const char *_package) {
         printf("Extracting archive: %s\n", package);
     }
 
-    if (tar_extract_archive(package, tmpdir) != 0) {
-        fprintf(stderr, "%s: %s\n", package, strerror(errno));
+    status_tar = 0;
+    if ((status_tar = tar_extract_archive(package, tmpdir)) != 0) {
+        fprintf(stderr, "Extraction program returned non-zero: %d: %s\n", status_tar, package);
         free(package);
         return -1;
     }
