@@ -17,6 +17,7 @@ A basic userland package management system with a few humble goals:
 - make (https://www.gnu.org/software/make)
 - openssl (https://www.openssl.org)
 - bsdtar (https://www.libarchive.org)
+  - OR gnutar (https://www.gnu.org/software/tar)
 - which (https://carlowood.github.io/which)
 
 ## Runtime Requirements
@@ -27,6 +28,7 @@ A basic userland package management system with a few humble goals:
 - reloc (https://github.com/jhunkeler/reloc)
 - rsync (https://rsync.samba.org)
 - bsdtar (https://www.libarchive.org)
+  - OR gnutar (https://www.gnu.org/software/tar)
 - which (https://carlowood.github.io/which)
 
 ## Installation
