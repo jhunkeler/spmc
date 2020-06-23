@@ -71,6 +71,15 @@ $ cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release
 $ make install
 ```
 
+### Developing SPM
+
+```bash
+$ git clone https://github.com/jhunkeler/spm
+$ cd spm
+$ mkdir build
+$ cmake ..
+```
+
 ## Configuration
 
 _TODO_
@@ -79,7 +88,7 @@ _TODO_
 
 ```bash
 $ spm --help
-usage: spm [-hVvBIrmMLS]
+usage: spm [-hVvBIRrmMLS]
   -h,  --help                show this help message
   -V,  --version             show version
   -v,  --verbose             show more information (additive)
@@ -93,6 +102,19 @@ usage: spm [-hVvBIrmMLS]
   -L,  --list                list available packages
   -S,  --search              search for a package
        --cmd                 execute an internal spm command
+       
+$ spm --cmd
+possible commands:
+  mkprefixbin          - generate prefix manifest (binary)
+  mkprefixtext         - generate prefix manifest (text)
+  mkmanifest           - generate package repository manifest
+  mkruntime            - emit runtime environment (stdout)
+  mirror_clone         - mirror a mirror     
+  rpath_set            - modify binary RPATH 
+  rpath_autoset        - determine nearest lib directory and set RPATH
+  get_package_ext      - show the default archive extension
+  get_sys_target       - show this system's arch/platform
+  check_rt_env         - check the integrity of the calling runtime environment       
 ```
 
 ### Example
@@ -101,19 +123,20 @@ usage: spm [-hVvBIrmMLS]
 ```bash
 $ spm --list
 #-------------------------------------------------------------------------------
-# name                 version    revision   size       origin
+# name               version        size     origin
 #-------------------------------------------------------------------------------
-  autoconf             2.69       0          885.33K    https://astroconda.org/spm
-  automake             1.16.1     0          742.90K    https://astroconda.org/spm
-  binutils             2.34       0          7.64M      https://astroconda.org/spm
-  bison                3.4.2      0          754.43K    https://astroconda.org/spm
-  bzip2                1.0.8      0          130.84K    https://astroconda.org/spm
-  cfitsio              3.47       0          1.17M      https://astroconda.org/spm
-  curl                 7.66.0     0          1.02M      https://astroconda.org/spm
-  e2fsprogs            1.45.4     0          72.66K     https://astroconda.org/spm
-  filesystem           1.0.0      0          578B       https://astroconda.org/spm
-  findutils            4.7.0      0          772.41K    https://astroconda.org/spm
-  gcc                  8.4.0      0          60.08M     https://astroconda.org/spm
+autoconf             2.69-0      883.65K     https://astroconda.org/spm/Linux/x86_64
+automake             1.16.1-0    656.70K     https://astroconda.org/spm/Linux/x86_64
+binutils             2.34-0        6.33M     https://astroconda.org/spm/Linux/x86_64
+bison                3.4.2-0     751.46K     https://astroconda.org/spm/Linux/x86_64
+bzip2                1.0.8-0     229.04K     https://astroconda.org/spm/Linux/x86_64
+cmake                3.15.5-0     14.37M     https://astroconda.org/spm/Linux/x86_64
+curl                 7.66.0-0      1.01M     https://astroconda.org/spm/Linux/x86_64
+diffutils            3.7-0       547.74K     https://astroconda.org/spm/Linux/x86_64
+e2fsprogs            1.45.4-0     73.35K     https://astroconda.org/spm/Linux/x86_64
+filesystem           1.0.0-0        567B     https://astroconda.org/spm/Linux/x86_64
+findutils            4.7.0-0     777.81K     https://astroconda.org/spm/Linux/x86_64
+gcc                  8.4.0-0      57.89M     https://astroconda.org/spm/Linux/x86_64
 # [...]
 ```
 
@@ -121,9 +144,9 @@ $ spm --list
 ```bash
 $ spm --search python
 #-------------------------------------------------------------------------------
-# name                 version    revision   size       origin
+# name               version        size     origin
 #-------------------------------------------------------------------------------
-  python               3.8.2      0          26.05M     https://astroconda.org/spm
+python               3.8.2-0      26.05M     https://astroconda.org/spm/Linux/x86_64
 ```
 
 #### Install a package
@@ -151,14 +174,3 @@ $ source ~/spmenv123/venv/bin/activate
 ## Building SPM Packages
 
 See the [spm_packages](https://github.com/jhunkeler/spm_packages) repository.
-
-## Development
-
-```bash
-$ git clone https://github.com/jhunkeler/spm
-$ cd spm
-$ mkdir build
-$ cmake ..
-```
-
-
