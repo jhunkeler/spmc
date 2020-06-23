@@ -6,6 +6,40 @@
 // GLOBAL
 spm_vars SPM_GLOBAL;
 
+/**
+ * Is the user executing this program the system administrator?
+ * @return 0=no, 1=yes
+ */
+static int is_root() {
+#if !OS_WINDOWS
+    uid_t euid;
+    euid = geteuid();
+    if (euid == 0) {
+        return 1;
+    }
+#endif
+    return 0;
+}
+
+/**
+ * Return path to the system's tar program
+ * @return
+ */
+static char *find_tar_program() {
+    const char *programs[] = {
+        "bsdtar",
+        "tar",
+    };
+    char *program;
+
+    for (size_t i = 0; i < (sizeof(programs) / sizeof(char *)); i++) {
+        if ((program = find_executable(programs[i])) != NULL) {
+            return program;
+        }
+        program = NULL;
+    }
+    return program;
+}
 
 /**
  * Get path to user's local configuration directory
@@ -138,7 +172,6 @@ void check_runtime_environment(void) {
 #endif
             "objdump",
             "rsync",
-            "bsdtar",
             "bash",
             "reloc",
             NULL,
@@ -157,6 +190,12 @@ void check_runtime_environment(void) {
         }
         free(result);
     }
+
+    if (SPM_GLOBAL.tar_program == NULL) {
+        fprintf(stderr, "A supported tar program could not be found.\nPlease install bsdtar or gnutar.");
+        bad_rt = 1;
+    }
+
     if (bad_rt) {
         exit(1);
     }
@@ -219,6 +258,8 @@ void init_config_global(void) {
     SPM_GLOBAL.repo_target = NULL;
     SPM_GLOBAL.mirror_list = NULL;
     SPM_GLOBAL.prompt_user = 1;
+    SPM_GLOBAL.privileged = is_root();
+    SPM_GLOBAL.tar_program = find_tar_program();
 
     if (uname(&SPM_GLOBAL.sysinfo) != 0) {
         fprintf(SYSERROR);
@@ -352,6 +393,9 @@ void free_global_config(void) {
     if (SPM_GLOBAL.mirror_list) {
         mirror_list_free(SPM_GLOBAL.mirror_list);
     }
+    if (SPM_GLOBAL.tar_program) {
+        free(SPM_GLOBAL.tar_program);
+    }
 
     free(SPM_GLOBAL.fs.bindir);
     free(SPM_GLOBAL.fs.includedir);
@@ -378,6 +422,7 @@ void show_global_config(void) {
             printf("#    -> %s: %s\n", SPM_GLOBAL.config[i]->key, SPM_GLOBAL.config[i]->value);
         }
     }
+    printf("# system target: %s\n", SPM_GLOBAL.repo_target);
     printf("# package storage: %s\n", SPM_GLOBAL.package_dir);
     printf("# temp storage: %s\n", SPM_GLOBAL.tmp_dir);
     printf("# package manifest: %s\n", SPM_GLOBAL.package_manifest);

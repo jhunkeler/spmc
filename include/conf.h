@@ -39,8 +39,10 @@ typedef struct {
     char *repo_target;
     char *user_config_basedir;
     char *user_config_file;
+    char *tar_program;
     int verbose;
     int prompt_user;
+    int privileged;
     ConfigItem **config;
     struct utsname sysinfo;
     SPM_Hierarchy fs;

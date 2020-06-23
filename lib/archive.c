@@ -35,7 +35,7 @@ int tar_extract_file(const char *_archive, const char* _filename, const char *_d
     strchrdel(destination, SHELL_INVALID);
     strchrdel(filename, SHELL_INVALID);
 
-    sprintf(cmd, "bsdtar -x -f \"%s\" -C \"%s\" \"%s\" 2>&1", archive, destination, filename);
+    sprintf(cmd, "%s -x -f \"%s\" -C \"%s\" \"%s\" 2>&1", SPM_GLOBAL.tar_program, archive, destination, filename);
     if (exists(archive) != 0) {
         fprintf(stderr, "unable to find archive: %s\n", archive);
         fprintf(SYSERROR);
@@ -92,7 +92,13 @@ int tar_extract_archive(const char *_archive, const char *_destination) {
     // sanitize destination
     strchrdel(destination, SHELL_INVALID);
 
-    sprintf(cmd, "bsdtar -x -f %s -C %s 2>&1", archive, destination);
+    sprintf(cmd, "%s -x -f %s -C %s ", SPM_GLOBAL.tar_program, archive, destination);
+    if (SPM_GLOBAL.privileged) {
+        // Extract the package as if we were a regular user instead of root.
+        strcat(cmd, "--no-same-owner --no-same-permissions ");
+    }
+    strcat(cmd, "2>&1");
+
     shell(&proc, SHELL_OUTPUT, cmd);
     if (!proc) {
         fprintf(SYSERROR);
