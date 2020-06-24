@@ -473,7 +473,6 @@ Manifest *manifest_read(char *file_or_url) {
     info->records = total_records;
     while (fgets(dptr, BUFSIZ, fp) != NULL) {
         dptr = strip(dptr);
-        char *garbage = NULL;
         char **parts = split(dptr, separator);
         char *_origin = NULL;
 
@@ -490,11 +489,11 @@ Manifest *manifest_read(char *file_or_url) {
         free(_origin);
 
         strncpy(info->packages[i]->archive, parts[0], SPM_PACKAGE_MEMBER_SIZE);
-        info->packages[i]->size = strtoul(parts[1], &garbage, 10);
+        info->packages[i]->size = strtoul(parts[1], NULL, 10);
         strncpy(info->packages[i]->name, parts[2], SPM_PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->version, parts[3], SPM_PACKAGE_MEMBER_SIZE);
         strncpy(info->packages[i]->revision, parts[4], SPM_PACKAGE_MEMBER_SIZE);
-        info->packages[i]->requirements_records = (size_t) atoi(parts[5]);
+        info->packages[i]->requirements_records = strtoul(parts[5], NULL, 10);
 
         info->packages[i]->requirements = NULL;
         if (strncmp(parts[6], SPM_MANIFEST_NODATA, strlen(SPM_MANIFEST_NODATA)) != 0) {
