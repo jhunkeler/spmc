@@ -210,24 +210,3 @@ ConfigItem *config_get(ConfigItem **item, const char *key) {
     }
     return NULL;
 }
-
-void config_test(void) {
-    ConfigItem **config = config_read("program.conf");
-    printf("Data Parsed:\n");
-    for (int i = 0; config[i] != NULL; i++) {
-        printf("key: '%s', value: '%s'\n", config[i]->key, config[i]->value);
-    }
-
-    printf("Testing config_get():\n");
-    ConfigItem *cptr = NULL;
-    if ((cptr = config_get(config, "integer_value"))) {
-        printf("%s = %d\n", cptr->key, atoi(cptr->value));
-    }
-    if ((cptr = config_get(config, "float_value"))) {
-        printf("%s = %.3f\n", cptr->key, atof(cptr->value));
-    }
-    if ((cptr = config_get(config, "string_value"))) {
-        printf("%s = %s\n", cptr->key, cptr->value);
-    }
-    config_free(config);
-}

@@ -427,8 +427,8 @@ static int _strsort_numeric_compare(const void *a, const void *b) {
     const char *bb = *(const char **)b;
 
     if (isdigit(*aa) && isdigit(*bb)) {
-        int ia = atoi(aa);
-        int ib = atoi(bb);
+        long ia = strtol(aa, NULL, 10);
+        long ib = strtol(bb, NULL, 10);
 
         if (ia == ib) {
             return 0;
